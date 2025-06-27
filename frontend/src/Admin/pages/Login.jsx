@@ -34,7 +34,7 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post(`${process.env.REACT_BASE}/api/auth/login`, {
+      const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
         email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
         password: form.password,
       });
@@ -60,7 +60,7 @@ const Login = () => {
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/google", {
+        const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/google`, {
           code: codeResponse.code,
         });
 

@@ -51,7 +51,7 @@ const SignUp = () => {
     try {
       setLoading(true);
       const res = await axios.post(
-        `${process.env.REACT_BASE}/api/auth/signup `,
+        `${process.env.REACT_APP_API_BASE}/api/auth/signup `,
         form
       );
       toast.success("Account created successfully!");
@@ -79,7 +79,7 @@ const SignUp = () => {
 
     try {
       const res = await axios.post(
-        `${process.env.REACT_BASE}/api/auth/google/details`,
+        `${process.env.REACT_APP_API_BASE}/api/auth/google/details`,
         {
           ...googleUser,
           ...extra,
@@ -106,7 +106,7 @@ const SignUp = () => {
   const googleLogin = useGoogleLogin({
     onSuccess: async (codeResponse) => {
       try {
-        const res = await axios.post(`${process.env.REACT_BASE}/api/auth/google`, {
+        const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/google`, {
           code: codeResponse.code,
         });
 
