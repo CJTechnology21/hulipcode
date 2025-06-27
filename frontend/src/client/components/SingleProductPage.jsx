@@ -31,14 +31,14 @@ function SingleProductPage() {
 
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/products/${id}`);
+        const res = await fetch(`{process.env.REACT_APP_API_BASE}/api/products/${id}`);
         if (!res.ok) throw new Error("Product not found");
         const data = await res.json();
         setProduct(data);
 
         // Optional: fetch related products
         const relRes = await fetch(
-          `http://localhost:5000/api/products?category=${data.category}`
+          `${process.env.REACT_APP_API_BASE}/api/products?category=${data.category}`
         );
         const relData = await relRes.json();
         setRelatedProducts(
@@ -94,7 +94,7 @@ function SingleProductPage() {
 
     try {
       setTimeout(async () => {
-        await fetch("http://localhost:5000/api/cart", {
+        await fetch(`{process.env.REACT_APP_API_BASE}/api/cart`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -127,7 +127,7 @@ function SingleProductPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/favourites", {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE}/api/favourites`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
