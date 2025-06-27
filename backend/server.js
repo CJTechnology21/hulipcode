@@ -23,7 +23,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'https://first-task-alpha.vercel.app/',
+  origin: 'https://first-task-alpha.vercel.app',
   credentials: true,
 }));
 app.use(express.json());
