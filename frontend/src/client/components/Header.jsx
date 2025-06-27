@@ -143,6 +143,12 @@ function Header() {
                   </span>
                 )}
               </div>
+              <button
+              className="bg-red-500 text-white px-4 py-1 rounded-md text-sm"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
             </div>
           </div>
         )}
