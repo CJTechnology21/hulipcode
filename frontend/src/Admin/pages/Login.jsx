@@ -34,7 +34,7 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${process.env.REACT_BASE}/api/auth/login`, {
         email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
         password: form.password,
       });
