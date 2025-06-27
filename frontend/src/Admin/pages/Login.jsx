@@ -42,6 +42,7 @@ const Login = () => {
       toast.success("Login successful");
       localStorage.setItem("crm_token", res.data.token);
       localStorage.setItem("crm_user_id", res.data.user.id);
+      localStorage.setItem("crm_role",res.data.user.role);
       if (res.data.user?.role === "vendor") {
         navigate("/vendordashboard");
       } else if (res.data.user?.role === "architect") {

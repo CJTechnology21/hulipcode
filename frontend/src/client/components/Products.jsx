@@ -8,28 +8,11 @@ function Products() {
   const [isVendor, setIsVendor] = useState(false);
 
   // Fetch user role
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const token = localStorage.getItem("crm_token");
-      if (!token) return;
-
-      try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/auth/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const { role } = res.data.user;
-        if (role === "vendor") {
-          setIsVendor(true);
-        }
-      } catch (err) {
-        console.error("Failed to fetch user role:", err);
-      }
-    };
-
-    fetchUserRole();
+   useEffect(() => {
+    const role = localStorage.getItem("crm_role");
+    if (role === "vendor") {
+      setIsVendor(true);
+    }
   }, []);
 
   // Fetch products
