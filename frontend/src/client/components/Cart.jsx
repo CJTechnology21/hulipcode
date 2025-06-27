@@ -26,7 +26,7 @@ const Cart = ({ isOpen, onClose }) => {
         if (!token) return;
 
         try {
-          const res = await axios.get("http://localhost:5000/api/cart", {
+          const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/cart`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -51,7 +51,7 @@ const Cart = ({ isOpen, onClose }) => {
 
     try {
       const token = localStorage.getItem("crm_token");
-      await axios.delete(`http://localhost:5000/api/cart/${id}`, {
+      await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

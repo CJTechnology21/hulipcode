@@ -21,7 +21,7 @@ function CheckOrders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/orders/vendor-orders", {
+        const res = await axios.get(`{process.env.REACT_APP_API_BASE}/api/orders/vendor-orders`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -55,7 +55,7 @@ function CheckOrders() {
 
     try {
       await axios.put(
-        `http://localhost:5000/api/orders/${orderId}/status`,
+        `${process.env.REACT_APP_API_BASE}/api/orders/${orderId}/status`,
         { status: newStatus },
         {
           headers: { Authorization: `Bearer ${token}` },

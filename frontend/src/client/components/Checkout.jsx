@@ -30,7 +30,7 @@ function Checkout() {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/cart", {
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/cart`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCartItems(res.data);
@@ -91,7 +91,7 @@ function Checkout() {
       };
 
       const response = await axios.post(
-        "http://localhost:5000/api/orders",
+        `${process.env.REACT_APP_API_BASE}/api/orders`,
         orderData,
         {
           headers: {
@@ -103,7 +103,7 @@ function Checkout() {
 
       toast.success(`✅ Order placed by ${placedOrder.buyer.name}`);
 
-      await axios.delete("http://localhost:5000/api/cart/clear", {
+      await axios.delete( `${process.env.REACT_APP_API_BASE}/api/cart/clear`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

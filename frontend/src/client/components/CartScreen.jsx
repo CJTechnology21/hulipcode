@@ -19,7 +19,7 @@ function CartScreen() {
 
   const handleRemove = async (productId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/cart/${productId}`, {
+      await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       dispatch(removeFromCart(productId));
@@ -32,7 +32,7 @@ function CartScreen() {
     const updatedQty = item.quantity + 1;
     try {
       await axios.put(
-        `http://localhost:5000/api/cart/${item._id}`,
+        `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
         { quantity: updatedQty },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -47,7 +47,7 @@ function CartScreen() {
     const updatedQty = item.quantity - 1;
     try {
       await axios.put(
-        `http://localhost:5000/api/cart/${item._id}`,
+        `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
         { quantity: updatedQty },
         { headers: { Authorization: `Bearer ${token}` } }
       );

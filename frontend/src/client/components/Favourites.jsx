@@ -16,7 +16,7 @@ function Favourites() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/api/favourites", {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE}/api/favourites `, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

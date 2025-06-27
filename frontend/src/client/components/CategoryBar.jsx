@@ -86,39 +86,3 @@ function CategoryBar() {
 }
 
 export default CategoryBar;
-
-// // CategoryBar.jsx
-// import React from "react";
-// import { Link } from "react-router-dom";
-
-// const categories = [
-//   "Kitchen",
-//   "Living Room",
-//   "Child Bedroom",
-//   "Balcony",
-//   "Louvers & Panels",
-//   "Bathroom",
-//   "Wallpaper",
-//   "Outdoor",
-//   "TV Unit",
-// ];
-
-// function CategoryBar() {
-//   return (
-//     <div className="w-full border-t border-b py-2 overflow-x-auto bg-white">
-//       <div className="flex justify-center gap-6 px-4 text-sm whitespace-nowrap">
-//         {categories.map((cat) => (
-//           <Link
-//             to={`/category/${cat}`}
-//             key={cat}
-//             className="hover:text-blue-600 font-medium"
-//           >
-//             {cat}
-//           </Link>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default CategoryBar;

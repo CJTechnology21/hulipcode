@@ -17,7 +17,7 @@ function ProductCard({ product }) {
     product.images?.[0]?.startsWith("http") ||
     product.images?.[0]?.startsWith("/")
       ? product.images[0]
-      : `http://localhost:5000/${product.images?.[0]}`;
+      : `${process.env.REACT_APP_API_BASE}/${product.images?.[0]}`;
 
   let userRole = null;
   let token = null;
@@ -56,7 +56,7 @@ function ProductCard({ product }) {
     try {
       setTimeout(async () => {
         await axios.post(
-          "http://localhost:5000/api/cart",
+          `${process.env.REACT_APP_API_BASE}/api/cart`,
           {
             items: [
               ...cartItems,
@@ -87,7 +87,7 @@ useEffect(() => {
     if (!token) return;
 
     try {
-      const res = await axios.get("http://localhost:5000/api/favourites", {
+      const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/favourites`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -135,7 +135,7 @@ useEffect(() => {
     try {
       if (isFavourite) {
         await axios.delete(
-          `http://localhost:5000/api/favourites/${product._id}`,
+          `${process.env.REACT_APP_API_BASE}/api/favourites/${product._id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ useEffect(() => {
         toast.info(`${product.name} removed from favourites`);
       } else {
         await axios.post(
-          "http://localhost:5000/api/favourites",
+          `${process.env.REACT_APP_API_BASE}/api/favourites`,
           { productId: product._id },
           {
             headers: {
