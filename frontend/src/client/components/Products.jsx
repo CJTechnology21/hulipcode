@@ -7,9 +7,9 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [isVendor, setIsVendor] = useState(false);
 
-  // Check if user is vendor
+  // Fetch user role
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserRole = async () => {
       const token = localStorage.getItem("crm_token");
       if (!token) return;
 
@@ -20,16 +20,16 @@ function Products() {
           },
         });
 
-        const { user } = res.data;
-        if (user?.role === "vendor") {
+        const { role } = res.data.user;
+        if (role === "vendor") {
           setIsVendor(true);
         }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+      } catch (err) {
+        console.error("Failed to fetch user role:", err);
       }
     };
 
-    fetchUser();
+    fetchUserRole();
   }, []);
 
   // Fetch products
