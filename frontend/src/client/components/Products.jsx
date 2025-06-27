@@ -10,7 +10,7 @@ function Products() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_BASE}/api/products`); // Adjust base URL as needed
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/products`); // Adjust base URL as needed
         setProducts(res.data);
         setLoading(false);
       } catch (err) {
