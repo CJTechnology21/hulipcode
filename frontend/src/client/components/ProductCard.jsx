@@ -17,8 +17,9 @@ function ProductCard({ product }) {
     product.images?.[0]?.startsWith("http") ||
     product.images?.[0]?.startsWith("/")
       ? product.images[0]
-      : `${process.env.REACT_APP_API_BASE}/${product.images?.[0]}`;
-
+      : product.images?.[0]
+      ? `${process.env.REACT_APP_API_BASE}/${product.images[0]}`
+      : "/images/subcategories/placeholder.png";
   let userRole = null;
   let token = null;
 
@@ -48,8 +49,7 @@ function ProductCard({ product }) {
         name: product.name,
         price,
         image: imageUrl,
-        vendor: product.vendor, 
-
+        vendor: product.vendor,
       })
     );
 
@@ -66,7 +66,7 @@ function ProductCard({ product }) {
                 price,
                 image: imageUrl,
                 quantity: 1,
-                vendor:product.vendor,
+                vendor: product.vendor,
               },
             ],
           },
@@ -81,48 +81,35 @@ function ProductCard({ product }) {
       toast.error("Could not save cart to server");
     }
   };
-useEffect(() => {
-  const fetchFavourites = async () => {
-    const token = localStorage.getItem("crm_token");
-    if (!token) return;
+  useEffect(() => {
+    const fetchFavourites = async () => {
+      const token = localStorage.getItem("crm_token");
+      if (!token) return;
 
-    try {
-      const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/favourites`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE}/api/favourites`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      const found = res.data?.some((fav) => fav.productId?._id === product._id);
-      setIsFavourite(found);
-    } catch (err) {
-      console.error("🔴 Error fetching favourites:", err.response?.data || err.message);
-    }
-  };
+        const found = res.data?.some(
+          (fav) => fav.productId?._id === product._id
+        );
+        setIsFavourite(found);
+      } catch (err) {
+        console.error(
+          "🔴 Error fetching favourites:",
+          err.response?.data || err.message
+        );
+      }
+    };
 
-  fetchFavourites();
-}, [product._id]);
-
-  // const fetchFavourites = async () => {
-  //   if (!token) return;
-
-  //   try {
-  //     const res = await axios.get("http://localhost:5000/api/favourites", {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
-
-  //     const found = res.data?.some((fav) => fav.productId?._id === product._id);
-  //     setIsFavourite(found);
-  //   } catch (err) {
-  //     console.error("🔴 Error checking favourites:", err);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   fetchFavourites();
-  // }, [token, product._id]);
+    fetchFavourites();
+  }, [product._id]);
 
   const handleToggleFavourite = async (e) => {
     e.preventDefault();

@@ -9,21 +9,21 @@ const premiumServices = [
       "https://5.imimg.com/data5/SELLER/Default/2024/4/411416852/JV/KJ/OE/34739903/u-shaped-modular-kitchen-design.jpg",
   },
   {
-    name: "Living Room",
+    name: "Laminates",
     image: "https://i.ytimg.com/vi/WFZPoa_Pg0w/mqdefault.jpg",
   },
   {
-    name: "Child Bedroom",
+    name: "Wardrobe",
     image:
-      "https://hips.hearstapps.com/hmg-prod/images/kids-rooms-ideas-hbx040122inspoopener-013-1649366709.jpg?crop=0.835xw:1.00xh;0.0629xw,0&resize=980:*",
+      "https://shop.gkwretail.com/cdn/shop/products/AlmirahModernWardrobeWith4Shelves.jpg?v=1649064644",
   },
   {
-    name: "Balcony",
+    name: "Flooring",
     image:
-      "https://media.designcafe.com/wp-content/uploads/2020/08/29114351/options-for-seating-in-balcony-interior-design-768x461.jpg",
+      "https://www.mikasafloors.com/blog/wp-content/uploads/2023/08/Redefine-Your-Living-Space-with-Oak-Engineered-Wood-Flooring.jpg",
   },
   {
-    name: "Louvers & Panels",
+    name: "LouversandPanels",
     image:
       "https://pareindia.com/wp-content/uploads/2024/12/Louvers-Armani-Grey.jpg",
   },
@@ -42,15 +42,14 @@ const premiumServices = [
       "https://images.woodenstreet.de/image/data/outdoor-set/milano/set-of-4/12.jpg",
   },
   {
-    name: "TV Unit",
+    name: "TVUnit",
     image:
       "https://images.jdmagicbox.com/quickquotes/images_main/tv-unit-2220422994-2ckrvgp2.jpg",
   },
 ];
-
 function SuggestionCategory() {
   return (
-    <div className="w-full py-8 bg-[#f9fafb]">
+    <div className="w-full py-8 bg-[#f9fafb] z-50">
       <div className="max-w-6xl mx-auto px-4">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center">
           Our Premium Services

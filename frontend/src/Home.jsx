@@ -1,4 +1,4 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import left_image from "../src/Admin/images/home_left.png";
 // import left_image from "../images/home_left.png";
 import right_image from "../src/Admin/images/home_right.png";
@@ -24,6 +24,8 @@ import {
   FaYoutube,
   FaApple,
   FaAndroid,
+  FaBars,
+  FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import CategoryBar from "../src/client/components/CategoryBar";
@@ -43,7 +45,7 @@ function Home() {
 
   const handleLogout = () => {
     localStorage.removeItem("crm_token");
-    dispatch(clearCart)
+    dispatch(clearCart);
     setIsLoggedIn(false);
     navigate("/login");
   };
@@ -51,7 +53,7 @@ function Home() {
   return (
     <div className="bg-white min-h-screen font-montreal">
       {/* Header */}
-      <header className="flex justify-between items-center px-6 py-6 shadow-sm relative">
+      <header className="flex justify-between items-center px-6 py-6 shadow-sm relative z-50 ">
         <div>
           <img className="h-10 w-20" src={logo} alt="" />
         </div>
@@ -69,7 +71,7 @@ function Home() {
           className="md:hidden text-2xl"
           onClick={() => setMenuOpen(!menuOpen)}
         >
-          ☰
+          {menuOpen ? <FaTimes /> : <FaBars />}
         </button>
 
         {/* Auth + Search */}
@@ -107,7 +109,7 @@ function Home() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-md py-4 px-6 flex flex-col gap-4 md:hidden z-10">
+          <div className="absolute top-full left-0 w-full bg-white shadow-md py-4 px-6 flex flex-col gap-4 md:hidden z-30">
             <a href="/ecom">Ecom</a>
             <a href="/architectdashboard">Architect Dashboard</a>
             <a href="/vendordashboard">Vendor Dashboard</a>

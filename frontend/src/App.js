@@ -72,6 +72,7 @@ import AuthRedirect from "./Admin/components/AuthRedirect";
 import Checkout from "./client/components/Checkout";
 import CheckOrders from "./client/components/CheckOrders";
 import SubscriptionVendor from "./client/components/SubscribeVendor";
+import SubcategoryPage from "./client/components/SubCategoryPage";
 
 function App() {
   return (
@@ -151,7 +152,10 @@ function App() {
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
          <Route path="/checkorders" element={<CheckOrders />} />
-        
+         <Route
+          path="/:categoryName/:subcategorySlug"
+          element={<SubcategoryPage />}
+        />
       </Routes>
     </Router>
   );
