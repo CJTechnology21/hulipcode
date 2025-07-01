@@ -73,13 +73,14 @@ import Checkout from "./client/components/Checkout";
 import CheckOrders from "./client/components/CheckOrders";
 import SubscriptionVendor from "./client/components/SubscribeVendor";
 import SubcategoryPage from "./client/components/SubCategoryPage";
+import InspirationDetail from "./Admin/components/Homecomponents/InspirationDetail";
 
 function App() {
   return (
 
     <Router>
       <ToastContainer />
-      <SubscriptionVendor/>
+      <SubscriptionVendor />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<AuthRedirect>
@@ -151,11 +152,12 @@ function App() {
         <Route path="/product/:id" element={<SingleProductPage />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
-         <Route path="/checkorders" element={<CheckOrders />} />
-         <Route
+        <Route path="/checkorders" element={<CheckOrders />} />
+        <Route
           path="/:categoryName/:subcategorySlug"
           element={<SubcategoryPage />}
         />
+        <Route path="/inspiration/:category" element={<InspirationDetail />} />
       </Routes>
     </Router>
   );

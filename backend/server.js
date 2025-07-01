@@ -10,6 +10,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const subscribeRoutes = require('./routes/subscribeRoutes');
 const configRoutes = require('./routes/configRoutes');
 const pushRoutes = require("./routes/push");
+const locationRoutes = require('./routes/location')
 const cors = require('cors');
 
 // Load environment variables
@@ -50,6 +51,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/subscribe', subscribeRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/location',locationRoutes)
 
 // Fallback route (optional)
 app.get('/', (req, res) => {

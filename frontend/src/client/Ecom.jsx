@@ -6,18 +6,28 @@ import Products from "./components/Products";
 import Carousel from "./components/Carousel";
 import ImageGrid from "./components/ImageGrid";
 import Footer from "./components/Footer";
+import CategoryBar from "./components/CategoryBar";
+import SuggestionCategory from "../Admin/components/SuggestionCategory";
+import EliteSection from "../Admin/components/Homecomponents/EliteSection";
+import InspirationGallery from "../Admin/components/Homecomponents/InspirationGallery";
+import Reviews from '../Admin/components/Homecomponents/Reviews'
 const Ecom = () => {
   return (
     <div className="font-[Poppins] space-y-6">
       {/* Header */}
       <Header />
+      <CategoryBar/>
       <Hero />
+      <SuggestionCategory/>
+      <InspirationGallery/>
       <Browse />
+      <EliteSection/>
       <h2 className="text-2xl md:text-3xl font-semibold flex text-center justify-center items-center">
         Our Products
       </h2>
       <Products />
       <Carousel />
+      <Reviews/>
       <ImageGrid />
       <Footer />
     </div>

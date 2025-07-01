@@ -4,16 +4,33 @@ const Product = require('../models/Product');
 // @route   GET /api/products
 const getAllProducts = async (req, res) => {
   try {
-    const { category } = req.query;
-    const filter = category ? { category } : {};
+    const { category, subCategorySlug } = req.query;
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    const filter = {};
+    if (category) filter.category = category;
+    if (subCategorySlug) filter.subCategorySlug = subCategorySlug.toLowerCase();
+
+    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+
     res.status(200).json(products);
   } catch (err) {
     console.error('Error fetching products:', err);
     res.status(500).json({ message: 'Failed to fetch products' });
   }
 };
+
+// const getAllProducts = async (req, res) => {
+//   try {
+//     const { category } = req.query;
+//     const filter = category ? { category } : {};
+
+//     const products = await Product.find(filter).sort({ createdAt: -1 });
+//     res.status(200).json(products);
+//   } catch (err) {
+//     console.error('Error fetching products:', err);
+//     res.status(500).json({ message: 'Failed to fetch products' });
+//   }
+// };
 
 // @desc    Get single product by ID
 // @route   GET /api/products/:id
@@ -35,7 +52,7 @@ const getProductById = async (req, res) => {
 // @route   POST /api/products
 const createProduct = async (req, res) => {
   try {
-    const { name, description, images, price, category, brand, inStock, countInStock, ratings, numReviews, isFeatured } = req.body;
+    const { name, description, images, price, category, subCategory, brand, inStock, countInStock, ratings, numReviews, isFeatured } = req.body;
 
     // ✅ Check if user is a vendor
     if (!req.user || req.user.role !== 'vendor') {
@@ -52,6 +69,7 @@ const createProduct = async (req, res) => {
       images,
       price,
       category,
+      subCategory,
       brand,
       inStock,
       countInStock,
