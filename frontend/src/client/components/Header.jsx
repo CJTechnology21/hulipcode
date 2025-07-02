@@ -183,7 +183,9 @@ function Header() {
               <FiFilter /> FILTER
             </button>
           </div>
+             
         </div>
+        
       )}
 
       {/* Sort Modal */}

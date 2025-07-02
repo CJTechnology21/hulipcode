@@ -2,17 +2,19 @@
 const subcategoriesMap = {
   Kitchen: {
     "Cabinet Finishes": [
-     {
-      name:"1mm Decorative laminates",
-      image:"/images/subcategories/1mm.jpeg"
-     },
+      {
+        name: "1mm Decorative laminates",
+        image: "/images/subcategories/1mm.jpeg"
+      },
       "Wood Look Laminates",
       "Acrylic Laminates",
       "Solid Color Laminates",
       "Edge Banding",
       "Liner Laminates",
-      "Fabric Laminates",
-      "Marble Look Laminates",
+      {
+        name: "Fabric Laminates",
+        image: "https://5.imimg.com/data5/FQ/FP/VM/SELLER-66939695/fabric-laminate-sheet.jpg"
+      }, "Marble Look Laminates",
       "Wood Veneers",
     ],
     Countertops: ["Quartz Countertops", "Vitrified Slabs", "Corian"],
@@ -49,7 +51,10 @@ const subcategoriesMap = {
       "Acrylic Laminates",
       "Liner Laminates",
       "Edgebands",
-      "HPL Sheets",
+      {
+        name: "HPL Sheets",
+        image: "https://5.imimg.com/data5/SELLER/Default/2023/2/OH/WD/PL/3487402/hpl-sheet-high-pressure-laminate-sheet.jpg",
+      },
       "PVC Laminates",
       "Corian",
     ],
@@ -61,7 +66,10 @@ const subcategoriesMap = {
       "Marble & Stone Laminates",
       "Fabric Laminates",
       "Leather Laminates",
-      "Metallic Laminates",
+      {
+        name: "Metallic Laminates",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrtlki55WSFnArefbEf6b4CM17WdS8KgeeWw&s"
+      },
       "Fluted Laminates",
       "Patterned Laminates",
       "Rustic Look",
@@ -98,7 +106,11 @@ const subcategoriesMap = {
       "Acrylic Laminates",
       "Solid Colour Laminates",
       "Marble Look Laminates",
-      "Engraved Acrylic Panels",
+      {
+        name: "Engraved Acrylic Panels",
+        image: "https://d68pxkftt5390.cloudfront.net/image/e6c6306c-7a55-412a-bcd9-aac20cc4f2f9.png"
+      },
+
       "Fluted Laminates",
       "Leather Laminates",
       "Wood Look Laminates",
@@ -110,7 +122,10 @@ const subcategoriesMap = {
     ],
     "Wardrobe Cabinetry": [
       "Plywood",
-      "Blockboard",
+      {
+        name: "Blockboard",
+        image: "https://artechpro.com/media/catalog/product/cache/1caa554d4ef407fe569c81ce13f2a21c/1/4/1442B-NP_3.jpg"
+      },
       "MDF",
       "HDF",
       "HDHMR",
@@ -130,7 +145,10 @@ const subcategoriesMap = {
   },
   Flooring: {
     "Shop by Application": [
-      "Wall Tiles",
+      {
+        name: "Wall Tiles",
+        image: "https://d91ztqmtx7u1k.cloudfront.net/ClientContent/Images/Medium/20220202085823-24843056-a450-4171-b09e-ace9651c9d00.jpg"
+      },
       "Floor Tiles",
       "Bedroom Tiles",
       "Living Room Tiles",
@@ -142,7 +160,10 @@ const subcategoriesMap = {
     "Wooden Flooring": [
       "Laminate Wood Floor",
       "SPC Floor",
-      "Vinyl Floor",
+      {
+        name: "Vinyl Floor",
+        image: "https://images-cdn.ubuy.co.in/633ae0c05182be040d68c306-livelynine-reclaimed-wood-vinyl-flooring.jpg"
+      },
       "Solid Wood Floor",
       "Engineered Wood Floor",
     ],
@@ -226,9 +247,15 @@ const subcategoriesMap = {
       "HDF Panels",
     ],
     "Shop by Colour": [
-      "White Panels",
+      {
+        name: "White Panels",
+        image: "https://images.jdmagicbox.com/quickquotes/images_main/pvc-louvers-wall-panel-white-5-10-mm-2226610806-itjko6az.jpg"
+      },
       "Beige Panels",
-      "Blue Panels",
+      {
+        name: "Blue Panels",
+        image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFoNEdJ1iVh8NkKsQV0uoJMpYT95-O-Cs6tQ&s"
+      },
       "Grey Panels",
       "Brown Panels",
       "Yellow Panels",
@@ -239,10 +266,17 @@ const subcategoriesMap = {
   Bathroom: {
     "Shop by Type": [
       "Vanity Units",
-      "Bathroom Cabinets",
+      {
+        name: "Bathroom Cabinets",
+        image: 'https://m.media-amazon.com/images/I/716e4MRHJIL._UF350,350_QL80_.jpg',
+      },
       "Mirror Cabinets",
       "Countertops",
-      "Shower Panels",
+      {
+        name: "Shower Panels",
+        image: 'https://www.jaquar.com/images/thumbs/0032808_curve-neo_300.jpeg'
+      },
+
       "Wall Panels",
       "Storage Units",
     ],
@@ -269,9 +303,14 @@ const subcategoriesMap = {
   Wallpaper: {
     "Shop by Type": [
       "Browse All",
-      "3D Wallpapers",
+      {
+        name: "3D Wallpapers",
+        image: "https://img2.exportersindia.com/product_images/bc-full/2023/9/3466624/matte-white-and-blue-3d-designer-wallpaper-1684823680-6906235.jpeg"
+      },
       "Textured Wallpapers",
-      "Kids Wallpapers",
+      {name:"Kids Wallpapers",
+        image:"https://4.imimg.com/data4/LJ/EQ/MY-8271179/kids-wallpapers.jpg",
+      },
       "Floral Wallpapers",
       "Geometric Wallpapers",
       "Nature Wallpapers",

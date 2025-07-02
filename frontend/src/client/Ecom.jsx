@@ -25,7 +25,7 @@ const Ecom = () => {
       <h2 className="text-2xl md:text-3xl font-semibold flex text-center justify-center items-center">
         Our Products
       </h2>
-      <Products />
+      {/* <Products /> */}
       <Carousel />
       <Reviews/>
       <ImageGrid />

@@ -31,7 +31,10 @@ function SingleProductPage() {
 
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`{process.env.REACT_APP_API_BASE}/api/products/${id}`);
+        const res = await fetch(
+          `${process.env.REACT_APP_API_BASE}/api/products/${id}`
+        );
+
         if (!res.ok) throw new Error("Product not found");
         const data = await res.json();
         setProduct(data);
@@ -127,14 +130,17 @@ function SingleProductPage() {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_BASE}/api/favourites`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId: product._id }),
-      });
+      const res = await fetch(
+        `${process.env.REACT_APP_API_BASE}/api/favourites`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId: product._id }),
+        }
+      );
 
       if (!res.ok) {
         const data = await res.json();

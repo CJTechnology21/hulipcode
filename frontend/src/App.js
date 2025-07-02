@@ -74,6 +74,7 @@ import CheckOrders from "./client/components/CheckOrders";
 import SubscriptionVendor from "./client/components/SubscribeVendor";
 import SubcategoryPage from "./client/components/SubCategoryPage";
 import InspirationDetail from "./Admin/components/Homecomponents/InspirationDetail";
+import AddProduct from "./client/components/AddNewProduct";
 
 function App() {
   return (
@@ -150,6 +151,7 @@ function App() {
         <Route path='/favourites' element={<Favourites />} />
         <Route path='/cart' element={<Cart />} />
         <Route path="/product/:id" element={<SingleProductPage />} />
+       < Route path="/addproduct" element={<AddProduct />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkorders" element={<CheckOrders />} />

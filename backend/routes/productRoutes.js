@@ -16,7 +16,7 @@ router.get('/:id', getProductById);
 router.post('/',protect, createProduct);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
-router.post('/bulk', bulkCreateProducts);
+router.post('/bulk', protect, bulkCreateProducts);
 
 module.exports = router;
 

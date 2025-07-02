@@ -193,6 +193,8 @@ function ProductCard({ product }) {
         <div className="p-4 bg-white space-y-1">
           <h4 className="font-semibold">{product.name}</h4>
           <p className="text-gray-500 text-sm">{product.category}</p>
+          
+          {/* <p className="text-gray-500 text-sm">{product.subCategory}</p> */}
           <p className="text-gray-500 text-sm">
             {" "}
             Vendor Name: {product.vendorName}
