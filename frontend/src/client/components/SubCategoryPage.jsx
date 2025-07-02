@@ -25,7 +25,8 @@ function SubcategoryPage() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        let query = `${process.env.REACT_APP_API_BASE}/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
+        const cleanSubCategorySlug = readableSubcategory.replace(/:\d+$/, "");
+        let query = `${process.env.REACT_APP_API_BASE}/api/products?category=${categoryName}&subCategorySlug=${cleanSubCategorySlug}`;
 
         // let query = `http://localhost:5000/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
 
@@ -53,7 +54,14 @@ function SubcategoryPage() {
     };
 
     fetchProducts();
-  }, [categoryName, subcategorySlug, colorFilters, finishFilters, thicknessFilters, sizeFilters]);
+  }, [
+    categoryName,
+    subcategorySlug,
+    colorFilters,
+    finishFilters,
+    thicknessFilters,
+    sizeFilters,
+  ]);
 
   const handleCheckboxChange = (value, setter, currentState) => {
     if (currentState.includes(value)) {
@@ -72,9 +80,20 @@ function SubcategoryPage() {
 
       <div className="bg-gray-100 px-4 py-2 text-sm">
         <div className="max-w-7xl mx-auto">
-          <Link to="/" className="text-gray-600 hover:underline">Home</Link> /{" "}
-          <Link to={`/category/${categoryName}`} className="text-gray-600 hover:underline">{categoryName}</Link> /{" "}
-          <span className="font-medium text-black capitalize">{readableSubcategory}</span>
+          <Link to="/" className="text-gray-600 hover:underline">
+            Home
+          </Link>{" "}
+          /{" "}
+          <Link
+            to={`/category/${categoryName}`}
+            className="text-gray-600 hover:underline"
+          >
+            {categoryName}
+          </Link>{" "}
+          /{" "}
+          <span className="font-medium text-black capitalize">
+            {readableSubcategory}
+          </span>
         </div>
       </div>
 
@@ -85,22 +104,43 @@ function SubcategoryPage() {
           <div className="mb-6">
             <h3 className="font-medium mb-2">Price</h3>
             <div className="flex gap-2">
-              <input type="number" placeholder="Min" className="w-full border px-2 py-1 rounded" />
-              <input type="number" placeholder="Max" className="w-full border px-2 py-1 rounded" />
+              <input
+                type="number"
+                placeholder="Min"
+                className="w-full border px-2 py-1 rounded"
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                className="w-full border px-2 py-1 rounded"
+              />
             </div>
-            <button className="w-full mt-2 bg-black text-white py-1 rounded text-sm">Go</button>
+            <button className="w-full mt-2 bg-black text-white py-1 rounded text-sm">
+              Go
+            </button>
           </div>
 
           <CategoryFilters />
 
           <div className="mb-6">
             <h3 className="font-medium mb-2">Series Name</h3>
-            <input type="text" placeholder="Search" className="w-full border px-2 py-1 rounded mb-2" />
-            <label className="block"><input type="checkbox" className="mr-2" /> Cane Textures (8)</label>
-            <label className="block"><input type="checkbox" className="mr-2" /> Matte Finish (4)</label>
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full border px-2 py-1 rounded mb-2"
+            />
+            <label className="block">
+              <input type="checkbox" className="mr-2" /> Cane Textures (8)
+            </label>
+            <label className="block">
+              <input type="checkbox" className="mr-2" /> Matte Finish (4)
+            </label>
           </div>
 
-          <ColorFilter selectedColors={colorFilters} onColorChange={setColorFilters} />
+          <ColorFilter
+            selectedColors={colorFilters}
+            onColorChange={setColorFilters}
+          />
 
           <div className="mb-6">
             <h3 className="font-medium mb-2">Approx Size</h3>
@@ -110,7 +150,9 @@ function SubcategoryPage() {
                   type="checkbox"
                   className="mr-2"
                   checked={sizeFilters.includes(size)}
-                  onChange={() => handleCheckboxChange(size, setSizeFilters, sizeFilters)}
+                  onChange={() =>
+                    handleCheckboxChange(size, setSizeFilters, sizeFilters)
+                  }
                 />
                 {size}
               </label>
@@ -125,7 +167,13 @@ function SubcategoryPage() {
                   type="checkbox"
                   className="mr-2"
                   checked={finishFilters.includes(finish)}
-                  onChange={() => handleCheckboxChange(finish, setFinishFilters, finishFilters)}
+                  onChange={() =>
+                    handleCheckboxChange(
+                      finish,
+                      setFinishFilters,
+                      finishFilters
+                    )
+                  }
                 />
                 {finish}
               </label>
@@ -140,7 +188,13 @@ function SubcategoryPage() {
                   type="checkbox"
                   className="mr-2"
                   checked={thicknessFilters.includes(thickness)}
-                  onChange={() => handleCheckboxChange(thickness, setThicknessFilters, thicknessFilters)}
+                  onChange={() =>
+                    handleCheckboxChange(
+                      thickness,
+                      setThicknessFilters,
+                      thicknessFilters
+                    )
+                  }
                 />
                 {thickness}
               </label>
@@ -150,7 +204,9 @@ function SubcategoryPage() {
 
         <main className="w-full lg:w-3/4">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl font-bold capitalize">{readableSubcategory}</h1>
+            <h1 className="text-xl font-bold capitalize">
+              {readableSubcategory}
+            </h1>
             <div className="flex items-center gap-2 text-sm">
               <span>Sort By:</span>
               <select
@@ -176,7 +232,9 @@ function SubcategoryPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500">No products found in this category.</p>
+              <p className="text-center text-gray-500">
+                No products found in this category.
+              </p>
             )}
           </section>
         </main>
@@ -187,7 +245,6 @@ function SubcategoryPage() {
 }
 
 export default SubcategoryPage;
-
 
 // import React, { useEffect, useState } from "react";
 // import { useParams, Link } from "react-router-dom";
@@ -307,7 +364,6 @@ export default SubcategoryPage;
 
 //           {/* Color */}
 //           <ColorFilter/>
-
 
 //           {/* Approx Size */}
 //           <div className="mb-6">
