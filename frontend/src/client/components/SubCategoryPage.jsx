@@ -25,8 +25,8 @@ function SubcategoryPage() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const cleanSubCategorySlug = readableSubcategory.replace(/:\d+$/, "");
-        let query = `${process.env.REACT_APP_API_BASE}/api/products?category=${categoryName}&subCategorySlug=${cleanSubCategorySlug}`;
+        // const cleanSubCategorySlug = readableSubcategory.replace(/:\d+$/, "");
+        let query = `${process.env.REACT_APP_API_BASE}/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
 
         // let query = `http://localhost:5000/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
 

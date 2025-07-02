@@ -13,7 +13,7 @@ const getAllProducts = async (req, res) => {
     if (category) {
       filter.category = new RegExp(`^${category}$`, "i");
     }
-c
+
     // ✅ Subcategory
     const subCat = subCategorySlug || subcategory;
     if (subCat) {
