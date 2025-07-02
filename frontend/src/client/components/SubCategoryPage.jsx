@@ -25,7 +25,9 @@ function SubcategoryPage() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        let query = `http://localhost:5000/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
+        let query = `${process.env.REACT_APP_API_BASE}/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
+
+        // let query = `http://localhost:5000/api/products?category=${categoryName}&subCategorySlug=${readableSubcategory}`;
 
         if (colorFilters.length > 0) {
           query += `&color=${colorFilters.join(",")}`;
