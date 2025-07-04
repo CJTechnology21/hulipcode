@@ -10,6 +10,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
+import { requestFirebaseNotificationPermission } from "../../services/firebase"; // adjust path based on your file structure
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,18 +35,42 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
-        email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
-        password: form.password,
-      });
+      // 🔐 Login API call
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_BASE}/api/auth/login`,
+        {
+          email: form.emailOrPhone,
+          password: form.password,
+        }
+      );
+
+      const { user, token } = res.data;
+
+      // ✅ Store auth info
+      localStorage.setItem("crm_token", token);
+      localStorage.setItem("crm_user_id", user.id);
+      localStorage.setItem("crm_role", user.role);
 
       toast.success("Login successful");
-      localStorage.setItem("crm_token", res.data.token);
-      localStorage.setItem("crm_user_id", res.data.user.id);
-      localStorage.setItem("crm_role",res.data.user.role);
-      if (res.data.user?.role === "vendor") {
+
+      // 🚀 Request FCM token & store it if vendor
+      if (user.role === "vendor") {
+        const fcmToken = await requestFirebaseNotificationPermission();
+
+        if (fcmToken) {
+          await fetch("http://localhost:5000/api/vendor/store-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
+          });
+
+          console.log("✅ FCM token stored for vendor.");
+        } else {
+          console.warn("⚠️ FCM token not granted.");
+        }
+
         navigate("/vendordashboard");
-      } else if (res.data.user?.role === "architect") {
+      } else if (user.role === "architect") {
         navigate("/architectdashboard");
       } else {
         navigate("/ecom");
@@ -57,13 +82,50 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // const handleLogin = async (e) => {
+  //   e.preventDefault();
+
+  //   if (!form.emailOrPhone || !form.password) {
+  //     return toast.error("Both fields are required");
+  //   }
+
+  //   try {
+  //     setLoading(true);
+
+  //     const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
+  //       email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
+  //       password: form.password,
+  //     });
+
+  //     toast.success("Login successful");
+  //     localStorage.setItem("crm_token", res.data.token);
+  //     localStorage.setItem("crm_user_id", res.data.user.id);
+  //     localStorage.setItem("crm_role",res.data.user.role);
+  //     if (res.data.user?.role === "vendor") {
+  //       navigate("/vendordashboard");
+  //     } else if (res.data.user?.role === "architect") {
+  //       navigate("/architectdashboard");
+  //     } else {
+  //       navigate("/ecom");
+  //     }
+  //   } catch (err) {
+  //     const message = err?.response?.data?.message || "Login failed";
+  //     toast.error(message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const googleLogin = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
-        const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/google`, {
-          code: codeResponse.code,
-        });
+        const res = await axios.post(
+          `${process.env.REACT_APP_API_BASE}/api/auth/google`,
+          {
+            code: codeResponse.code,
+          }
+        );
 
         toast.success("Signed in with Google!");
         localStorage.setItem("crm_token", res.data.token);

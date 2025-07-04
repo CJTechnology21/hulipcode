@@ -36,34 +36,34 @@ function Home() {
   };
   const [location, setLocation] = useState("Fetching...");
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
+      useEffect(() => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const { latitude, longitude } = position.coords;
 
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-            );
-            const data = await response.json();
-            const city =
-              data.address.city || data.address.town || data.address.village;
-            const postcode = data.address.postcode;
-            setLocation(`${city}, ${postcode}`);
-          } catch (error) {
-            console.error("Error fetching location:", error);
-            setLocation("Location unavailable");
-          }
-        },
-        () => {
-          setLocation("Permission denied");
+              try {
+                const response = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+                );
+                const data = await response.json();
+                const city =
+                  data.address.city || data.address.town || data.address.village;
+                const postcode = data.address.postcode;
+                setLocation(`${city}, ${postcode}`);
+              } catch (error) {
+                console.error("Error fetching location:", error);
+                setLocation("Location unavailable");
+              }
+            },
+            () => {
+              setLocation("Permission denied");
+            }
+          );
+        } else {
+          setLocation("Geolocation not supported");
         }
-      );
-    } else {
-      setLocation("Geolocation not supported");
-    }
-  }, []);
+      }, []);
 
   return (
     <div className="bg-white min-h-screen font-montreal">
@@ -94,8 +94,6 @@ function Home() {
             <a href="/vendordashboard">Vendor Dashboard</a>
             <a href="/lorem">Lorem Ipsum</a>
           </nav>
-
-          {/* Right: Auth Buttons */}
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2">
               <input
@@ -129,9 +127,6 @@ function Home() {
         {/* === Location Bar – Mobile ONLY === */}
         <div className="mt-4 flex justify-between items-center text-sm md:hidden">
           <LocationSelector />
-          {/* <a href="#" className="underline text-sm font-medium text-gray-800">
-            Visit Our Store
-          </a> */}
         </div>
 
         {/* === Mobile Menu (Dropdown) === */}

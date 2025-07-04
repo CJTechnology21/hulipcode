@@ -11,12 +11,12 @@ const createOrder = async (req, res) => {
     const { items, shippingAddress, paymentMethod, totalAmount } = req.body;
 
     if (!items || items.length === 0) {
-      return res.status(400).json({ message: 'No order items provided' });
+      return res.status(400).json({ message: "No order items provided" });
     }
 
     // Normalize vendor IDs
     items.forEach(item => {
-      if (typeof item.vendor === 'string') {
+      if (typeof item.vendor === "string") {
         item.vendor = new mongoose.Types.ObjectId(item.vendor);
       }
     });
@@ -31,24 +31,18 @@ const createOrder = async (req, res) => {
     });
 
     let savedOrder = await newOrder.save();
-    savedOrder = await savedOrder.populate('buyer', 'name email');
+    savedOrder = await savedOrder.populate("buyer", "name email");
 
     // Get unique vendor IDs
     const vendorIds = [...new Set(items.map(item => item.vendor?.toString()))];
 
-    // Fetch subscriptions
-    const subscriptions = await Subscription.find({ vendorId: { $in: vendorIds } });
+    // Fetch all tokens
+    const tokens = await VendorToken.find({ vendorId: { $in: vendorIds } });
 
-    // Loop per vendor to send personalized notifications
     for (const vendorId of vendorIds) {
-      const vendorSub = subscriptions.find(sub => sub.vendorId.toString() === vendorId);
-      if (!vendorSub) continue;
+      const vendorUser = await User.findById(vendorId).select("name");
+      const vendorName = vendorUser?.name || "Vendor";
 
-      // Optional: get vendor's name from DB
-      const vendorUser = await User.findById(vendorId).select('name');
-      const vendorName = vendorUser?.name || 'Vendor';
-
-      // Get items for this vendor
       const vendorItems = items.filter(
         item => item.vendor && item.vendor.toString() === vendorId
       );
@@ -58,33 +52,35 @@ const createOrder = async (req, res) => {
         0
       );
 
-      const payload = JSON.stringify({
-        title: `Hello, ${vendorName}!`,
-        body: `You have received a new order from ${req.user.name}.\nOrder ID: ${savedOrder._id}\nOrder Value: ₹${orderValue}`,
-        icon: '/logo.png',
-        url: `/vendor/orders/${savedOrder._id}`,
-        orderId: savedOrder._id,
-        vendorName,
-      });
+      const title = `Hello, ${vendorName}!`;
+      const body = `You received an order from ${req.user.name}. ID: ${savedOrder._id}, Value: ₹${orderValue}`;
 
-      try {
-        await webpush.sendNotification(vendorSub.subscription, payload);
-      } catch (err) {
-        console.error(`❌ Push failed for vendor ${vendorId}:`, err.message);
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await Subscription.deleteOne({ _id: vendorSub._id });
-          console.log(`🧹 Removed expired subscription for vendor ${vendorId}`);
-        }
-      }
+      const vendorTokens = tokens.filter(
+        t => t.vendorId.toString() === vendorId && !!t.token
+      );
+        for (const tokenDoc of vendorTokens) {
+  try {
+    await sendFCM(
+      tokenDoc.token, // ✅ Corrected
+      `🛒 New Order from ${req.user.name}`,
+      `Order value ₹${orderValue}`,
+      savedOrder._id
+    );
+  } catch (err) {
+    console.error(`❌ FCM failed for vendor ${vendorId}:`, err.message);
+  }
+}
     }
 
-    res.status(201).json({ message: 'Order created', order: savedOrder });
+    res.status(201).json({ message: "Order created", order: savedOrder });
 
   } catch (error) {
-    console.error('Create Order Error:', error);
-    res.status(500).json({ message: 'Failed to create order' });
+    console.error("Create Order Error:", error);
+    res.status(500).json({ message: "Failed to create order" });
   }
 };
+
+
 // const createOrder = async (req, res) => {
 //   try {
 //     const { items, shippingAddress, paymentMethod, totalAmount } = req.body;

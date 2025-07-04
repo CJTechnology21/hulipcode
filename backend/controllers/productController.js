@@ -4,50 +4,202 @@ const Product = require('../models/Product');
 // @route   GET /api/products
 const getAllProducts = async (req, res) => {
   try {
-    const { category, subCategorySlug, subcategory, color, finish, thickness, size } = req.query;
+    const {
+      category,
+      subCategorySlug,
+      subcategory,
+      color,
+      finish,
+      thickness,
+      size,
+      series,
+      baseMaterial,
+      application,
+      sort,
+      role = "client", // Default role is 'client'
+    } = req.query;
 
     const filter = {};
     const andConditions = [];
 
-    // ✅ Category
+    // ✅ Category filter (case-insensitive)
     if (category) {
       filter.category = new RegExp(`^${category}$`, "i");
     }
 
-    // ✅ Subcategory
+    // ✅ Subcategory filter (slug or name)
     const subCat = subCategorySlug || subcategory;
     if (subCat) {
       filter.subCategory = new RegExp(subCat, "i");
     }
 
-    // ✅ Helper: text search in name or description
-    const addTextSearch = (value) => {
+    // ✅ Helper for multi-field filter conditions
+    const addTextSearch = (field, value) => {
       const items = value.split(",");
       const regex = new RegExp(items.join("|"), "i");
       andConditions.push({
         $or: [
           { name: regex },
-          { description: regex }
+          { description: regex },
+          { [field]: { $in: items.map((v) => new RegExp(`^${v}$`, "i")) } }
         ]
       });
     };
 
-    if (color) addTextSearch(color);
-    if (finish) addTextSearch(finish);
-    if (thickness) addTextSearch(thickness);
-    if (size) addTextSearch(size);
+    // ✅ Apply all dynamic filters
+    if (color) addTextSearch("color", color);
+    if (finish) addTextSearch("finish", finish);
+    if (thickness) addTextSearch("thickness", thickness);
+    if (size) addTextSearch("size", size);
+    if (series) addTextSearch("series", series);
+    if (baseMaterial) addTextSearch("baseMaterial", baseMaterial);
+    if (application) addTextSearch("application", application);
 
     if (andConditions.length > 0) {
       filter.$and = andConditions;
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
-    res.status(200).json(products);
+    // ✅ Validate and sanitize role
+    const validRoles = ["client", "architect"];
+    const safeRole = validRoles.includes(role) ? role : "client";
+
+    // ✅ Sort logic based on role
+    let sortOptions = {};
+    switch (sort) {
+      case "price_asc":
+        sortOptions = { [`price.${safeRole}`]: 1 };
+        break;
+      case "price_desc":
+        sortOptions = { [`price.${safeRole}`]: -1 };
+        break;
+      case "newest":
+        sortOptions = { createdAt: -1 };
+        break;
+      case "popular":
+      default:
+        sortOptions = { createdAt: -1 }; // default fallback
+    }
+
+    // ✅ Fetch from DB
+    const products = await Product.find(filter).sort(sortOptions).lean();
+
+    return res.status(200).json(products);
   } catch (err) {
-    console.error("Error fetching products:", err);
-    res.status(500).json({ message: "Failed to fetch products" });
+    console.error("❌ Error fetching products:", err);
+    return res.status(500).json({ message: "Failed to fetch products" });
   }
 };
+
+
+// const getAllProducts = async (req, res) => {
+//   try {
+//     const {
+//       category,
+//       subCategorySlug,
+//       subcategory,
+//       color,
+//       finish,
+//       thickness,
+//       size,
+//       series,
+//       baseMaterial,
+//       application,
+//     } = req.query;
+
+//     const filter = {};
+//     const andConditions = [];
+
+//     // Category
+//     if (category) {
+//       filter.category = new RegExp(`^${category}$`, "i");
+//     }
+
+//     // Subcategory
+//     const subCat = subCategorySlug || subcategory;
+//     if (subCat) {
+//       filter.subCategory = new RegExp(subCat, "i");
+//     }
+
+//     // Generic helper to add OR condition for name/description matching
+//     const addTextSearch = (field, value) => {
+//       const items = value.split(",");
+//       const regex = new RegExp(items.join("|"), "i");
+//       andConditions.push({
+//         $or: [
+//           { name: regex },
+//           { description: regex },
+//           { [field]: { $in: items.map((v) => new RegExp(`^${v}$`, "i")) } }
+//         ]
+//       });
+//     };
+
+//     // Multi-field filters
+//     if (color) addTextSearch("color", color);
+//     if (finish) addTextSearch("finish", finish);
+//     if (thickness) addTextSearch("thickness", thickness);
+//     if (size) addTextSearch("size", size);
+//     if (series) addTextSearch("series", series);
+//     if (baseMaterial) addTextSearch("baseMaterial", baseMaterial);
+//     if (application) addTextSearch("application", application);
+
+//     if (andConditions.length > 0) {
+//       filter.$and = andConditions;
+//     }
+
+//     const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+//     res.status(200).json(products);
+//   } catch (err) {
+//     console.error("Error fetching products:", err);
+//     res.status(500).json({ message: "Failed to fetch products" });
+//   }
+// };
+
+  // const getAllProducts = async (req, res) => {
+  //   try {
+  //     const { category, subCategorySlug, subcategory, color, finish, thickness, size } = req.query;
+
+  //     const filter = {};
+  //     const andConditions = [];
+
+  //     // ✅ Category
+  //     if (category) {
+  //       filter.category = new RegExp(`^${category}$`, "i");
+  //     }
+
+  //     // ✅ Subcategory
+  //     const subCat = subCategorySlug || subcategory;
+  //     if (subCat) {
+  //       filter.subCategory = new RegExp(subCat, "i");
+  //     }
+
+  //     // ✅ Helper: text search in name or description
+  //     const addTextSearch = (value) => {
+  //       const items = value.split(",");
+  //       const regex = new RegExp(items.join("|"), "i");
+  //       andConditions.push({
+  //         $or: [
+  //           { name: regex },
+  //           { description: regex }
+  //         ]
+  //       });
+  //     };
+
+  //     if (color) addTextSearch(color);
+  //     if (finish) addTextSearch(finish);
+  //     if (thickness) addTextSearch(thickness);
+  //     if (size) addTextSearch(size);
+
+  //     if (andConditions.length > 0) {
+  //       filter.$and = andConditions;
+  //     }
+
+  //     const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+  //     res.status(200).json(products);
+  //   } catch (err) {
+  //     console.error("Error fetching products:", err);
+  //     res.status(500).json({ message: "Failed to fetch products" });
+  //   }
+  // };
 
 // @desc    Get single product by ID
 // @route   GET /api/products/:id

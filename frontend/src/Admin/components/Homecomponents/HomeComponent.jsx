@@ -1,4 +1,3 @@
-import React from "react";
 import SuggestionCategory from "../../components/SuggestionCategory";
 import left_image from "../../images/home_left.png";
 import right_image from "../../images/home_right.png";

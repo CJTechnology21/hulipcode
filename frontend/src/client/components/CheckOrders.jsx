@@ -75,30 +75,6 @@ function CheckOrders() {
     }
   };
 
-//   useEffect(() => {
-//   const interval = setInterval(async () => {
-//     if (!isVendor || orders.length === 0) return;
-
-//     const latestTime = orders[0]?.createdAt || new Date().toISOString();
-
-//     try {
-//       const res = await axios.get(`http://localhost:5000/api/orders/vendor-new?after=${latestTime}`, {
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
-
-//       if (res.data.newOrders.length > 0) {
-//         toast.info(`📦 ${res.data.newOrders.length} new order(s) received!`);
-//         setOrders(prev => [...res.data.newOrders, ...prev]);
-//       }
-//     } catch (error) {
-//       console.error("Polling error:", error);
-//     }
-//   }, 10000); // every 10 seconds
-
-//   return () => clearInterval(interval);
-// }, [isVendor, orders, token]);
-
-
   return (
     <div className="min-h-screen bg-gray-50 font-[Poppins]">
       <Header />

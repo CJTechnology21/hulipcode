@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { messaging, requestFirebaseNotificationPermission } from "./services/firebase";
+import { onMessage } from "firebase/messaging";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Home";
 import Signup from "./Admin/pages/Signup";
@@ -75,10 +78,42 @@ import SubscriptionVendor from "./client/components/SubscribeVendor";
 import SubcategoryPage from "./client/components/SubCategoryPage";
 import InspirationDetail from "./Admin/components/Homecomponents/InspirationDetail";
 import AddProduct from "./client/components/AddNewProduct";
-
+import { toast } from "react-toastify";
 function App() {
-  return (
+  useEffect(() => {
+    requestFirebaseNotificationPermission()
+      .then((token) => {
+        if (token) {
+          console.log("✅ FCM Token:", token);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Notification permission error:", err);
+      });
 
+    onMessage(messaging, (payload) => {
+      console.log("✅ Foreground notification received:", payload);
+      const notification = payload?.notification;
+
+      if (!notification || !notification.title || !notification.body) {
+        console.warn("⚠️ Incomplete notification payload");
+        return;
+      }
+
+      const { title, body } = notification;
+
+      // Show browser notification
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+
+      // Show toast
+      toast.info(`${title}: ${body}`);
+
+    });
+  }, []);
+
+  return (
     <Router>
       <ToastContainer />
       <SubscriptionVendor />
@@ -151,7 +186,7 @@ function App() {
         <Route path='/favourites' element={<Favourites />} />
         <Route path='/cart' element={<Cart />} />
         <Route path="/product/:id" element={<SingleProductPage />} />
-       < Route path="/addproduct" element={<AddProduct />} />
+        < Route path="/addproduct" element={<AddProduct />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkorders" element={<CheckOrders />} />
