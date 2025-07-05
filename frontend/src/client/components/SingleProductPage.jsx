@@ -97,7 +97,7 @@ function SingleProductPage() {
 
     try {
       setTimeout(async () => {
-        await fetch(`{process.env.REACT_APP_API_BASE}/api/cart`, {
+        await fetch(`${process.env.REACT_APP_API_BASE}/api/cart`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
