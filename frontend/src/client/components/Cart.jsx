@@ -154,9 +154,6 @@ const Cart = ({ isOpen, onClose }) => {
             Checkout
           </button>
 
-          {/* <button className="border px-4 py-2 rounded-full text-sm font-medium">
-            Checkout
-          </button> */}
           <button className="border px-4 py-2 rounded-full text-sm font-medium">
             Comparison
           </button>

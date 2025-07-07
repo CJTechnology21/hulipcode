@@ -60,7 +60,7 @@ const cartSlice = createSlice({
 
     clearCart(state) {
       state.items = [];
-      toast.info("Cart cleared");
+      // toast.info("Cart cleared");
     },
   },
 });

@@ -41,7 +41,16 @@ function ProductCard({ product }) {
       return navigate("/login");
     }
 
-    const price = product.price?.[userRole] || 0;
+    let price = 0;
+
+    if (userRole === "architect") {
+      price = product.price?.client || 0;
+    } else if (userRole === "client") {
+      price = product.price?.client || 0;
+    } else {
+      toast.warning("Login to view pricing", { autoClose: 2000 });
+      return navigate("/login");
+    }
 
     dispatch(
       addToCart({

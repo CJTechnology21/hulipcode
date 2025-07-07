@@ -69,7 +69,7 @@ const createOrder = async (req, res) => {
     savedOrder = await savedOrder.populate("buyer", "name email");
 
     // ✅ Grant reward points after order (Example: ₹100 = 1 point)
-    const pointsEarned = Math.floor(finalAmount / 100);
+    const pointsEarned = Math.floor(finalAmount / 10);
     if (user.role === 'architect' && pointsEarned > 0) {
       user.rewardPoints += pointsEarned;
       await user.save();
