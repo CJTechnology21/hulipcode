@@ -7,10 +7,9 @@ const VendorToken = require('../models/VendorToken'); // adjust path if needed
 
 
 // ✅ CREATE ORDER (with push notifications)
+
 const createOrder = async (req, res) => {
   try {
-    console.log("➡️ Incoming order request body:", req.body);
-
     const {
       items,
       shippingAddress,
@@ -24,23 +23,20 @@ const createOrder = async (req, res) => {
     }
 
     // Normalize vendor IDs
-    console.log("🔄 Normalizing vendor IDs");
-    items.forEach((item, index) => {
+    items.forEach((item) => {
       if (typeof item.vendor === "string") {
-        console.log(`🔧 Converting vendor ID to ObjectId for item ${index}`);
         item.vendor = new mongoose.Types.ObjectId(item.vendor);
       }
     });
 
     // Fetch user
-    console.log("👤 Fetching user:", req.user._id);
     const user = await User.findById(req.user._id);
     if (!user) {
       console.error("❌ User not found");
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Calculate the subtotal (actual price from backend, not from frontend)
+    // Calculate the subtotal from backend
     const computedSubtotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
@@ -48,27 +44,18 @@ const createOrder = async (req, res) => {
 
     let finalAmount = computedSubtotal;
 
-    // Apply reward points only for architects
+    // Deduct reward points if applicable
     if (user.role === "architect" && rewardPointsUsed > 0) {
-      console.log(`🎁 Architect applying ${rewardPointsUsed} reward points`);
-
       if (user.rewardPoints < rewardPointsUsed) {
-        console.warn("⚠️ Insufficient reward points");
         return res.status(400).json({ message: "Insufficient reward points" });
       }
-
-      // Deduct points and update final amount
       user.rewardPoints -= rewardPointsUsed;
-      await user.save();
       finalAmount = Math.max(0, computedSubtotal - rewardPointsUsed);
-      console.log(` Reward points applied. Final total: ₹${finalAmount}`);
     } else if (user.role !== "architect" && rewardPointsUsed > 0) {
-      console.warn(" Reward points not allowed for this role");
       return res.status(400).json({ message: "Reward points not allowed for this user role" });
     }
 
     // Save order
-    console.log("💾 Creating order document");
     const newOrder = new Order({
       buyer: req.user._id,
       items,
@@ -79,17 +66,19 @@ const createOrder = async (req, res) => {
     });
 
     let savedOrder = await newOrder.save();
-    console.log("📦 Order saved with ID:", savedOrder._id);
-
     savedOrder = await savedOrder.populate("buyer", "name email");
-    console.log("👤 Buyer populated:", savedOrder.buyer);
+
+    // ✅ Grant reward points after order (Example: ₹100 = 1 point)
+    const pointsEarned = Math.floor(finalAmount / 100);
+    if (user.role === 'architect' && pointsEarned > 0) {
+      user.rewardPoints += pointsEarned;
+      await user.save();
+      console.log(`✅ Granted ${pointsEarned} reward points to ${user.name}`);
+    }
 
     // Vendor notification
     const vendorIds = [...new Set(items.map(item => item.vendor?.toString()))];
-    console.log("📢 Notifying vendors:", vendorIds);
-
     const tokens = await VendorToken.find({ vendorId: { $in: vendorIds } });
-    console.log(`📲 Found ${tokens.length} vendor FCM tokens`);
 
     for (const vendorId of vendorIds) {
       const vendorUser = await User.findById(vendorId).select("name");
@@ -108,8 +97,6 @@ const createOrder = async (req, res) => {
         t => t.vendorId.toString() === vendorId && !!t.token
       );
 
-      console.log(`📨 Sending FCM to vendor ${vendorName} (${vendorId}) for ₹${orderValue}`);
-
       for (const tokenDoc of vendorTokens) {
         try {
           await sendFCM(
@@ -124,14 +111,145 @@ const createOrder = async (req, res) => {
       }
     }
 
-    console.log("✅ Order processing complete");
-    res.status(201).json({ message: "Order created", order: savedOrder });
+    // Final response
+    res.status(201).json({
+      message: "Order created",
+      order: savedOrder,
+      rewardPoints: user.rewardPoints,
+      pointsEarned,
+    });
 
   } catch (error) {
-    console.error("🔥 Create Order Error:", error.stack || error.message);
+    console.error("Create Order Error:", error.stack || error.message);
     res.status(500).json({ message: "Failed to create order" });
   }
 };
+
+module.exports = { createOrder };
+
+// const createOrder = async (req, res) => {
+//   try {
+   
+
+//     const {
+//       items,
+//       shippingAddress,
+//       paymentMethod,
+//       rewardPointsUsed = 0,
+//     } = req.body;
+
+//     if (!items || items.length === 0) {
+//       console.warn("⚠️ No order items provided");
+//       return res.status(400).json({ message: "No order items provided" });
+//     }
+
+//     // Normalize vendor IDs
+   
+//     items.forEach((item, index) => {
+//       if (typeof item.vendor === "string") {
+       
+//         item.vendor = new mongoose.Types.ObjectId(item.vendor);
+//       }
+//     });
+
+//     // Fetch user
+    
+//     const user = await User.findById(req.user._id);
+//     if (!user) {
+//       console.error("❌ User not found");
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // Calculate the subtotal (actual price from backend, not from frontend)
+//     const computedSubtotal = items.reduce(
+//       (sum, item) => sum + item.price * item.quantity,
+//       0
+//     );
+
+//     let finalAmount = computedSubtotal;
+
+//     // Apply reward points only for architects
+//     if (user.role === "architect" && rewardPointsUsed > 0) {
+    
+//       if (user.rewardPoints < rewardPointsUsed) {
+       
+//         return res.status(400).json({ message: "Insufficient reward points" });
+//       }
+
+//       // Deduct points and update final amount
+//       user.rewardPoints -= rewardPointsUsed;
+//       await user.save();
+//       finalAmount = Math.max(0, computedSubtotal - rewardPointsUsed);
+
+//     } else if (user.role !== "architect" && rewardPointsUsed > 0) {
+//       // console.warn(" Reward points not allowed for this role");
+//       return res.status(400).json({ message: "Reward points not allowed for this user role" });
+//     }
+
+//     // Save order
+//     const newOrder = new Order({
+//       buyer: req.user._id,
+//       items,
+//       shippingAddress,
+//       paymentMethod,
+//       rewardPointsUsed: user.role === "architect" ? rewardPointsUsed : 0,
+//       totalAmount: finalAmount,
+//     });
+
+//     let savedOrder = await newOrder.save();
+   
+
+//     savedOrder = await savedOrder.populate("buyer", "name email");
+    
+
+//     // Vendor notification
+//     const vendorIds = [...new Set(items.map(item => item.vendor?.toString()))];
+    
+
+//     const tokens = await VendorToken.find({ vendorId: { $in: vendorIds } });
+    
+
+//     for (const vendorId of vendorIds) {
+//       const vendorUser = await User.findById(vendorId).select("name");
+//       const vendorName = vendorUser?.name || "Vendor";
+
+//       const vendorItems = items.filter(
+//         item => item.vendor && item.vendor.toString() === vendorId
+//       );
+
+//       const orderValue = vendorItems.reduce(
+//         (sum, item) => sum + item.price * item.quantity,
+//         0
+//       );
+
+//       const vendorTokens = tokens.filter(
+//         t => t.vendorId.toString() === vendorId && !!t.token
+//       );
+
+     
+
+//       for (const tokenDoc of vendorTokens) {
+//         try {
+//           await sendFCM(
+//             tokenDoc.token,
+//             `🛒 New Order from ${req.user.name}`,
+//             `Order value ₹${orderValue}`,
+//             savedOrder._id
+//           );
+//         } catch (err) {
+//           console.error(`❌ FCM failed for vendor ${vendorId}:`, err.message);
+//         }
+//       }
+//     }
+
+    
+//     res.status(201).json({ message: "Order created", order: savedOrder });
+
+//   } catch (error) {
+//     console.error("Create Order Error:", error.stack || error.message);
+//     res.status(500).json({ message: "Failed to create order" });
+//   }
+// };
 // const createOrder = async (req, res) => {
 //   try {
 //     console.log("➡️ Incoming order request body:", req.body);

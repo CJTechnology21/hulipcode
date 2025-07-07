@@ -28,7 +28,7 @@ function Checkout() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("crm_token");
-console.log("API_URL:", process.env.REACT_APP_API_URL);
+// console.log("API_URL:", process.env.REACT_APP_API_URL);
   useEffect(() => {
     const fetchCartAndUser = async () => {
       try {
@@ -111,7 +111,7 @@ console.log("API_URL:", process.env.REACT_APP_API_URL);
       };
 
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/orders`,
+        `${process.env.REACT_APP_API_BASE}/api/orders`,
         orderData,
         {
           headers: {
