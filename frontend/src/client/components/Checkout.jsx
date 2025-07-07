@@ -28,7 +28,7 @@ function Checkout() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("crm_token");
-
+console.log("API_URL:", process.env.REACT_APP_API_URL);
   useEffect(() => {
     const fetchCartAndUser = async () => {
       try {

@@ -24,28 +24,29 @@ connectDB();
 
 const app = express();
 
-// ✅ CORS Configuration — allow local and deployed frontends
+// ✅ CORS Configuration — allow only your frontend origins
 const allowedOrigins = [
-  'https://first-task-alpha.vercel.app',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://first-task-alpha.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    console.log("🌐 Incoming request origin:", origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn("❌ Blocked by CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
 }));
 
-// ✅ JSON parser middleware
+// ✅ Middleware to parse JSON
 app.use(express.json());
 
-// ✅ Mount routes
+// ✅ Route registrations
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
@@ -58,7 +59,7 @@ app.use('/api/push', pushRoutes);
 app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
 
-// ✅ Health check or fallback route
+// ✅ Health check
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
@@ -68,6 +69,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
 // const express = require('express');
 // const dotenv = require('dotenv');
 // const connectDB = require('./utils/db');
