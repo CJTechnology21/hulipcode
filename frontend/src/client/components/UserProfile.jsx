@@ -13,9 +13,7 @@ function UserProfile() {
 
       try {
         const decoded = jwtDecode(token);
-        console.log("✅ Decoded token:", decoded);
-
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/users/me`, {
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/user/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -23,7 +21,7 @@ function UserProfile() {
 
         setUser(res.data);
       } catch (error) {
-        console.error("🔴 Error fetching user:", error);
+        console.error(" Error fetching user:", error);
       }
     };
 
@@ -56,6 +54,10 @@ function UserProfile() {
           <div>
             <strong className="block text-gray-600">Phone number:</strong>
             <p>{user.phoneNumber || "N/A"}</p>
+          </div>
+              <div>
+            <strong className="block text-gray-600">Reward Points:</strong>
+            <p>{user.rewardPoints || "N/A"}</p>
           </div>
           {/* Add more fields if needed */}
         </div>

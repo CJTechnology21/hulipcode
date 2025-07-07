@@ -12,6 +12,7 @@ import { clearCart } from "../../app/features/cart/cartSlice";
 function Checkout() {
   const dispatch = useDispatch();
   const [cartItems, setCartItems] = useState([]);
+  const [rewardPoints, setRewardPoints] = useState(0);
   const [form, setForm] = useState({
     fullName: "",
     address: "",
@@ -22,33 +23,51 @@ function Checkout() {
     phone: "",
     paymentMethod: "",
     selectedOnlineMethod: "",
+    rewardPointsUsed: 0,
   });
 
   const navigate = useNavigate();
   const token = localStorage.getItem("crm_token");
 
   useEffect(() => {
-    const fetchCart = async () => {
+    const fetchCartAndUser = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCartItems(res.data);
+        const [cartRes, userRes] = await Promise.all([
+          axios.get(`${process.env.REACT_APP_API_BASE}/api/cart`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${process.env.REACT_APP_API_BASE}/api/user/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        setCartItems(cartRes.data);
+        setRewardPoints(userRes.data.rewardPoints || 0);
       } catch (err) {
-        console.error("Cart fetch error:", err);
+        console.error("Fetch error:", err);
       }
     };
-    fetchCart();
+    fetchCartAndUser();
   }, [token]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    let { name, value } = e.target;
+
+    // Handle number input for rewardPointsUsed
+    if (name === "rewardPointsUsed") {
+      value = parseInt(value || 0);
+      value = isNaN(value) ? 0 : Math.min(value, rewardPoints);
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
+
+  const discount = Math.min(form.rewardPointsUsed || 0, rewardPoints);
+  const totalAfterDiscount = Math.max(subtotal - discount, 0);
 
   const handlePlaceOrder = async () => {
     if (
@@ -87,12 +106,12 @@ function Checkout() {
         },
         paymentMethod:
           form.paymentMethod === "online" ? form.selectedOnlineMethod : "COD",
-        totalAmount: subtotal,
-         rewardPointsUsed: form.rewardPointsUsed || 0, // ✅ Ensure this exists
+        totalAmount: totalAfterDiscount,
+        rewardPointsUsed: discount,
       };
 
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/orders`,
+        `${process.env.REACT_APP_API_URL}/api/orders`,
         orderData,
         {
           headers: {
@@ -101,17 +120,20 @@ function Checkout() {
         }
       );
 
-      const placedOrder = response.data.order;
-      toast.success(`✅ Order placed by ${placedOrder.buyer.name}`);
+      toast.success(`✅ Order placed by ${response.data.order.buyer.name}`);
+      if (response.data.rewardPointsEarned > 0) {
+        toast.info(
+          `🎁 You earned ${response.data.rewardPointsEarned} reward points!`
+        );
+      }
 
       await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/clear`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       setCartItems([]);
       dispatch(clearCart());
+      navigate("/orders");
     } catch (err) {
       console.error("Order placement failed:", err);
       toast.error("❌ Failed to place order");
@@ -124,14 +146,16 @@ function Checkout() {
       <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Product Summary */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-bold text-gray-800">🛍️ Review Your Items</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            🛍️ Review Your Items
+          </h2>
           {cartItems.length === 0 ? (
             <p className="text-gray-500">Your cart is empty.</p>
           ) : (
             cartItems.map((item) => (
               <div
                 key={item._id}
-                className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow hover:shadow-md transition"
+                className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl shadow"
               >
                 <img
                   src={item.image}
@@ -139,7 +163,9 @@ function Checkout() {
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-lg font-semibold text-gray-700">{item.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-700">
+                    {item.name}
+                  </h3>
                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                 </div>
                 <div className="text-right font-medium text-blue-600 text-lg">
@@ -152,7 +178,9 @@ function Checkout() {
 
         {/* Shipping & Payment */}
         <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
-          <h2 className="text-xl font-semibold text-gray-800">📦 Shipping Info</h2>
+          <h2 className="text-xl font-semibold text-gray-800">
+            📦 Shipping Info
+          </h2>
           <div className="space-y-3">
             {[
               { name: "fullName", placeholder: "Full Name" },
@@ -175,9 +203,30 @@ function Checkout() {
             ))}
           </div>
 
+          {/* Reward Points */}
+          <div className="pt-4">
+            <h3 className="text-sm font-medium text-gray-700">
+              Reward Points Available:{" "}
+              <span className="text-green-600 font-semibold">
+                {rewardPoints}
+              </span>
+            </h3>
+            <input
+              type="number"
+              name="rewardPointsUsed"
+              value={form.rewardPointsUsed}
+              onChange={handleChange}
+              className="w-full mt-2 border px-3 py-2 rounded-md"
+              placeholder="Enter reward points to use"
+              max={rewardPoints}
+            />
+          </div>
+
           {/* Payment */}
           <div>
-            <h2 className="text-xl font-semibold mt-6 mb-2">💳 Payment Method</h2>
+            <h2 className="text-xl font-semibold mt-6 mb-2">
+              💳 Payment Method
+            </h2>
             <div className="flex flex-col gap-3">
               <label className="flex items-center gap-3">
                 <input
@@ -205,13 +254,31 @@ function Checkout() {
 
             {form.paymentMethod === "online" && (
               <div className="mt-4 space-y-2">
-                <p className="font-medium text-sm text-gray-600">Select method:</p>
+                <p className="font-medium text-sm text-gray-600">
+                  Select method:
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: "upi", name: "UPI", icon: <FaGooglePay className="text-blue-700" /> },
-                    { id: "card", name: "Credit/Debit Card", icon: <FaCreditCard /> },
-                    { id: "paytm", name: "Paytm", icon: <SiPaytm className="text-blue-500" /> },
-                    { id: "phonepe", name: "PhonePe", icon: <SiPhonepe className="text-purple-600" /> },
+                    {
+                      id: "upi",
+                      name: "UPI",
+                      icon: <FaGooglePay className="text-blue-700" />,
+                    },
+                    {
+                      id: "card",
+                      name: "Credit/Debit Card",
+                      icon: <FaCreditCard />,
+                    },
+                    {
+                      id: "paytm",
+                      name: "Paytm",
+                      icon: <SiPaytm className="text-blue-500" />,
+                    },
+                    {
+                      id: "phonepe",
+                      name: "PhonePe",
+                      icon: <SiPhonepe className="text-purple-600" />,
+                    },
                   ].map((method) => (
                     <label
                       key={method.id}
@@ -244,17 +311,21 @@ function Checkout() {
               <span>Subtotal</span>
               <span>₹{subtotal.toLocaleString()}</span>
             </div>
+            <div className="flex justify-between text-sm text-red-600">
+              <span>Reward Points Used</span>
+              <span>-₹{discount}</span>
+            </div>
             <div className="flex justify-between text-sm text-green-600">
               <span>Shipping</span>
               <span>Free</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total</span>
-              <span>₹{subtotal.toLocaleString()}</span>
+              <span>₹{totalAfterDiscount.toLocaleString()}</span>
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <div className="flex justify-between gap-3 pt-4">
             <button
               className="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg"
@@ -277,6 +348,7 @@ function Checkout() {
 }
 
 export default Checkout;
+
 // import React, { useEffect, useState } from "react";
 // import axios from "axios";
 // import Header from "./Header";
@@ -287,9 +359,9 @@ export default Checkout;
 // import { toast } from "react-toastify";
 // import { useDispatch } from "react-redux";
 // import { clearCart } from "../../app/features/cart/cartSlice";
+
 // function Checkout() {
 //   const dispatch = useDispatch();
-
 //   const [cartItems, setCartItems] = useState([]);
 //   const [form, setForm] = useState({
 //     fullName: "",
@@ -353,7 +425,7 @@ export default Checkout;
 //           image: item.image,
 //           quantity: item.quantity,
 //           price: item.price,
-//           vendor: item.vendor, // 🔁 make sure this exists
+//           vendor: item.vendor,
 //         })),
 //         shippingAddress: {
 //           fullName: form.fullName,
@@ -367,10 +439,11 @@ export default Checkout;
 //         paymentMethod:
 //           form.paymentMethod === "online" ? form.selectedOnlineMethod : "COD",
 //         totalAmount: subtotal,
+//          rewardPointsUsed: form.rewardPointsUsed || 0, // ✅ Ensure this exists
 //       };
 
 //       const response = await axios.post(
-//         `${process.env.REACT_APP_API_BASE}/api/orders`,
+//        'https://localhost:5000/api/orders',
 //         orderData,
 //         {
 //           headers: {
@@ -378,18 +451,18 @@ export default Checkout;
 //           },
 //         }
 //       );
-//       const placedOrder = response.data.order;
 
+//       const placedOrder = response.data.order;
 //       toast.success(`✅ Order placed by ${placedOrder.buyer.name}`);
 
-//       await axios.delete( `${process.env.REACT_APP_API_BASE}/api/cart/clear`, {
+//       await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/clear`, {
 //         headers: {
 //           Authorization: `Bearer ${token}`,
 //         },
 //       });
 
-//       setCartItems([]); // ✅ Clear local state
-//       dispatch(clearCart()); // Clear from UI
+//       setCartItems([]);
+//       dispatch(clearCart());
 //     } catch (err) {
 //       console.error("Order placement failed:", err);
 //       toast.error("❌ Failed to place order");
@@ -400,11 +473,9 @@ export default Checkout;
 //     <div className="bg-[#f7f8fa] min-h-screen font-[Poppins]">
 //       <Header />
 //       <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-//         {/* Products */}
+//         {/* Product Summary */}
 //         <div className="lg:col-span-2 space-y-6">
-//           <h2 className="text-2xl font-bold text-gray-800">
-//             🛍️ Review Your Items
-//           </h2>
+//           <h2 className="text-2xl font-bold text-gray-800">🛍️ Review Your Items</h2>
 //           {cartItems.length === 0 ? (
 //             <p className="text-gray-500">Your cart is empty.</p>
 //           ) : (
@@ -419,11 +490,8 @@ export default Checkout;
 //                   className="w-24 h-24 object-cover rounded-lg"
 //                 />
 //                 <div className="flex-1 text-center sm:text-left">
-//                   <h3 className="text-lg font-semibold text-gray-700">
-//                     {item.name}
-//                   </h3>
+//                   <h3 className="text-lg font-semibold text-gray-700">{item.name}</h3>
 //                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-//                   {/* <p className="text-sm text-gray-500">Qty: {item.Ve}</p> */}
 //                 </div>
 //                 <div className="text-right font-medium text-blue-600 text-lg">
 //                   ₹{item.price * item.quantity}
@@ -433,75 +501,34 @@ export default Checkout;
 //           )}
 //         </div>
 
-//         {/* Shipping + Payment */}
+//         {/* Shipping & Payment */}
 //         <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
-//           <h2 className="text-xl font-semibold text-gray-800">
-//             📦 Shipping Info
-//           </h2>
+//           <h2 className="text-xl font-semibold text-gray-800">📦 Shipping Info</h2>
 //           <div className="space-y-3">
-//             <input
-//               type="text"
-//               name="fullName"
-//               placeholder="Full Name"
-//               value={form.fullName}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-300 outline-none"
-//             />
-//             <input
-//               type="text"
-//               name="address"
-//               placeholder="Address"
-//               value={form.address}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
-//             <input
-//               type="text"
-//               name="city"
-//               placeholder="City"
-//               value={form.city}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
-//             <input
-//               type="text"
-//               name="state"
-//               placeholder="State"
-//               value={form.state}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
-//             <input
-//               type="text"
-//               name="country"
-//               placeholder="country"
-//               value={form.country}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
-
-//             <input
-//               type="text"
-//               name="postalCode"
-//               placeholder="Postal Code"
-//               value={form.postalCode}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
-//             <input
-//               type="text"
-//               name="phone"
-//               placeholder="Phone Number"
-//               value={form.phone}
-//               onChange={handleChange}
-//               className="w-full border px-3 py-2 rounded-md"
-//             />
+//             {[
+//               { name: "fullName", placeholder: "Full Name" },
+//               { name: "address", placeholder: "Address" },
+//               { name: "city", placeholder: "City" },
+//               { name: "state", placeholder: "State" },
+//               { name: "country", placeholder: "Country" },
+//               { name: "postalCode", placeholder: "Postal Code" },
+//               { name: "phone", placeholder: "Phone Number" },
+//             ].map((field) => (
+//               <input
+//                 key={field.name}
+//                 type="text"
+//                 name={field.name}
+//                 placeholder={field.placeholder}
+//                 value={form[field.name]}
+//                 onChange={handleChange}
+//                 className="w-full border px-3 py-2 rounded-md"
+//               />
+//             ))}
 //           </div>
 
+//           {/* Payment */}
 //           <div>
-//             <h2 className="text-xl font-semibold mt-6 mb-2">
-//               💳 Payment Method
-//             </h2>
+//             <h2 className="text-xl font-semibold mt-6 mb-2">💳 Payment Method</h2>
 //             <div className="flex flex-col gap-3">
 //               <label className="flex items-center gap-3">
 //                 <input
@@ -527,34 +554,15 @@ export default Checkout;
 //               </label>
 //             </div>
 
-//             {/* Show online payment options */}
 //             {form.paymentMethod === "online" && (
 //               <div className="mt-4 space-y-2">
-//                 <p className="font-medium text-sm text-gray-600">
-//                   Select method:
-//                 </p>
+//                 <p className="font-medium text-sm text-gray-600">Select method:</p>
 //                 <div className="grid grid-cols-2 gap-3">
 //                   {[
-//                     {
-//                       id: "upi",
-//                       name: "UPI",
-//                       icon: <FaGooglePay className="text-blue-700" />,
-//                     },
-//                     {
-//                       id: "card",
-//                       name: "Credit/Debit Card",
-//                       icon: <FaCreditCard />,
-//                     },
-//                     {
-//                       id: "paytm",
-//                       name: "Paytm",
-//                       icon: <SiPaytm className="text-blue-500" />,
-//                     },
-//                     {
-//                       id: "phonepe",
-//                       name: "PhonePe",
-//                       icon: <SiPhonepe className="text-purple-600" />,
-//                     },
+//                     { id: "upi", name: "UPI", icon: <FaGooglePay className="text-blue-700" /> },
+//                     { id: "card", name: "Credit/Debit Card", icon: <FaCreditCard /> },
+//                     { id: "paytm", name: "Paytm", icon: <SiPaytm className="text-blue-500" /> },
+//                     { id: "phonepe", name: "PhonePe", icon: <SiPhonepe className="text-purple-600" /> },
 //                   ].map((method) => (
 //                     <label
 //                       key={method.id}
@@ -581,7 +589,7 @@ export default Checkout;
 //             )}
 //           </div>
 
-//           {/* Summary */}
+//           {/* Order Summary */}
 //           <div className="border-t pt-4 space-y-2">
 //             <div className="flex justify-between text-sm text-gray-600">
 //               <span>Subtotal</span>
@@ -597,7 +605,7 @@ export default Checkout;
 //             </div>
 //           </div>
 
-//           {/* Buttons */}
+//           {/* Action Buttons */}
 //           <div className="flex justify-between gap-3 pt-4">
 //             <button
 //               className="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg"

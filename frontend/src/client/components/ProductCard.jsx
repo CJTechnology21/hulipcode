@@ -217,16 +217,6 @@ function ProductCard({ product }) {
             </>
           )}
 
-          {/* {userRole === "architect" && (
-            <p className="text-[#111827] font-medium mt-1">
-              Price: ₹{product.price?.architect}
-            </p>
-          )}
-          {userRole === "client" && (
-            <p className="text-[#0070f3] font-medium mt-1">
-              Price: ₹{product.price?.client}
-            </p>
-          )} */}
           {!userRole && (
             <p className="text-gray-400 text-sm mt-1">Login to view pricing</p>
           )}
