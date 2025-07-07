@@ -58,7 +58,7 @@ const Login = () => {
         const fcmToken = await requestFirebaseNotificationPermission();
 
         if (fcmToken) {
-          await fetch(`${REACT_APP_API_BASE}/api/vendor/store-token`, {
+          await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
