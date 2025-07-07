@@ -34,17 +34,17 @@ function SubcategoryPage() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   const readableSubcategory = subcategorySlug.replace(/-/g, " ");
-  // let role = "client";
+  let role = "client";
 
-  // const token = localStorage.getItem("crm_token");
-  // if (token) {
-  //   try {
-  //     const decoded = jwtDecode(token);
-  //     role = decoded.role || "client";
-  //   } catch (err) {
-  //     console.error("JWT decode error:", err);
-  //   }
-  // }
+  const token = localStorage.getItem("crm_token");
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      role = decoded.role || "client";
+    } catch (err) {
+      console.error("JWT decode error:", err);
+    }
+  }
 
   useEffect(() => {
     const fetchProducts = async () => {

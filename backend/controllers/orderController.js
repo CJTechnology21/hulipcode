@@ -5,10 +5,15 @@ const webpush = require('../utils/webPush');
 const User = require('../models/User')
 
 // ✅ CREATE ORDER (with push notifications)
-
 const createOrder = async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, totalAmount } = req.body;
+    const {
+      items,
+      shippingAddress,
+      paymentMethod,
+      totalAmount,
+      rewardPointsUsed = 0,
+    } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "No order items provided" });
@@ -21,6 +26,21 @@ const createOrder = async (req, res) => {
       }
     });
 
+    // Fetch user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Check if user has enough reward points
+    if (rewardPointsUsed > 0) {
+      if (user.rewardPoints < rewardPointsUsed) {
+        return res.status(400).json({ message: "Insufficient reward points" });
+      }
+      user.rewardPoints -= rewardPointsUsed;
+      await user.save();
+    }
+
     // Save new order
     const newOrder = new Order({
       buyer: req.user._id,
@@ -28,6 +48,7 @@ const createOrder = async (req, res) => {
       shippingAddress,
       paymentMethod,
       totalAmount,
+      rewardPointsUsed,
     });
 
     let savedOrder = await newOrder.save();
@@ -52,24 +73,22 @@ const createOrder = async (req, res) => {
         0
       );
 
-      const title = `Hello, ${vendorName}!`;
-      const body = `You received an order from ${req.user.name}. ID: ${savedOrder._id}, Value: ₹${orderValue}`;
-
       const vendorTokens = tokens.filter(
         t => t.vendorId.toString() === vendorId && !!t.token
       );
-        for (const tokenDoc of vendorTokens) {
-  try {
-    await sendFCM(
-      tokenDoc.token, // ✅ Corrected
-      `🛒 New Order from ${req.user.name}`,
-      `Order value ₹${orderValue}`,
-      savedOrder._id
-    );
-  } catch (err) {
-    console.error(`❌ FCM failed for vendor ${vendorId}:`, err.message);
-  }
-}
+
+      for (const tokenDoc of vendorTokens) {
+        try {
+          await sendFCM(
+            tokenDoc.token,
+            `🛒 New Order from ${req.user.name}`,
+            `Order value ₹${orderValue}`,
+            savedOrder._id
+          );
+        } catch (err) {
+          console.error(`❌ FCM failed for vendor ${vendorId}:`, err.message);
+        }
+      }
     }
 
     res.status(201).json({ message: "Order created", order: savedOrder });
@@ -80,77 +99,93 @@ const createOrder = async (req, res) => {
   }
 };
 
-
 // const createOrder = async (req, res) => {
 //   try {
-//     const { items, shippingAddress, paymentMethod, totalAmount } = req.body;
+//     const { items, shippingAddress, paymentMethod, totalAmount, rewardPointsUsed = 0 } = req.body;
 
 //     if (!items || items.length === 0) {
-//       return res.status(400).json({ message: 'No order items provided' });
+//       return res.status(400).json({ message: "No order items provided" });
 //     }
 
-//     // Normalize vendor IDs if needed
+//     // Normalize vendor IDs
 //     items.forEach(item => {
-//       if (typeof item.vendor === 'string') {
+//       if (typeof item.vendor === "string") {
 //         item.vendor = new mongoose.Types.ObjectId(item.vendor);
 //       }
 //     });
 
+//     // Fetch user
+//     const user = await User.findById(req.user._id);
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // ✅ Check if user has enough reward points
+//     if (rewardPointsUsed > 0) {
+//       if (user.rewardPoints < rewardPointsUsed) {
+//         return res.status(400).json({ message: "Insufficient reward points" });
+//       }
+//       user.rewardPoints -= rewardPointsUsed;
+//       await user.save();
+//     }
+
+//     // Save new order
 //     const newOrder = new Order({
 //       buyer: req.user._id,
 //       items,
 //       shippingAddress,
 //       paymentMethod,
 //       totalAmount,
+//       rewardPointsUsed, // ✅ Save in DB
 //     });
 
 //     let savedOrder = await newOrder.save();
-//     savedOrder = await savedOrder.populate('buyer', 'name email');
+//     savedOrder = await savedOrder.populate("buyer", "name email");
 
-//     // Extract unique vendor IDs
-//     const vendorIds = [...new Set(items.map(item => item.vendor.toString()))];
+//     // Get unique vendor IDs
+//     const vendorIds = [...new Set(items.map(item => item.vendor?.toString()))];
 
-//     // Fetch vendor subscriptions
-//     const subscriptions = await Subscription.find({ vendorId: { $in: vendorIds } });
+//     // Fetch all tokens
+//     const tokens = await VendorToken.find({ vendorId: { $in: vendorIds } });
 
-//     // Notification payload
-//      const notificationPayload = JSON.stringify({
-//         title: `Hello, ${vendorName}!`,
-//         body: `You have received a new order from ${req.user.name}.\nOrder ID: ${savedOrder._id}\nOrder Value: ₹${orderValue}`,
-//         icon: '/logo.png',
-//         url: `/vendor/orders/${savedOrder._id}`,
-//         orderId: savedOrder._id,
-//         vendorName,
-//       });
-//     // const notificationPayload = JSON.stringify({
-//     //   title: '📦 New Order Received',
-//     //   body: `You have a new order from ${req.user.name}.`,
-//     //   icon: '/logo.png',
-//     //   url: '/vendor/orders',
-//     // });
+//     for (const vendorId of vendorIds) {
+//       const vendorUser = await User.findById(vendorId).select("name");
+//       const vendorName = vendorUser?.name || "Vendor";
 
-//     // Send notifications
-//     await Promise.all(subscriptions.map(async (sub) => {
-//       try {
-//         await webpush.sendNotification(sub.subscription, notificationPayload);
-//       } catch (err) {
-//         console.error(`❌ Push failed for vendor ${sub.vendorId}:`, err.message);
-//         if (err.statusCode === 410 || err.statusCode === 404) {
-//           await Subscription.deleteOne({ _id: sub._id });
-//           console.log(`🧹 Removed expired subscription for vendor ${sub.vendorId}`);
+//       const vendorItems = items.filter(
+//         item => item.vendor && item.vendor.toString() === vendorId
+//       );
+
+//       const orderValue = vendorItems.reduce(
+//         (sum, item) => sum + item.price * item.quantity,
+//         0
+//       );
+
+//       const vendorTokens = tokens.filter(
+//         t => t.vendorId.toString() === vendorId && !!t.token
+//       );
+
+//       for (const tokenDoc of vendorTokens) {
+//         try {
+//           await sendFCM(
+//             tokenDoc.token,
+//             `🛒 New Order from ${req.user.name}`,
+//             `Order value ₹${orderValue}`,
+//             savedOrder._id
+//           );
+//         } catch (err) {
+//           console.error(`❌ FCM failed for vendor ${vendorId}:`, err.message);
 //         }
 //       }
-//     }));
+//     }
 
-//     res.status(201).json({ message: 'Order created', order: savedOrder });
+//     res.status(201).json({ message: "Order created", order: savedOrder });
 
 //   } catch (error) {
-//     console.error('Create Order Error:', error);
-//     res.status(500).json({ message: 'Failed to create order' });
+//     console.error("Create Order Error:", error);
+//     res.status(500).json({ message: "Failed to create order" });
 //   }
-// };
-
-// ✅ GET ALL ORDERS (vendor sees only their own)
+// };// ✅ GET ALL ORDERS (vendor sees only their own)
 const getAllOrders = async (req, res) => {
   try {
     const query = req.user.role === 'vendor'

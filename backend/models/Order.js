@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema(
@@ -60,8 +59,10 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
-    // ✅ New status field added here
+    rewardPointsUsed: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: String,
       enum: ['Pending', 'Received', 'Packed', 'Moved', 'Delivered', 'Returned'],
@@ -74,13 +75,14 @@ const orderSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model('Order', orderSchema);
+
 // const mongoose = require('mongoose');
 
 // const orderSchema = new mongoose.Schema(
 //   {
 //     buyer: {
 //       type: mongoose.Schema.Types.ObjectId,
-//       ref: 'User', // reference to the buyer
+//       ref: 'User',
 //       required: true,
 //     },
 //     items: [
@@ -97,12 +99,12 @@ module.exports = mongoose.model('Order', orderSchema);
 //           required: true,
 //         },
 //         price: {
-//           type: Number, // chosen based on buyer role (client/architect)
+//           type: Number,
 //           required: true,
 //         },
 //         vendor: {
 //           type: mongoose.Schema.Types.ObjectId,
-//           ref: 'User', // the architect/vendor this product is from
+//           ref: 'User',
 //           required: true,
 //         },
 //       },
@@ -134,6 +136,11 @@ module.exports = mongoose.model('Order', orderSchema);
 //     totalAmount: {
 //       type: Number,
 //       required: true,
+//     },
+//     status: {
+//       type: String,
+//       enum: ['Pending', 'Received', 'Packed', 'Moved', 'Delivered', 'Returned'],
+//       default: 'Pending',
 //     },
 //   },
 //   {

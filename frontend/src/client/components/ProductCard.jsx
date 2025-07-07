@@ -193,7 +193,7 @@ function ProductCard({ product }) {
         <div className="p-4 bg-white space-y-1">
           <h4 className="font-semibold">{product.name}</h4>
           <p className="text-gray-500 text-sm">{product.category}</p>
-          
+
           {/* <p className="text-gray-500 text-sm">{product.subCategory}</p> */}
           <p className="text-gray-500 text-sm">
             {" "}
@@ -203,8 +203,21 @@ function ProductCard({ product }) {
           <p className="text-gray-500 text-sm truncate">
             {product.description}
           </p>
+          {(userRole === "architect" || userRole === "client") && (
+            <>
+              <p className="text-[#0070f3] font-medium mt-1">
+                Price: ₹{product.price?.client || 0}
+              </p>
+              {userRole === "architect" && (
+                <p className="text-green-600 text-sm font-semibold">
+                  Reward Points:{" "}
+                  {Math.round((product.price?.client || 0) * 0.1)} pts
+                </p>
+              )}
+            </>
+          )}
 
-          {userRole === "architect" && (
+          {/* {userRole === "architect" && (
             <p className="text-[#111827] font-medium mt-1">
               Price: ₹{product.price?.architect}
             </p>
@@ -213,7 +226,7 @@ function ProductCard({ product }) {
             <p className="text-[#0070f3] font-medium mt-1">
               Price: ₹{product.price?.client}
             </p>
-          )}
+          )} */}
           {!userRole && (
             <p className="text-gray-400 text-sm mt-1">Login to view pricing</p>
           )}

@@ -47,7 +47,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/favourites', favouriteRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/subscribe', subscribeRoutes);
 app.use('/api/config', configRoutes);

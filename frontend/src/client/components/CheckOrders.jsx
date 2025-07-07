@@ -21,11 +21,11 @@ function CheckOrders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get(`{process.env.REACT_APP_API_BASE}/api/orders/vendor-orders`, {
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/orders/vendor-orders`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const role = res.data.role || localStorage.getItem("crm_user_role");
+        const role = res.data.role || localStorage.getItem("crm_role");
         if (role === "vendor") {
           setOrders(res.data.orders || []);
           setIsVendor(true);
