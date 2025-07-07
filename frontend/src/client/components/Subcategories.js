@@ -8,7 +8,10 @@ const subcategoriesMap = {
       },
       "Wood Look Laminates",
       "Acrylic Laminates",
-      "Solid Color Laminates",
+      {
+        name: "Solid Color Laminates",
+        image: 'https://5.imimg.com/data5/SELLER/Default/2022/4/VM/OB/DU/29839102/solid-color-laminate.jpg',
+      },
       "Edge Banding",
       "Liner Laminates",
       {
@@ -308,8 +311,9 @@ const subcategoriesMap = {
         image: "https://img2.exportersindia.com/product_images/bc-full/2023/9/3466624/matte-white-and-blue-3d-designer-wallpaper-1684823680-6906235.jpeg"
       },
       "Textured Wallpapers",
-      {name:"Kids Wallpapers",
-        image:"https://4.imimg.com/data4/LJ/EQ/MY-8271179/kids-wallpapers.jpg",
+      {
+        name: "Kids Wallpapers",
+        image: "https://4.imimg.com/data4/LJ/EQ/MY-8271179/kids-wallpapers.jpg",
       },
       "Floral Wallpapers",
       "Geometric Wallpapers",
@@ -355,7 +359,9 @@ const subcategoriesMap = {
   TVUnit: {
     "Shop by Type": [
       "Browse All",
-      "Cabinetry",
+      {name:"Cabinetry",
+        image:"https://images.woodenstreet.de/image/cache/data/Hanks-TV+Unit/2-810x702.jpg",
+      },
       "Water Proof Plywood",
       "12mm Water Proof Ply",
       "WPC Board",
