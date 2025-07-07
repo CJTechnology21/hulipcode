@@ -3,6 +3,8 @@ const Order = require('../models/Order');
 const Subscription = require('../models/Subscription');
 const webpush = require('../utils/webPush');
 const User = require('../models/User')
+const VendorToken = require('../models/VendorToken'); // adjust path if needed
+
 
 // ✅ CREATE ORDER (with push notifications)
 const createOrder = async (req, res) => {
