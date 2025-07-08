@@ -36,34 +36,34 @@ function Home() {
   };
   const [location, setLocation] = useState("Fetching...");
 
-      useEffect(() => {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              const { latitude, longitude } = position.coords;
+      // useEffect(() => {
+      //   if (navigator.geolocation) {
+      //     navigator.geolocation.getCurrentPosition(
+      //       async (position) => {
+      //         const { latitude, longitude } = position.coords;
 
-              try {
-                const response = await fetch(
-                  `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-                );
-                const data = await response.json();
-                const city =
-                  data.address.city || data.address.town || data.address.village;
-                const postcode = data.address.postcode;
-                setLocation(`${city}, ${postcode}`);
-              } catch (error) {
-                console.error("Error fetching location:", error);
-                setLocation("Location unavailable");
-              }
-            },
-            () => {
-              setLocation("Permission denied");
-            }
-          );
-        } else {
-          setLocation("Geolocation not supported");
-        }
-      }, []);
+      //         try {
+      //           const response = await fetch(
+      //             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+      //           );
+      //           const data = await response.json();
+      //           const city =
+      //             data.address.city || data.address.town || data.address.village;
+      //           const postcode = data.address.postcode;
+      //           setLocation(`${city}, ${postcode}`);
+      //         } catch (error) {
+      //           console.error("Error fetching location:", error);
+      //           setLocation("Location unavailable");
+      //         }
+      //       },
+      //       () => {
+      //         setLocation("Permission denied");
+      //       }
+      //     );
+      //   } else {
+      //     setLocation("Geolocation not supported");
+      //   }
+      // }, []);
 
   return (
     <div className="bg-white min-h-screen font-montreal">

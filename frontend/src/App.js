@@ -79,6 +79,8 @@ import SubcategoryPage from "./client/components/SubCategoryPage";
 import InspirationDetail from "./Admin/components/Homecomponents/InspirationDetail";
 import AddProduct from "./client/components/AddNewProduct";
 import { toast } from "react-toastify";
+import CartSync from "./client/components/CartSync";
+import { LocationProvider } from "./context/LocationContext";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -115,7 +117,20 @@ function App() {
 
   return (
     <Router>
-      <ToastContainer />
+      {/* <CartSync/> */}
+      {/* <ToastContainer /> */}
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        limit={3}
+        hideProgressBar={false}
+        pauseOnFocusLoss
+        pauseOnHover
+        closeOnClick
+        draggable
+        className="custom-toast-container"
+      />
+  
       <SubscriptionVendor />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -189,6 +204,7 @@ function App() {
         < Route path="/addproduct" element={<AddProduct />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
+
         <Route path="/checkorders" element={<CheckOrders />} />
         <Route
           path="/:categoryName/:subcategorySlug"

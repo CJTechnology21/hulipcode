@@ -21,7 +21,6 @@ function SubcategoryPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("Popular");
-
   const [categoryFilters, setCategoryFilters] = useState([]);
   const [seriesFilters, setSeriesFilters] = useState([]);
   const [colorFilters, setColorFilters] = useState([]);
@@ -116,6 +115,8 @@ function SubcategoryPage() {
     baseMaterialFilters,
     applicationFilters,
     sortBy,
+    role,
+    readableSubcategory,
   ]);
 
   return (

@@ -25,16 +25,16 @@ const productSchema = new mongoose.Schema({
     },
   },
   category: {
-    type: String,
-    required: [true, 'Category is required'],
-    trim: true,
-  },
-  subCategory: {
-    type: String,
-    required: [true, 'Subcategory is required'], 
-    trim: true,
-    lowercase: true,
-  },
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Category',
+  required: [true, 'Category is required'],
+},
+subCategory: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Subcategory',
+  required: [true, 'Subcategory is required'],
+},
+
   brand: {
     type: String,
     default: 'Generic',
@@ -129,11 +129,11 @@ module.exports = mongoose.model('Product', productSchema);
 //     required: [true, 'Category is required'],
 //     trim: true,
 //   },
-//    subCategory: {
+//   subCategory: {
 //     type: String,
 //     required: [true, 'Subcategory is required'], 
 //     trim: true,
-//     lowecase:true,
+//     lowercase: true,
 //   },
 //   brand: {
 //     type: String,
@@ -174,10 +174,25 @@ module.exports = mongoose.model('Product', productSchema);
 //     required: true, 
 //   },
 //   vendorName: {
-//   type: String,
-//   required: true,
-//   trim: true,
-// },
+//     type: String,
+//     required: true,
+//     trim: true,
+//   },
+
+//   // ✅ New Fields
+//   size: {
+//     type: String,
+//     trim: true, // Accepts anything like '120cm x 240cm', '4ft x 8ft', '2.4m x 1.2m', etc.
+//   },
+//   thickness: {
+//     type: String,
+//     trim: true, // e.g. '0.8 mm', '1 mm', etc.
+//   },
+//   finish: {
+//     type: String,
+//     trim: true, // e.g. 'Matte', 'Glossy', etc.
+//   },
+
 // }, {
 //   timestamps: true,
 // });

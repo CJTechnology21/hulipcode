@@ -7,3 +7,22 @@
 .input {
   @apply mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500;
 }
+/* Base toast styles */
+.Toastify__toast {
+  max-width: 90vw;
+  word-break: break-word;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+/* Adjust container to push downward slightly */
+.custom-toast-container {
+  top: 1.5rem !important; /* Adjust as needed */
+}
+
+/* On mobile, push further down */
+@media (max-width: 768px) {
+  .custom-toast-container {
+    top: 1.5rem !important;
+  }
+}

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import React from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice'
 import Header from "./Header";
@@ -16,6 +16,10 @@ function CartScreen() {
     (acc, item) => acc + item.price * item.quantity,
     0
   );
+  useEffect(() => {
+  console.log("Cart Items:", cartItems);
+}, [cartItems]);
+
 
   const handleRemove = async (productId) => {
     try {

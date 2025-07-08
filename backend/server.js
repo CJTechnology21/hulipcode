@@ -15,7 +15,8 @@ const configRoutes = require('./routes/configRoutes');
 const pushRoutes = require("./routes/push");
 const locationRoutes = require('./routes/location');
 const vendorTokenRoutes = require('./routes/vendorRoutes');
-
+const categoryRoutes = require('./routes/categoryRoutes');
+const subcategoryRoutes = require('./routes/subCategoryRoutes')
 // Load environment variables
 dotenv.config();
 
@@ -58,6 +59,8 @@ app.use('/api/config', configRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
+app.use("/api/categories",categoryRoutes);
+app.use("/api/subcategories",subcategoryRoutes)
 
 // ✅ Health check
 app.get('/', (req, res) => {
