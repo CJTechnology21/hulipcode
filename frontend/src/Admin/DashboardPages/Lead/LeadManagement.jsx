@@ -14,6 +14,8 @@ import Header from "../../components/Header";
 import SideBar from "../../components/SideBar";
 import { useNavigate } from "react-router-dom";
 import { downloadExpandedRowPDF } from "../../components/PDFExporter";
+import { toast } from "react-toastify";
+
 const tabs = [
   { label: "All Leads", count: 5 },
   { label: "Huelip Leads", count: 2 },
@@ -35,6 +37,10 @@ const leadsData = [
     assigned: { name: "Ravi", initial: "R", color: "bg-yellow-300" },
     followup: true,
     source: "pinterest",
+    reminder: {
+      date: "2025-07-15", // ISO format preferred (yyyy-mm-dd)
+      time: "10:30 AM", // 12-hour format
+    },
   },
   {
     id: "L000564",
@@ -48,6 +54,10 @@ const leadsData = [
     assigned: { name: "Vivek", initial: "V", color: "bg-purple-300" },
     followup: true,
     source: "google",
+    reminder: {
+      date: "2025-07-15", // ISO format preferred (yyyy-mm-dd)
+      time: "10:30 AM", // 12-hour format
+    },
   },
   {
     id: "L000563",
@@ -61,6 +71,10 @@ const leadsData = [
     assigned: { name: "Tanvi Vivek", initial: "T V", color: "bg-pink-300" },
     followup: true,
     source: "instagram",
+    reminder: {
+      date: "2025-07-15", // ISO format preferred (yyyy-mm-dd)
+      time: "10:30 AM", // 12-hour format
+    },
   },
   {
     id: "L000562",
@@ -74,6 +88,10 @@ const leadsData = [
     assigned: { name: "Babita", initial: "B", color: "bg-blue-300" },
     followup: true,
     source: "pinterest",
+    reminder: {
+      date: "2025-07-15", // ISO format preferred (yyyy-mm-dd)
+      time: "10:30 AM", // 12-hour format
+    },
   },
   {
     id: "L000561",
@@ -87,6 +105,10 @@ const leadsData = [
     assigned: { name: "Ravi", initial: "R", color: "bg-yellow-300" },
     followup: true,
     source: "facebook",
+    // reminder: {
+    //   date: "2025-07-15", // ISO format preferred (yyyy-mm-dd)
+    //   time: "10:30 AM", // 12-hour format
+    // },
   },
 ];
 
@@ -136,12 +158,90 @@ export default function Leads() {
   };
 
   //Download Pdf
-  const handleDownloadPDF = (leadId) => {
-    downloadExpandedRowPDF({
-      elementId: `expandable-row-${leadId}`,
-      filename: `Huelip_Report_${leadId}.pdf`,
+  const handleDownloadPDF = async (leadId) => {
+    try {
+      await downloadExpandedRowPDF({
+        elementId: `expandable-row-${leadId}`,
+        filename: `Huelip_Report_${leadId}.pdf`,
+      });
+      toast.success("PDF downloaded successfully!");
+    } catch (error) {
+      console.error("Download failed", error);
+      toast.error("Failed to download PDF. Please try again.");
+    }
+  };
+
+  //editing row
+  const [editRowId, setEditRowId] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const handleEditChange = (e, field) => {
+    setEditFormData({ ...editFormData, [field]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    try {
+      // TODO: Replace with your real update logic
+      // await api.updateLead(editFormData);
+
+      toast.success("Lead updated successfully!");
+      setEditRowId(null);
+    } catch (error) {
+      toast.error("Failed to update lead.");
+    }
+  };
+
+  const handleCancel = () => {
+    setEditRowId(null);
+    setEditFormData({});
+  };
+
+  const [editedLead, setEditedLead] = useState({});
+  //reminder modal states
+  const [reminderModalId, setReminderModalId] = useState(null);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
+  const openReminderModal = (id) => {
+    const lead = leadsData.find((l) => l.id === id);
+    if (lead?.reminder) {
+      setReminderDate(lead.reminder.date);
+      setReminderTime(lead.reminder.time);
+    } else {
+      setReminderDate("");
+      setReminderTime("");
+    }
+    setReminderModalId(id);
+  };
+
+  const handleReminderSave = () => {
+    const updated = leadsData.map((lead) => {
+      if (lead.id === reminderModalId) {
+        return {
+          ...lead,
+          reminder: {
+            date: reminderDate,
+            time: formatTo12Hour(reminderTime),
+          },
+        };
+      }
+      return lead;
+    });
+
+    // setLeadsData(updated);
+    setReminderModalId(null);
+
+    toast.success("Reminder saved successfully!", {
+      position: "top-right",
+      autoClose: 3000,
     });
   };
+  const formatTo12Hour = (time24) => {
+    const [hour, minute] = time24.split(":");
+    const h = parseInt(hour);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${minute} ${suffix}`;
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -162,15 +262,15 @@ export default function Leads() {
       )}
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-y-auto bg-white">
+      <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
         <Header
           title="Leads Manager"
           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 ">
           {/* Tabs */}
-          <div className="flex gap-3 flex-wrap">
+          <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center gap-3">
             {tabs.map((tab) => (
               <button
                 key={tab.label}
@@ -187,6 +287,8 @@ export default function Leads() {
                 </span>
               </button>
             ))}
+
+      
             <div className="ml-auto flex gap-2">
               <button className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2">
                 Leads Config
@@ -201,7 +303,7 @@ export default function Leads() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto p-6 bg-white rounded-xl shadow ">
             <table className="w-full border-collapse mt-2 text-sm">
               <thead>
                 <tr className="text-left bg-gray-100">
@@ -236,7 +338,7 @@ export default function Leads() {
                         </select>
                       ) : idx === 10 ? null : (
                         <input
-                          className="w-full p-2 border rounded-lg bg-gray-100 text-xs"
+                          className="w-full p-2 border rounded-lg bg-gray-100 text-xs mt-4"
                           placeholder="Search"
                         />
                       )}
@@ -263,23 +365,119 @@ export default function Leads() {
                       >
                         {lead.id}
                       </td>
-                      <td
-                        className="px-3 py-3"
-                        onClick={() => toggleRow(lead.id)}
-                      >
-                        {lead.name}
-                      </td>
-                      <td className="px-3 py-3">{lead.budget}</td>
-                      <td className="px-3 py-3">{lead.contact}</td>
                       <td className="px-3 py-3">
+                        {editRowId === lead.id ? (
+                          <input
+                            value={editFormData.name}
+                            onChange={(e) => handleEditChange(e, "name")}
+                            className="w-full p-2 border border-red-500 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        ) : (
+                          lead.name
+                        )}
+                      </td>
+
+                      <td className="px-3 py-3">
+                        {editRowId === lead.id ? (
+                          <input
+                            value={editFormData.budget}
+                            onChange={(e) => handleEditChange(e, "budget")}
+                            className="w-full p-2 border border-red-500 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        ) : (
+                          lead.budget
+                        )}
+                      </td>
+
+                      {/* <td className="px-3 py-3">{lead.budget}</td> */}
+                      <td className="px-3 py-3">
+                        {editRowId === lead.id ? (
+                          <input
+                            value={editFormData.contact}
+                            onChange={(e) => handleEditChange(e, "contact")}
+                            className="w-full p-2 border border-red-500 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                        ) : (
+                          lead.contact
+                        )}
+                      </td>
+
+                      {/* <td className="px-3 py-3">{lead.contact}</td> */}
+                      <td className="px-3 py-3">
+                        {editRowId === lead.id ? (
+                          <select
+                            value={editedLead.status}
+                            onChange={(e) =>
+                              setEditedLead((prev) => ({
+                                ...prev,
+                                status: e.target.value,
+                              }))
+                            }
+                            className="w-full p-2 border border-red-500 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white text-sm"
+                          >
+                            <option value="">Select status</option>
+                            <option value="Not Assigned">Not Assigned</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="Requirement Gathered ">
+                              Requirement Gathered{" "}
+                            </option>
+                            <option value="Estimate Shared">
+                              Estimate Shared
+                            </option>
+                            <option value="Visit Planned">Visit Planned</option>
+                            <option value="Pending on Client Decision">
+                              Pending on Client Decision
+                            </option>
+                            <option value="Visit Planned">on Hold</option>
+                            <option value="Not Interested">
+                              Not Interested
+                            </option>
+                            <option value="Quotation Approved">
+                              Quotation Approved
+                            </option>
+                          </select>
+                        ) : (
+                          <span
+                            className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center whitespace-nowrap truncate ${lead.statusColor}`}
+                            title={lead.status}
+                          >
+                            {lead.status}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* <td className="px-3 py-3">
                         <span
                           className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center whitespace-nowrap truncate ${lead.statusColor}`}
                           title={lead.status}
                         >
                           {lead.status}
                         </span>
+                      </td> */}
+                      <td className="px-3 py-3">
+                        {editRowId === lead.id ? (
+                          <select
+                            value={editedLead.category}
+                            onChange={(e) =>
+                              setEditedLead((prev) => ({
+                                ...prev,
+                                category: e.target.value,
+                              }))
+                            }
+                            className="w-full p-2 border border-red-500 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white text-sm"
+                          >
+                            <option value="">Select category</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Residential">Residential</option>
+                            <option value="Industrial">Industrial</option>
+                            <option value="Retail">Retail</option>
+                          </select>
+                        ) : (
+                          lead.category
+                        )}
                       </td>
-                      <td className="px-3 py-3">{lead.category}</td>
+
+                      {/* <td className="px-3 py-3">{lead.category}</td> */}
                       <td className="px-3 py-3">
                         <td className="px-3 py-3">
                           <div
@@ -305,12 +503,93 @@ export default function Leads() {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <FaCalendarAlt className="text-gray-600" />
+                        <div className="relative inline-block">
+                          <button onClick={() => openReminderModal(lead.id)}>
+                            {/* Larger calendar icon */}
+                            <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-2xl" />
+                          </button>
+
+                          {/* Positioned badge with better spacing */}
+                          {lead.reminder && lead.reminder.date && (
+                            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow">
+                              1
+                            </span>
+                          )}
+                        </div>
                       </td>
+
+                      {/* <td className="px-3 py-3 relative">
+                        <button onClick={() => openReminderModal(lead.id)}>
+                          <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-lg" />
+                          {lead.reminder && lead.reminder.date && (
+                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                              1
+                            </span>
+                          )}
+                        </button>
+                      </td> */}
+
+                      {/* <td className="px-3 py-3">
+                        <FaCalendarAlt className="text-gray-600" />
+                      </td> */}
                       <td className="px-3 py-3">
                         {getSourceIcon(lead.source)}
                       </td>
                       <td className="px-3 py-3 relative">
+                        {editRowId === lead.id ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSave}
+                              className="px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancel}
+                              className="px-3 py-1 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuClick(lead.id);
+                            }}
+                            className="text-gray-600 hover:text-gray-800"
+                          >
+                            <HiOutlineDotsVertical className="text-xl" />
+                          </button>
+                        )}
+
+                        {menuOpenId === lead.id && !editRowId && (
+                          <div className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg z-50 text-sm">
+                            <button
+                              onClick={() => {
+                                closeMenu();
+                                setEditRowId(lead.id); // <-- this sets the row into edit mode
+                              }}
+                              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
+                            >
+                              <FaEdit className="text-gray-500 text-base" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
+                              onClick={() => {
+                                handleDownloadPDF(lead.id);
+                                closeMenu();
+                              }}
+                            >
+                              <FaFileDownload className="text-gray-500 text-base" />
+                              Download PDF
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* <td className="px-3 py-3 relative">
                         <button
                           onClick={(e) => {
                             e.stopPropagation(); // prevent global click handler if any
@@ -326,36 +605,28 @@ export default function Leads() {
                             <button
                               onClick={() => {
                                 closeMenu();
-                                console.log("Edit", lead.id);
+                                setEditRowId(lead.id);
+                                setEditFormData({ ...lead }); // prefill form with current row data
                               }}
                               className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
                             >
                               <FaEdit className="text-gray-500 text-base" />
                               <span>Edit</span>
                             </button>
+
                             <button
                               className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
-                              onClick={() => handleDownloadPDF(lead.id)}
-
+                              onClick={() => {
+                                handleDownloadPDF(lead.id);
+                                closeMenu();
+                              }}
                             >
                               <FaFileDownload className="text-gray-500 text-base" />
                               Download PDF
                             </button>
-
-                            {/* <button
-                              onClick={() =>
-                                downloadExpandedRowPDF({
-                                  elementId: `expandable-row-${lead.id}`,
-                                })
-                              }
-                              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
-                            >
-                              <FaFileDownload className="text-gray-500 text-base" />
-                              <span>Download PDF</span>
-                            </button> */}
                           </div>
                         )}
-                      </td>
+                      </td> */}
                     </tr>
 
                     {/* Expanded Row */}
@@ -514,6 +785,106 @@ export default function Leads() {
             </div>
           </div>
         )}
+        {/* remainder modal */}
+        {reminderModalId && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
+              <h2 className="text-lg font-semibold mb-4">Set Reminder</h2>
+
+              <div className="mb-3">
+                <label className="block mb-1 text-sm font-medium">Date</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  value={reminderDate}
+                  onChange={(e) => setReminderDate(e.target.value)}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium">Time</label>
+                <input
+                  type="time"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.target.value)}
+                />
+              </div>
+
+              {/* Past Notification Display */}
+              <div className="text-xs text-gray-600 mb-4">
+                {(() => {
+                  const lead = leadsData.find((l) => l.id === reminderModalId);
+                  if (lead?.reminder?.date) {
+                    return (
+                      <div className="bg-gray-100 p-2 rounded text-sm">
+                        Existing Reminder:{" "}
+                        <span className="font-medium text-black">
+                          {lead.reminder.date} at {lead.reminder.time}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return "No previous reminder.";
+                })()}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setReminderModalId(null)}
+                  className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReminderSave}
+                  className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* {reminderModalId && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-sm shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Set Reminder</h3>
+
+              <label className="block text-sm mb-2">Date</label>
+              <input
+                type="date"
+                value={reminderDate}
+                onChange={(e) => setReminderDate(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md mb-4"
+              />
+
+              <label className="block text-sm mb-2">Time</label>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={(e) => setReminderTime(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md mb-4"
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setReminderModalId(null)}
+                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReminderSave}
+                  className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )} */}
       </div>
     </div>
   );

@@ -81,6 +81,7 @@ import AddProduct from "./client/components/AddNewProduct";
 import { toast } from "react-toastify";
 import CartSync from "./client/components/CartSync";
 import { LocationProvider } from "./context/LocationContext";
+import QuoteDetail from "./Admin/components/Quote/QuoteDetail";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -130,7 +131,7 @@ function App() {
         draggable
         className="custom-toast-container"
       />
-  
+
       <SubscriptionVendor />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -165,6 +166,7 @@ function App() {
         {/* Quote-Routes */}
         <Route path="/quote" element={<Quote />} />
         <Route path="/quotetask" element={<QuoteTask />} />
+        <Route path="/quotedetails" element={<QuoteDetail />} />
         <Route path="/quoteform" element={<QuoteForm />} />
         {/* product-routes */}
         <Route path="/product" element={<Product />} />
@@ -204,7 +206,6 @@ function App() {
         < Route path="/addproduct" element={<AddProduct />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
-
         <Route path="/checkorders" element={<CheckOrders />} />
         <Route
           path="/:categoryName/:subcategorySlug"
