@@ -8,8 +8,7 @@ const userSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    required: true,
-    match: /^[0-9]{10,15}$/, // Basic validation for international numbers
+    match: /^[0-9]{10,15}$/, 
     unique: true,
   },
   email: {
@@ -31,7 +30,7 @@ const userSchema = new mongoose.Schema({
   },
   isSuperAdmin: {
     type: Boolean,
-    default: false, // Only one user can be true
+    default: false, 
   },
    rewardPoints: {
     type: Number,
