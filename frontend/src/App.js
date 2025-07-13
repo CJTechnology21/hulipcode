@@ -82,6 +82,7 @@ import { toast } from "react-toastify";
 import CartSync from "./client/components/CartSync";
 import { LocationProvider } from "./context/LocationContext";
 import QuoteDetail from "./Admin/components/Quote/QuoteDetail";
+import QuoteManager from "./Admin/components/Quote/QuoteManager";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -168,6 +169,7 @@ function App() {
         <Route path="/quotetask" element={<QuoteTask />} />
         <Route path="/quotedetails" element={<QuoteDetail />} />
         <Route path="/quoteform" element={<QuoteForm />} />
+         <Route path="/quotemanager" element={<QuoteManager />} />
         {/* product-routes */}
         <Route path="/product" element={<Product />} />
         <Route path="/productform" element={<ProductForm />} />

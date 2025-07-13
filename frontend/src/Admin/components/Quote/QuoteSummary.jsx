@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { FaEdit, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { FiFilter } from "react-icons/fi";
@@ -162,7 +163,6 @@ const QuoteSummary = ({ activeSection }) => {
               </p>
               <p className="mt-1">2. Payment Terms ...</p>
               <p className="mt-1">3. Project Scope ...</p>
-              {/* Add more terms if needed */}
             </div>
           )}
         </div>
