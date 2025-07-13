@@ -11,7 +11,7 @@ require("dotenv").config(); // ✅ TEMP add this to force load env
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-   process.env.GOOGLE_REDIRECT_URI
+  process.env.GOOGLE_REDIRECT_URI
   // 'postmessage' // must match frontend usage (e.g., useGoogleLogin)
 );
 
@@ -128,17 +128,33 @@ const googleAuth = async (req, res) => {
     }
 
     let user = await User.findOne({ email });
-
     if (!user) {
       const hashedSub = await bcrypt.hash(sub, 10);
-      user = await User.create({
+      const newUserData = {
         name,
         email,
         password: hashedSub,
         role: role || "client",
-        phoneNumber: phoneNumber || "0000000000",
-      });
+      };
+
+      if (phoneNumber) {
+        newUserData.phoneNumber = phoneNumber;
+      }
+
+      user = await User.create(newUserData);
     }
+
+
+    // if (!user) {
+    //   const hashedSub = await bcrypt.hash(sub, 10);
+    //   user = await User.create({
+    //     name,
+    //     email,
+    //     password: hashedSub,
+    //     role: role || "client",
+
+    //   });
+    // }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "7d",
@@ -168,6 +184,12 @@ const googleDetails = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Check for phone duplication
+    const existingUserWithPhone = await User.findOne({ phoneNumber });
+    if (existingUserWithPhone && existingUserWithPhone._id.toString() !== id) {
+      return res.status(400).json({ message: "Phone number already in use" });
+    }
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -195,49 +217,29 @@ const googleDetails = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-// const googleAuth = async (req, res) => {
+
+// const googleDetails = async (req, res) => {
 //   try {
-//     const { code } = req.body;
-//     if (!code)
-//       return res.status(400).json({ message: 'Authorization code missing' });
+//     const { id, role, phoneNumber } = req.body;
 
-//     console.log('🔁 Received Google auth code:', code);
-
-//     // Exchange the auth code for tokens
-//     const { tokens } = await oauth2Client.getToken(code);
-//     if (!tokens || !tokens.id_token)
-//       return res.status(400).json({ message: 'Unable to retrieve ID token' });
-
-//     // Verify ID token
-//     const ticket = await oauth2Client.verifyIdToken({
-//       idToken: tokens.id_token,
-//       audience: process.env.GOOGLE_CLIENT_ID,
-//     });
-
-//     const payload = ticket.getPayload();
-//     const { email, name, sub } = payload;
-
-//     if (!email || !name || !sub)
-//       return res.status(400).json({ message: 'Incomplete Google account data' });
-
-//     let user = await User.findOne({ email });
-
-//     if (!user) {
-//       const hashedSub = await bcrypt.hash(sub, 10); // optional: safer fallback password
-//       user = await User.create({
-//         name,
-//         email,
-//         password: hashedSub,
-//         role: 'client',
-//         phoneNumber: '0000000000',
-//       });
+//     if (!id || !role || !phoneNumber) {
+//       return res.status(400).json({ message: "Missing required fields" });
 //     }
 
-//     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-//       expiresIn: '7d',
-//     });
+//     const user = await User.findById(id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
 
-//     res.status(200).json({
+//     user.role = role;
+//     user.phoneNumber = phoneNumber;
+//     await user.save();
+
+//     const token = jwt.sign(
+//       { id: user._id, role: user.role },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "7d" }
+//     );
+
+//     return res.status(200).json({
 //       token,
 //       user: {
 //         id: user._id,
@@ -247,8 +249,8 @@ const googleDetails = async (req, res) => {
 //       },
 //     });
 //   } catch (err) {
-//     console.error('Google Auth Error:', err);
-//     res.status(500).json({ message: err.message || 'Google authentication failed' });
+//     console.error("Google Details Error:", err);
+//     return res.status(500).json({ message: "Internal Server Error" });
 //   }
 // };
 
