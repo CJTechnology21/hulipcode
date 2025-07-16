@@ -72,6 +72,7 @@ const mockData = [
 
 const QuoteSummary = ({ activeSection }) => {
   const [showTerms, setShowTerms] = useState(false);
+  const [showAddSpaceModal, setShowAddSpaceModal] = useState(false);
 
   const filteredData =
     activeSection === "Summary"

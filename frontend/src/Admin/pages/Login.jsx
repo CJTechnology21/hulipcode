@@ -1,74 +1,65 @@
-// src/Login.js
-
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import Input from "../../components/Input";
 import { useState } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import logo from "../images/logo.jpg";
 import homeImage from "../images/Home.png";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
-import { requestFirebaseNotificationPermission } from "../../services/firebase"; // adjust path based on your file structure
+import { requestFirebaseNotificationPermission } from "../../services/firebase";
+import {
+  loginUser,
+  googleLoginUser,
+  storeVendorToken,
+} from "../../services/authServices";
+
+const schema = yup.object().shape({
+  emailOrPhone: yup
+    .string()
+    .required("Email or phone is required")
+    .test("emailOrPhone", "Enter valid email or phone", (value) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^\d{10}$/;
+      return emailRegex.test(value) || phoneRegex.test(value);
+    }),
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(6, "Min 6 characters"),
+});
 
 const Login = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    emailOrPhone: "",
-    password: "",
-  });
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({ resolver: yupResolver(schema) });
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    if (!form.emailOrPhone || !form.password) {
-      return toast.error("Both fields are required");
-    }
-
+  const onSubmit = async (data) => {
     try {
       setLoading(true);
 
-      // 🔐 Login API call
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/auth/login`,
-        {
-          email: form.emailOrPhone,
-          password: form.password,
-        }
-      );
+      const res = await loginUser(data.emailOrPhone, data.password);
+      const { user, token } = res;
 
-      const { user, token } = res.data;
-
-      // ✅ Store auth info
       localStorage.setItem("crm_token", token);
       localStorage.setItem("crm_user_id", user.id);
       localStorage.setItem("crm_role", user.role);
 
       toast.success("Login successful");
 
-      // 🚀 Request FCM token & store it if vendor
       if (user.role === "vendor") {
         const fcmToken = await requestFirebaseNotificationPermission();
-
         if (fcmToken) {
-          await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
-          });
-
-          console.log("✅ FCM token stored for vendor.");
-        } else {
-          console.warn("⚠️ FCM token not granted.");
+          await storeVendorToken(user._id, fcmToken);
         }
-
         navigate("/vendordashboard");
       } else if (user.role === "architect") {
         navigate("/architectdashboard");
@@ -76,100 +67,50 @@ const Login = () => {
         navigate("/ecom");
       }
     } catch (err) {
-      const message = err?.response?.data?.message || "Login failed";
-      toast.error(message);
+      toast.error(err?.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // const handleLogin = async (e) => {
-  //   e.preventDefault();
-
-  //   if (!form.emailOrPhone || !form.password) {
-  //     return toast.error("Both fields are required");
-  //   }
-
-  //   try {
-  //     setLoading(true);
-
-  //     const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
-  //       email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
-  //       password: form.password,
-  //     });
-
-  //     toast.success("Login successful");
-  //     localStorage.setItem("crm_token", res.data.token);
-  //     localStorage.setItem("crm_user_id", res.data.user.id);
-  //     localStorage.setItem("crm_role",res.data.user.role);
-  //     if (res.data.user?.role === "vendor") {
-  //       navigate("/vendordashboard");
-  //     } else if (res.data.user?.role === "architect") {
-  //       navigate("/architectdashboard");
-  //     } else {
-  //       navigate("/ecom");
-  //     }
-  //   } catch (err) {
-  //     const message = err?.response?.data?.message || "Login failed";
-  //     toast.error(message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const googleLogin = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
-        const res = await axios.post(
-          `${process.env.REACT_APP_API_BASE}/api/auth/google`,
-          {
-            code: codeResponse.code,
-          }
-        );
-
+        const res = await googleLoginUser(codeResponse.code);
         toast.success("Signed in with Google!");
-        localStorage.setItem("crm_token", res.data.token);
-        localStorage.setItem("crm_user_id", res.data.user.id);
-        if (res.data.user?.role === "vendor") {
+
+        localStorage.setItem("crm_token", res.token);
+        localStorage.setItem("crm_user_id", res.user.id);
+
+        if (res.user?.role === "vendor") {
           navigate("/vendordashboard");
-        } else if (res.data.user?.role === "architect") {
+        } else if (res.user?.role === "architect") {
           navigate("/architectdashboard");
         } else {
           navigate("/ecom");
         }
       } catch (err) {
-        console.error("Google Login Error:", err);
         toast.error(err?.response?.data?.message || "Google login failed");
       }
     },
-    onError: (err) => {
-      console.error("Google login error", err);
-      toast.error("Google login was unsuccessful");
-    },
+    onError: () => toast.error("Google login was unsuccessful"),
   });
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden">
       {/* Left Section */}
       <div className="lg:w-[40%] bg-black text-white flex flex-col justify-center items-center px-4 py-6 sm:px-6">
-        <div className="flex items-center mb-1 w-full justify-center">
-          <img
-            src={logo}
-            alt="Your Logo"
-            className="h-24 w-60 mb-10 sm:mb-24 "
-          />
-
-          {/* <img src={logo} alt="Your Logo" className="h-10 mb-10 sm:mb-24 ml-14" /> */}
-        </div>
+        <img src={logo} alt="Your Logo" className="h-24 w-60 mb-10 sm:mb-24" />
         <img
           src={homeImage}
           alt="Home"
           className="w-3/4 max-w-[500px] h-auto mb-10 sm:mb-16"
         />
-        <h2 className="font-inter font-bold text-[24px] sm:text-[30px] text-center lg:text-left leading-tight mb-2 sm:mr-52">
+        <h2 className="text-[24px] sm:text-[30px] font-bold text-center mb-2">
           Lorem Ispam
         </h2>
-        <p className="text-xs text-center mr-14 lg:text-left max-w-xs">
+        <p className="text-xs text-center max-w-xs">
           Lorem Ipsam is simply dummy text of the printing and typesetting
           industry.
         </p>
@@ -178,7 +119,7 @@ const Login = () => {
       {/* Right Section */}
       <div className="lg:w-[60%] bg-gray-100 flex justify-center items-center px-4 py-6 sm:px-6">
         <div className="w-full max-w-md sm:max-w-lg">
-          <h2 className="font-inter font-bold text-[36px] sm:text-[53.33px] leading-none mb-2">
+          <h2 className="text-[36px] sm:text-[53.33px] font-bold mb-2">
             Welcome Back
           </h2>
           <p className="text-sm mb-6">
@@ -188,47 +129,32 @@ const Login = () => {
             </a>
           </p>
 
-          <form className="space-y-4" onSubmit={handleLogin}>
-            <input
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+            <Input
               name="emailOrPhone"
-              type="text"
-              placeholder="Email ID/Phone"
-              value={form.emailOrPhone}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Email ID / Phone"
+              register={register}
+              error={errors.emailOrPhone}
             />
-            <div className="relative">
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="current-password"
-                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-              >
-                {showPassword ? (
-                  <AiOutlineEyeInvisible size={20} />
-                ) : (
-                  <AiOutlineEye size={20} />
-                )}
-              </button>
-            </div>
+            <Input
+              name="password"
+              placeholder="Password"
+              register={register}
+              error={errors.password}
+              type="password"
+              showToggle
+            />
+
             <div className="text-right">
               <a href="/forgot-password" className="text-sm text-blue-600">
-                Forgot Password
+                Forgot Password?
               </a>
             </div>
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 text-sm"
-              style={{ backgroundColor: "#2563EB" }}
             >
               {loading ? "Logging in..." : "LOGIN"}
             </button>
@@ -259,26 +185,345 @@ const Login = () => {
 
 export default Login;
 
-// // src/Login.js
+// import { useForm } from "react-hook-form";
+// import { yupResolver } from "@hookform/resolvers/yup";
+// import * as yup from "yup";
+// import Input from "../../components/Input";
+// import axios from "axios";
+// import { useState } from "react";
+// import { useNavigate } from "react-router-dom";
+// import { toast } from "react-toastify";
+// import logo from "../images/logo.jpg";
+// import homeImage from "../images/Home.png";
+// import { FcGoogle } from "react-icons/fc";
+// import { FaApple } from "react-icons/fa";
+// import { useGoogleLogin } from "@react-oauth/google";
+// import { requestFirebaseNotificationPermission } from "../../services/firebase";
 
-// import { useState } from 'react';
-// import logo from '../images/logo.png';
-// import homeImage from '../images/Home.png';
-// import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
-// import { FcGoogle } from 'react-icons/fc';
-// import { FaApple } from 'react-icons/fa';
-// import { useNavigate } from 'react-router-dom';
+// const schema = yup.object().shape({
+//   emailOrPhone: yup
+//     .string()
+//     .required("Email or phone is required")
+//     .test("emailOrPhone", "Enter valid email or phone", (value) => {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       const phoneRegex = /^\d{10}$/;
+//       return emailRegex.test(value) || phoneRegex.test(value);
+//     }),
+//   password: yup.string().required("Password is required").min(6, "Min 6 characters"),
+// });
 
 // const Login = () => {
 //   const navigate = useNavigate();
-//   const [showPassword, setShowPassword] = useState(false);
+//   const [loading, setLoading] = useState(false);
+
+//   const {
+//     register,
+//     handleSubmit,
+//     formState: { errors },
+//   } = useForm({ resolver: yupResolver(schema) });
+
+//   const onSubmit = async (data) => {
+//     try {
+//       setLoading(true);
+//       const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
+//         email: data.emailOrPhone,
+//         password: data.password,
+//       });
+
+//       const { user, token } = res.data;
+
+//       localStorage.setItem("crm_token", token);
+//       localStorage.setItem("crm_user_id", user.id);
+//       localStorage.setItem("crm_role", user.role);
+
+//       toast.success("Login successful");
+
+//       if (user.role === "vendor") {
+//         const fcmToken = await requestFirebaseNotificationPermission();
+//         if (fcmToken) {
+//           await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
+//           });
+//         }
+//         navigate("/vendordashboard");
+//       } else if (user.role === "architect") {
+//         navigate("/architectdashboard");
+//       } else {
+//         navigate("/ecom");
+//       }
+//     } catch (err) {
+//       toast.error(err?.response?.data?.message || "Login failed");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const googleLogin = useGoogleLogin({
+//     flow: "auth-code",
+//     onSuccess: async (codeResponse) => {
+//       try {
+//         const res = await axios.post(
+//           `${process.env.REACT_APP_API_BASE}/api/auth/google`,
+//           { code: codeResponse.code }
+//         );
+
+//         toast.success("Signed in with Google!");
+//         localStorage.setItem("crm_token", res.data.token);
+//         localStorage.setItem("crm_user_id", res.data.user.id);
+
+//         if (res.data.user?.role === "vendor") {
+//           navigate("/vendordashboard");
+//         } else if (res.data.user?.role === "architect") {
+//           navigate("/architectdashboard");
+//         } else {
+//           navigate("/ecom");
+//         }
+//       } catch (err) {
+//         toast.error(err?.response?.data?.message || "Google login failed");
+//       }
+//     },
+//     onError: () => toast.error("Google login was unsuccessful"),
+//   });
 
 //   return (
 //     <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden">
 //       {/* Left Section */}
 //       <div className="lg:w-[40%] bg-black text-white flex flex-col justify-center items-center px-4 py-6 sm:px-6">
-//         <div className="flex items-center mb-1 w-full">
-//           <img src={logo} alt="Your Logo" className="h-10 mb-10 sm:mb-24 ml-14 " />
+//         <img src={logo} alt="Your Logo" className="h-24 w-60 mb-10 sm:mb-24" />
+//         <img src={homeImage} alt="Home" className="w-3/4 max-w-[500px] h-auto mb-10 sm:mb-16" />
+//         <h2 className="text-[24px] sm:text-[30px] font-bold text-center mb-2">Lorem Ispam</h2>
+//         <p className="text-xs text-center max-w-xs">
+//           Lorem Ipsam is simply dummy text of the printing and typesetting industry.
+//         </p>
+//       </div>
+
+//       {/* Right Section */}
+//       <div className="lg:w-[60%] bg-gray-100 flex justify-center items-center px-4 py-6 sm:px-6">
+//         <div className="w-full max-w-md sm:max-w-lg">
+//           <h2 className="text-[36px] sm:text-[53.33px] font-bold mb-2">Welcome Back</h2>
+//           <p className="text-sm mb-6">
+//             Don’t have an account?{" "}
+//             <a href="/signup" className="text-blue-600">
+//               Sign Up
+//             </a>
+//           </p>
+
+//           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+//             <Input
+//               name="emailOrPhone"
+//               placeholder="Email ID / Phone"
+//               register={register}
+//               error={errors.emailOrPhone}
+//             />
+//             <Input
+//               name="password"
+//               placeholder="Password"
+//               register={register}
+//               error={errors.password}
+//               type="password"
+//               showToggle
+//             />
+
+//             <div className="text-right">
+//               <a href="/forgot-password" className="text-sm text-blue-600">
+//                 Forgot Password?
+//               </a>
+//             </div>
+
+//             <button
+//               type="submit"
+//               disabled={loading}
+//               className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 text-sm"
+//             >
+//               {loading ? "Logging in..." : "LOGIN"}
+//             </button>
+//           </form>
+
+//           <div className="flex items-center my-4">
+//             <hr className="flex-grow border-gray-300" />
+//             <span className="mx-2 text-xs text-gray-500">or</span>
+//             <hr className="flex-grow border-gray-300" />
+//           </div>
+
+//           <button
+//             onClick={googleLogin}
+//             className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50"
+//           >
+//             <FcGoogle size={20} className="mr-2" />
+//             Continue with Google
+//           </button>
+//           <button className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
+//             <FaApple size={20} className="mr-2" />
+//             Continue with Apple
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Login;
+
+// import { useState } from "react";
+// import axios from "axios";
+// import { toast } from "react-toastify";
+// import logo from "../images/logo.jpg";
+// import homeImage from "../images/Home.png";
+// import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+// import { FcGoogle } from "react-icons/fc";
+// import { FaApple } from "react-icons/fa";
+// import { useNavigate } from "react-router-dom";
+// import { useGoogleLogin } from "@react-oauth/google";
+// import { requestFirebaseNotificationPermission } from "../../services/firebase"; // adjust path based on your file structure
+
+// const Login = () => {
+//   const navigate = useNavigate();
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const [form, setForm] = useState({
+//     emailOrPhone: "",
+//     password: "",
+//   });
+
+//   const handleChange = (e) => {
+//     setForm({ ...form, [e.target.name]: e.target.value });
+//   };
+
+//   const handleLogin = async (e) => {
+//     e.preventDefault();
+
+//     if (!form.emailOrPhone || !form.password) {
+//       return toast.error("Both fields are required");
+//     }
+
+//     try {
+//       setLoading(true);
+
+//       // 🔐 Login API call
+//       const res = await axios.post(
+//         `${process.env.REACT_APP_API_BASE}/api/auth/login`,
+//         {
+//           email: form.emailOrPhone,
+//           password: form.password,
+//         }
+//       );
+
+//       const { user, token } = res.data;
+
+//       // ✅ Store auth info
+//       localStorage.setItem("crm_token", token);
+//       localStorage.setItem("crm_user_id", user.id);
+//       localStorage.setItem("crm_role", user.role);
+
+//       toast.success("Login successful");
+
+//       // 🚀 Request FCM token & store it if vendor
+//       if (user.role === "vendor") {
+//         const fcmToken = await requestFirebaseNotificationPermission();
+
+//         if (fcmToken) {
+//           await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
+//           });
+
+//           console.log("✅ FCM token stored for vendor.");
+//         } else {
+//           console.warn("⚠️ FCM token not granted.");
+//         }
+
+//         navigate("/vendordashboard");
+//       } else if (user.role === "architect") {
+//         navigate("/architectdashboard");
+//       } else {
+//         navigate("/ecom");
+//       }
+//     } catch (err) {
+//       const message = err?.response?.data?.message || "Login failed";
+//       toast.error(message);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // const handleLogin = async (e) => {
+//   //   e.preventDefault();
+
+//   //   if (!form.emailOrPhone || !form.password) {
+//   //     return toast.error("Both fields are required");
+//   //   }
+
+//   //   try {
+//   //     setLoading(true);
+
+//   //     const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
+//   //       email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
+//   //       password: form.password,
+//   //     });
+
+//   //     toast.success("Login successful");
+//   //     localStorage.setItem("crm_token", res.data.token);
+//   //     localStorage.setItem("crm_user_id", res.data.user.id);
+//   //     localStorage.setItem("crm_role",res.data.user.role);
+//   //     if (res.data.user?.role === "vendor") {
+//   //       navigate("/vendordashboard");
+//   //     } else if (res.data.user?.role === "architect") {
+//   //       navigate("/architectdashboard");
+//   //     } else {
+//   //       navigate("/ecom");
+//   //     }
+//   //   } catch (err) {
+//   //     const message = err?.response?.data?.message || "Login failed";
+//   //     toast.error(message);
+//   //   } finally {
+//   //     setLoading(false);
+//   //   }
+//   // };
+//   const googleLogin = useGoogleLogin({
+//     flow: "auth-code",
+//     onSuccess: async (codeResponse) => {
+//       try {
+//         const res = await axios.post(
+//           `${process.env.REACT_APP_API_BASE}/api/auth/google`,
+//           {
+//             code: codeResponse.code,
+//           }
+//         );
+
+//         toast.success("Signed in with Google!");
+//         localStorage.setItem("crm_token", res.data.token);
+//         localStorage.setItem("crm_user_id", res.data.user.id);
+//         if (res.data.user?.role === "vendor") {
+//           navigate("/vendordashboard");
+//         } else if (res.data.user?.role === "architect") {
+//           navigate("/architectdashboard");
+//         } else {
+//           navigate("/ecom");
+//         }
+//       } catch (err) {
+//         console.error("Google Login Error:", err);
+//         toast.error(err?.response?.data?.message || "Google login failed");
+//       }
+//     },
+//     onError: (err) => {
+//       console.error("Google login error", err);
+//       toast.error("Google login was unsuccessful");
+//     },
+//   });
+
+//   return (
+//     <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden">
+//       {/* Left Section */}
+//       <div className="lg:w-[40%] bg-black text-white flex flex-col justify-center items-center px-4 py-6 sm:px-6">
+//         <div className="flex items-center mb-1 w-full justify-center">
+//           <img
+//             src={logo}
+//             alt="Your Logo"
+//             className="h-24 w-60 mb-10 sm:mb-24 "
+//           />
 //         </div>
 //         <img
 //           src={homeImage}
@@ -289,7 +534,8 @@ export default Login;
 //           Lorem Ispam
 //         </h2>
 //         <p className="text-xs text-center mr-14 lg:text-left max-w-xs">
-//           Lorem Ipsam is simply dummy text of the printing and typesetting industry.
+//           Lorem Ipsam is simply dummy text of the printing and typesetting
+//           industry.
 //         </p>
 //       </div>
 
@@ -300,22 +546,29 @@ export default Login;
 //             Welcome Back
 //           </h2>
 //           <p className="text-sm mb-6">
-//             Don’t have an account?{' '}
-//             <a href="Signup" className="text-blue-600">
+//             Don’t have an account?{" "}
+//             <a href="/signup" className="text-blue-600">
 //               Sign Up
 //             </a>
 //           </p>
 
-//           <form className="space-y-4">
+//           <form className="space-y-4" onSubmit={handleLogin}>
 //             <input
+//               name="emailOrPhone"
 //               type="text"
 //               placeholder="Email ID/Phone"
+//               value={form.emailOrPhone}
+//               onChange={handleChange}
 //               className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
 //             />
 //             <div className="relative">
 //               <input
-//                 type={showPassword ? 'text' : 'password'}
+//                 name="password"
+//                 type={showPassword ? "text" : "password"}
 //                 placeholder="Password"
+//                 value={form.password}
+//                 onChange={handleChange}
+//                 autoComplete="current-password"
 //                 className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
 //               />
 //               <button
@@ -337,11 +590,11 @@ export default Login;
 //             </div>
 //             <button
 //               type="submit"
+//               disabled={loading}
 //               className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 text-sm"
-//               onClick={()=>navigate('/dashboard')}
-//               style={{ backgroundColor: '#2563EB' }}
+//               style={{ backgroundColor: "#2563EB" }}
 //             >
-//               LOGIN
+//               {loading ? "Logging in..." : "LOGIN"}
 //             </button>
 //           </form>
 
@@ -351,7 +604,10 @@ export default Login;
 //             <hr className="flex-grow border-gray-300" />
 //           </div>
 
-//           <button className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50">
+//           <button
+//             onClick={googleLogin}
+//             className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50"
+//           >
 //             <FcGoogle size={20} className="mr-2" />
 //             Continue with Google
 //           </button>
