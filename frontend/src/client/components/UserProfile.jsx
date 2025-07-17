@@ -1,38 +1,52 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 
 function UserProfile() {
   const [user, setUser] = useState(null);
-
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("crm_token");
-      if (!token) return;
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.REACT_APP_API_BASE}/api/user/me`,
+        { withCredentials: true }
+      );
+      console.log("✅ User data fetched:", res.data); // Make sure to check this
+      setUser(res.data); // 👈 might need to change this to res.data.user
+    } catch (error) {
+      console.error("❌ Error fetching user:", error);
+    }
+  };
+  fetchUser();
+}, []);
 
-      try {
-        const decoded = jwtDecode(token);
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/user/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
 
-        setUser(res.data);
-      } catch (error) {
-        console.error(" Error fetching user:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchUser = async () => {
+  //     try {
+  //       const res = await axios.get(
+  //         `${process.env.REACT_APP_API_BASE}/api/user/me`,
+  //         {
+  //           withCredentials: true, // ✅ needed to send cookie for auth
+  //         }
+  //       );
+  //       setUser(res.data);
+  //       console.log("User data fetched:", res.data);
+  //     } catch (error) {
+  //       console.error("❌ Error fetching user:", error);
+  //     }
+  //   };
 
-    fetchUser();
-  }, []);
+  //   fetchUser();
+  // }, []);
 
   if (!user) {
     return (
       <div>
         <Header />
-        <div className="p-8 text-center text-gray-500">Loading user profile...</div>
+        <div className="p-8 text-center text-gray-500">
+          Loading user profile...
+        </div>
       </div>
     );
   }
@@ -55,11 +69,10 @@ function UserProfile() {
             <strong className="block text-gray-600">Phone number:</strong>
             <p>{user.phoneNumber || "N/A"}</p>
           </div>
-              <div>
+          <div>
             <strong className="block text-gray-600">Reward Points:</strong>
             <p>{user.rewardPoints || "N/A"}</p>
           </div>
-          {/* Add more fields if needed */}
         </div>
       </div>
     </div>

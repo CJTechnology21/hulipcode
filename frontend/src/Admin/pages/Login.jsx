@@ -49,7 +49,7 @@ const Login = () => {
       const res = await loginUser(data.emailOrPhone, data.password);
       const { user, token } = res;
 
-      localStorage.setItem("crm_token", token);
+      // localStorage.setItem("crm_token", token);
       localStorage.setItem("crm_user_id", user.id);
       localStorage.setItem("crm_role", user.role);
 

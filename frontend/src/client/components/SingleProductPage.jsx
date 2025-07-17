@@ -4,13 +4,19 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { FaShare, FaHeart, FaTimes } from "react-icons/fa";
 import ProductCard from "./ProductCard";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { addToCart } from "../../app/features/cart/cartSlice";
 import { jwtDecode } from "jwt-decode";
 import { toast } from "react-toastify";
 import { useLocation } from "../../context/LocationContext";
-import axios from "axios";
 
+import {
+  fetchProductById,
+  fetchRelatedProducts,
+  addToCartAPI,
+  addFavouriteAPI,
+} from "../../services/productServices";
+import { ClipLoader } from "react-spinners";
 function SingleProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -35,25 +41,17 @@ function SingleProductPage() {
       ? imgPath
       : `http://localhost:5000/${imgPath}`;
 
+  
   useEffect(() => {
     mainRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const fetchProduct = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(
-          `${process.env.REACT_APP_API_BASE}/api/products/${id}`
-        );
-        if (!res.ok) throw new Error("Product not found");
-        const data = await res.json();
+        const data = await fetchProductById(id);
         setProduct(data);
 
-        const relRes = await fetch(
-          `${process.env.REACT_APP_API_BASE}/api/products?category=${data.category}`
-        );
-        const relData = await relRes.json();
-        setRelatedProducts(
-          relData.filter((p) => p._id !== data._id).slice(0, 4)
-        );
+        const rel = await fetchRelatedProducts(data.category);
+        setRelatedProducts(rel.filter((p) => p._id !== data._id).slice(0, 4));
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {
@@ -61,26 +59,18 @@ function SingleProductPage() {
       }
     };
 
-    fetchProduct();
+    fetchData();
   }, [id]);
-   useEffect(() => {
-    if (zoomImage) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
 
-    return () => {
-      document.body.style.overflow = '';
-    };
+  useEffect(() => {
+    document.body.style.overflow = zoomImage ? "hidden" : "";
+    return () => (document.body.style.overflow = "");
   }, [zoomImage]);
 
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-
+  const handleAddToCart = async () => {
     const token = localStorage.getItem("crm_token");
     if (!token) {
-      toast.warning("Login first to add products to cart", { autoClose: 2000 });
+      toast.warning("Login first to add products to cart");
       return navigate("/login");
     }
 
@@ -88,53 +78,35 @@ function SingleProductPage() {
     try {
       const decoded = jwtDecode(token);
       userRole = decoded.role;
-    } catch (err) {
-      console.error("JWT decode error:", err);
+    } catch {
       return toast.error("Invalid token. Please login again.");
     }
 
-    let basePrice = 0;
-    if (userRole === "architect" || userRole === "client") {
-      basePrice = product.price?.client || 0;
-    } else {
-      toast.warning("Login to view pricing", { autoClose: 2000 });
+    const basePrice =
+      userRole === "architect" || userRole === "client"
+        ? product.price?.client || 0
+        : 0;
+
+    if (!basePrice) {
+      toast.warning("Login to view pricing");
       return navigate("/login");
     }
 
     const finalPrice = isDelhi ? basePrice : basePrice + 100;
 
-    dispatch(
-      addToCart({
-        _id: product._id,
-        name: product.name,
-        price: finalPrice,
-        image: getImageUrl(product.images?.[0]),
-        vendor: product.vendor,
-        rewardPoints: product.rewardPoints || Math.round(finalPrice * 0.1),
-      })
-    );
+    const item = {
+      _id: product._id,
+      name: product.name,
+      price: finalPrice,
+      image: getImageUrl(product.images?.[0]),
+      vendor: product.vendor,
+      rewardPoints: product.rewardPoints || Math.round(finalPrice * 0.1),
+    };
+
+    dispatch(addToCart(item));
 
     try {
-      await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/cart`,
-        {
-          items: [
-            {
-              _id: product._id,
-              name: product.name,
-              price: finalPrice,
-              image: getImageUrl(product.images?.[0]),
-              quantity: 1,
-              vendor: product.vendor,
-            },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await addToCartAPI([item], token);
     } catch (err) {
       console.error("Cart API error:", err);
       toast.error("Could not save cart to server");
@@ -144,39 +116,25 @@ function SingleProductPage() {
   const handleAddToFavourites = async () => {
     const token = localStorage.getItem("crm_token");
     if (!token) {
-      toast.warning("Login to add favourites", { autoClose: 2000 });
+      toast.warning("Login to add favourites");
       return navigate("/login");
     }
 
     try {
-      const res = await fetch(
-        `${process.env.REACT_APP_API_BASE}/api/favourites`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ productId: product._id }),
-        }
-      );
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to add to favourites");
-      }
-
+      await addFavouriteAPI(product._id, token);
       toast.success(`${product.name} added to favourites`);
     } catch (err) {
-      toast.error(err.message);
+      toast.error("Could not add to favourites");
     }
   };
 
   if (loading) {
     return (
-      <div className="text-center py-20">
+      <div className="min-h-screen flex flex-col justify-center items-center">
         <Header />
-        <p className="text-xl font-semibold text-gray-600">Loading...</p>
+        <ClipLoader color="#36d7b7" size={50} />
+        <p className="mt-4 text-gray-600 text-sm">Loading product...</p>
+        <Footer />
       </div>
     );
   }
@@ -185,12 +143,169 @@ function SingleProductPage() {
     return (
       <div className="text-center py-20">
         <Header />
-        <p className="text-xl font-semibold text-gray-600">
-          Product not found.
-        </p>
+        <p className="text-xl font-semibold text-gray-600">Product not found.</p>
+        <Footer />
       </div>
     );
   }
+
+
+  // useEffect(() => {
+  //   mainRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  //   const fetchProduct = async () => {
+  //     try {
+  //       const res = await fetch(
+  //         `${process.env.REACT_APP_API_BASE}/api/products/${id}`
+  //       );
+  //       if (!res.ok) throw new Error("Product not found");
+  //       const data = await res.json();
+  //       setProduct(data);
+
+  //       const relRes = await fetch(
+  //         `${process.env.REACT_APP_API_BASE}/api/products?category=${data.category}`
+  //       );
+  //       const relData = await relRes.json();
+  //       setRelatedProducts(
+  //         relData.filter((p) => p._id !== data._id).slice(0, 4)
+  //       );
+  //     } catch (err) {
+  //       console.error("Error fetching product:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchProduct();
+  // }, [id]);
+  //  useEffect(() => {
+  //   if (zoomImage) {
+  //     document.body.style.overflow = 'hidden';
+  //   } else {
+  //     document.body.style.overflow = '';
+  //   }
+
+  //   return () => {
+  //     document.body.style.overflow = '';
+  //   };
+  // }, [zoomImage]);
+
+  // const handleAddToCart = async (e) => {
+  //   e.preventDefault();
+
+  //   const token = localStorage.getItem("crm_token");
+  //   if (!token) {
+  //     toast.warning("Login first to add products to cart", { autoClose: 2000 });
+  //     return navigate("/login");
+  //   }
+
+  //   let userRole;
+  //   try {
+  //     const decoded = jwtDecode(token);
+  //     userRole = decoded.role;
+  //   } catch (err) {
+  //     console.error("JWT decode error:", err);
+  //     return toast.error("Invalid token. Please login again.");
+  //   }
+
+  //   let basePrice = 0;
+  //   if (userRole === "architect" || userRole === "client") {
+  //     basePrice = product.price?.client || 0;
+  //   } else {
+  //     toast.warning("Login to view pricing", { autoClose: 2000 });
+  //     return navigate("/login");
+  //   }
+
+  //   const finalPrice = isDelhi ? basePrice : basePrice + 100;
+
+  //   dispatch(
+  //     addToCart({
+  //       _id: product._id,
+  //       name: product.name,
+  //       price: finalPrice,
+  //       image: getImageUrl(product.images?.[0]),
+  //       vendor: product.vendor,
+  //       rewardPoints: product.rewardPoints || Math.round(finalPrice * 0.1),
+  //     })
+  //   );
+
+  //   try {
+  //     await axios.post(
+  //       `${process.env.REACT_APP_API_BASE}/api/cart`,
+  //       {
+  //         items: [
+  //           {
+  //             _id: product._id,
+  //             name: product.name,
+  //             price: finalPrice,
+  //             image: getImageUrl(product.images?.[0]),
+  //             quantity: 1,
+  //             vendor: product.vendor,
+  //           },
+  //         ],
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+  //   } catch (err) {
+  //     console.error("Cart API error:", err);
+  //     toast.error("Could not save cart to server");
+  //   }
+  // };
+
+  // const handleAddToFavourites = async () => {
+  //   const token = localStorage.getItem("crm_token");
+  //   if (!token) {
+  //     toast.warning("Login to add favourites", { autoClose: 2000 });
+  //     return navigate("/login");
+  //   }
+
+  //   try {
+  //     const res = await fetch(
+  //       `${process.env.REACT_APP_API_BASE}/api/favourites`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({ productId: product._id }),
+  //       }
+  //     );
+
+  //     if (!res.ok) {
+  //       const data = await res.json();
+  //       throw new Error(data.message || "Failed to add to favourites");
+  //     }
+
+  //     toast.success(`${product.name} added to favourites`);
+  //   } catch (err) {
+  //     toast.error(err.message);
+  //   }
+  // };
+
+  // if (loading) {
+  //   return (
+  //     <div className="text-center py-20">
+  //       <Header />
+  //       <p className="text-xl font-semibold text-gray-600">Loading...</p>
+  //     </div>
+  //   );
+  // }
+
+  // if (!product) {
+  //   return (
+  //     <div className="text-center py-20">
+  //       <Header />
+  //       <p className="text-xl font-semibold text-gray-600">
+  //         Product not found.
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   const mainImage = getImageUrl(product.images?.[0]);
   const baseClientPrice = product.price?.client || 0;
