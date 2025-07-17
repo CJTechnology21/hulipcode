@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+
 
 // Import custom modules
 const connectDB = require('./utils/db');
@@ -30,6 +32,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://first-task-alpha.vercel.app'
 ];
+app.use(cookieParser());
 
 app.use(cors({
   origin: function (origin, callback) {
