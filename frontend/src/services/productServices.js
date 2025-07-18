@@ -14,16 +14,22 @@ export const fetchRelatedProducts = async (category, currentProductId) => {
 };
 
 // ✅ Add items to cart (auth via HTTP-only cookie)
-export const addToCartAPI = async (items) => {
+export const addToCartAPI = async (userId, items) => {
+  if (!userId || !items || !items.length || !items[0]._id) {
+    throw new Error("Invalid payload: Missing userId or item _id");
+  }
+
   try {
-    const res = await axiosInstance.post("/api/cart", { items });
+    const res = await axiosInstance.post("/api/cart", {
+      userId,
+      items,
+    });
     return res.data;
   } catch (err) {
-    console.error("❌ addToCartAPI failed:", err?.response?.data || err.message);
+    console.error("❌ Cart API error:", JSON.stringify(err?.response?.data || err.message, null, 2));
     throw err;
   }
 };
-
 // Favourites
 export const getFavouritesAPI = () => {
   return axiosInstance.get("/api/favourites");
