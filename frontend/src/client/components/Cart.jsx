@@ -23,12 +23,10 @@ const Cart = ({ isOpen, onClose }) => {
   );
   const discountedTotal = total - redeemedPoints;
 
-  // ✅ Fetch cart items when drawer opens
   useEffect(() => {
     const fetchCart = async () => {
       try {
         const items = await getCartAPI();
-        // console.log("✅ Cart API returned (Cart.jsx):", items);
         dispatch(setCart(items));
       } catch (err) {
         console.error("❌ Failed to fetch cart:", err);
@@ -40,12 +38,11 @@ const Cart = ({ isOpen, onClose }) => {
     }
   }, [isOpen, dispatch]);
 
-  // ✅ Fetch reward points after cart updates
   useEffect(() => {
     const fetchPoints = async () => {
       try {
         const rewardPoints = await getUserRewardPointsAPI();
-        const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10%
+        const maxRedeemable = Math.min(total * 0.1, rewardPoints);
         setRedeemedPoints(maxRedeemable);
       } catch (err) {
         console.error("❌ Failed to fetch reward points:", err);
@@ -62,7 +59,7 @@ const Cart = ({ isOpen, onClose }) => {
     try {
       await removeFromCartAPI(id);
     } catch (err) {
-      // console.error("❌ Server failed to remove cart item:", err);
+      console.error("❌ Server failed to remove cart item:", err);
     }
   };
 
@@ -80,7 +77,6 @@ const Cart = ({ isOpen, onClose }) => {
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Header */}
         <div className="p-5 flex justify-between items-center border-b">
           <h2 className="text-xl font-semibold">Shopping Cart</h2>
           <button onClick={onClose}>
@@ -88,14 +84,13 @@ const Cart = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Cart Items */}
         <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
           {cartItems.length === 0 ? (
             <p className="text-center text-gray-500">Your cart is empty.</p>
           ) : (
-            cartItems.map((item) => (
+            cartItems.map((item, index) => (
               <div
-                key={item._id}
+                key={item._id || `${item.name}-${item.price}-${index}`}
                 className="flex items-center gap-4 border rounded-lg p-2 shadow-sm"
               >
                 <img
@@ -118,7 +113,6 @@ const Cart = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* Price Summary */}
         <div className="border-t px-5 py-4 space-y-2">
           <div className="flex justify-between items-center font-medium">
             <span>Subtotal</span>
@@ -138,7 +132,6 @@ const Cart = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-around gap-2 p-4 border-t">
           <button
             className="border px-4 py-2 rounded-full text-sm font-medium"
@@ -175,14 +168,15 @@ const Cart = ({ isOpen, onClose }) => {
 };
 
 export default Cart;
-
+// // src/components/Cart.jsx
 // import React, { useEffect, useState } from "react";
 // import { FiX } from "react-icons/fi";
 // import { useNavigate } from "react-router-dom";
 // import { useSelector, useDispatch } from "react-redux";
-// import { removeFromCart } from "../../app/features/cart/cartSlice";
+// import { removeFromCart, setCart } from "../../app/features/cart/cartSlice";
 // import {
 //   getUserRewardPointsAPI,
+//   getCartAPI,
 //   removeFromCartAPI,
 // } from "../../services/cartServices";
 
@@ -197,37 +191,48 @@ export default Cart;
 //     (sum, item) => sum + item.price * item.quantity,
 //     0
 //   );
-
 //   const discountedTotal = total - redeemedPoints;
 
-//   // ✅ Fetch reward points when cart opens
+//   // ✅ Fetch cart items when drawer opens
 //   useEffect(() => {
-//     const fetchRewardPoints = async () => {
-//       const token = localStorage.getItem("crm_token");
-//       if (!token) return;
-
+//     const fetchCart = async () => {
 //       try {
-//         const rewardPoints = await getUserRewardPointsAPI(token);
-//         const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10% discount
-//         setRedeemedPoints(maxRedeemable);
+//         const items = await getCartAPI();
+//         // console.log("✅ Cart API returned (Cart.jsx):", items);
+//         dispatch(setCart(items));
 //       } catch (err) {
-//         console.error("Failed to fetch reward points:", err);
+//         console.error("❌ Failed to fetch cart:", err);
 //       }
 //     };
 
 //     if (isOpen) {
-//       fetchRewardPoints();
+//       fetchCart();
 //     }
-//   }, [isOpen, total]);
+//   }, [isOpen, dispatch]);
+
+//   // ✅ Fetch reward points after cart updates
+//   useEffect(() => {
+//     const fetchPoints = async () => {
+//       try {
+//         const rewardPoints = await getUserRewardPointsAPI();
+//         const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10%
+//         setRedeemedPoints(maxRedeemable);
+//       } catch (err) {
+//         console.error("❌ Failed to fetch reward points:", err);
+//       }
+//     };
+
+//     if (isOpen && cartItems.length > 0) {
+//       fetchPoints();
+//     }
+//   }, [isOpen, cartItems, total]);
 
 //   const handleRemove = async (id) => {
-//     dispatch(removeFromCart(id));
-
+//     dispatch(removeFromCart(id)); // Optimistic update
 //     try {
-//       const token = localStorage.getItem("crm_token");
-//       await removeFromCartAPI(id, token);
+//       await removeFromCartAPI(id);
 //     } catch (err) {
-//       console.error("Failed to remove item from server cart:", err);
+//       // console.error("❌ Server failed to remove cart item:", err);
 //     }
 //   };
 
@@ -340,4 +345,3 @@ export default Cart;
 // };
 
 // export default Cart;
-
