@@ -66,7 +66,7 @@ function HomeHeader() {
 
               {!user ? (
                 <button
-                  className="bg-blue-500 text-black px-4 py-1 rounded-md text-sm font-semibold"
+                  className="bg-blue-500 text-white px-4 py-1 rounded-md text-sm font-semibold"
                   onClick={() => navigate("/login")}
                 >
                   Sign In

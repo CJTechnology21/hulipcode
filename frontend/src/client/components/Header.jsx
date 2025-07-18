@@ -17,6 +17,7 @@ import logo from "../../Admin/images/logo.jpg";
 import { toast } from "react-toastify";
 import { setCart } from "../../app/features/cart/cartSlice";
 import MobileFilters from "./FilterComponents/MobileFilters";
+import CategoryBar from "./CategoryBar";
 
 function Header() {
   const navigate = useNavigate();
@@ -208,7 +209,9 @@ function Header() {
       /> */}
 
       <Cart isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      {/* <CategoryBar /> */}
     </>
+    
   );
 }
 
