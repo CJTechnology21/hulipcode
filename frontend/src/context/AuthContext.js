@@ -7,8 +7,7 @@ import {
   googleSignupInit,
   googleSignupComplete,
   googleLoginUser,
-} from "../services/authServices"; // 🔁 Adjust path if needed
-
+} from "../services/authServices";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
