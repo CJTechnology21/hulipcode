@@ -7,15 +7,18 @@ import reportWebVitals from './reportWebVitals';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Provider } from 'react-redux';
 import { store } from './app/store';
-import {LocationProvider} from './context/LocationContext';
+import { LocationProvider } from './context/LocationContext';
+import { AuthProvider } from './context/AuthContext';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Provider store={store}>
-        <LocationProvider>
-          <App />
-        </LocationProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <App />
+          </LocationProvider>
+        </AuthProvider>
       </Provider>
     </GoogleOAuthProvider>
   </React.StrictMode>

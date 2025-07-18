@@ -11,11 +11,8 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { useGoogleLogin } from "@react-oauth/google";
 import { requestFirebaseNotificationPermission } from "../../services/firebase";
-import {
-  loginUser,
-  googleLoginUser,
-  storeVendorToken,
-} from "../../services/authServices";
+import { storeVendorToken } from "../../services/authServices";
+import { useAuth } from "../../context/AuthContext"; // ✅ use auth context
 
 const schema = yup.object().shape({
   emailOrPhone: yup
@@ -34,6 +31,7 @@ const schema = yup.object().shape({
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, googleLogin } = useAuth(); // ✅ from context
   const [loading, setLoading] = useState(false);
 
   const {
@@ -46,11 +44,10 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await loginUser(data.emailOrPhone, data.password);
-      const { user, token } = res;
+      const res = await login(data.emailOrPhone, data.password);
+      const { user } = res;
 
-      // localStorage.setItem("crm_token", token);
-      localStorage.setItem("crm_user_id", user.id);
+      localStorage.setItem("crm_user_id", user.id || user._id);
       localStorage.setItem("crm_role", user.role);
 
       toast.success("Login successful");
@@ -73,19 +70,25 @@ const Login = () => {
     }
   };
 
-  const googleLogin = useGoogleLogin({
+  const googleLoginHandler = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
-        const res = await googleLoginUser(codeResponse.code);
+        const res = await googleLogin(codeResponse.code); // ✅ use context
+        const { user } = res;
+
         toast.success("Signed in with Google!");
 
-        localStorage.setItem("crm_token", res.token);
-        localStorage.setItem("crm_user_id", res.user.id);
+        localStorage.setItem("crm_user_id", user.id || user._id);
+        localStorage.setItem("crm_role", user.role);
 
-        if (res.user?.role === "vendor") {
+        if (user?.role === "vendor") {
+          const fcmToken = await requestFirebaseNotificationPermission();
+          if (fcmToken) {
+            await storeVendorToken(user._id, fcmToken);
+          }
           navigate("/vendordashboard");
-        } else if (res.user?.role === "architect") {
+        } else if (user?.role === "architect") {
           navigate("/architectdashboard");
         } else {
           navigate("/ecom");
@@ -167,7 +170,7 @@ const Login = () => {
           </div>
 
           <button
-            onClick={googleLogin}
+            onClick={googleLoginHandler}
             className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50"
           >
             <FcGoogle size={20} className="mr-2" />
@@ -189,7 +192,6 @@ export default Login;
 // import { yupResolver } from "@hookform/resolvers/yup";
 // import * as yup from "yup";
 // import Input from "../../components/Input";
-// import axios from "axios";
 // import { useState } from "react";
 // import { useNavigate } from "react-router-dom";
 // import { toast } from "react-toastify";
@@ -199,6 +201,11 @@ export default Login;
 // import { FaApple } from "react-icons/fa";
 // import { useGoogleLogin } from "@react-oauth/google";
 // import { requestFirebaseNotificationPermission } from "../../services/firebase";
+// import {
+//   loginUser,
+//   googleLoginUser,
+//   storeVendorToken,
+// } from "../../services/authServices";
 
 // const schema = yup.object().shape({
 //   emailOrPhone: yup
@@ -209,7 +216,10 @@ export default Login;
 //       const phoneRegex = /^\d{10}$/;
 //       return emailRegex.test(value) || phoneRegex.test(value);
 //     }),
-//   password: yup.string().required("Password is required").min(6, "Min 6 characters"),
+//   password: yup
+//     .string()
+//     .required("Password is required")
+//     .min(6, "Min 6 characters"),
 // });
 
 // const Login = () => {
@@ -225,14 +235,11 @@ export default Login;
 //   const onSubmit = async (data) => {
 //     try {
 //       setLoading(true);
-//       const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
-//         email: data.emailOrPhone,
-//         password: data.password,
-//       });
 
-//       const { user, token } = res.data;
+//       const res = await loginUser(data.emailOrPhone, data.password);
+//       const { user, token } = res;
 
-//       localStorage.setItem("crm_token", token);
+//       // localStorage.setItem("crm_token", token);
 //       localStorage.setItem("crm_user_id", user.id);
 //       localStorage.setItem("crm_role", user.role);
 
@@ -241,11 +248,7 @@ export default Login;
 //       if (user.role === "vendor") {
 //         const fcmToken = await requestFirebaseNotificationPermission();
 //         if (fcmToken) {
-//           await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
-//             method: "POST",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
-//           });
+//           await storeVendorToken(user._id, fcmToken);
 //         }
 //         navigate("/vendordashboard");
 //       } else if (user.role === "architect") {
@@ -264,18 +267,15 @@ export default Login;
 //     flow: "auth-code",
 //     onSuccess: async (codeResponse) => {
 //       try {
-//         const res = await axios.post(
-//           `${process.env.REACT_APP_API_BASE}/api/auth/google`,
-//           { code: codeResponse.code }
-//         );
-
+//         const res = await googleLoginUser(codeResponse.code);
 //         toast.success("Signed in with Google!");
-//         localStorage.setItem("crm_token", res.data.token);
-//         localStorage.setItem("crm_user_id", res.data.user.id);
 
-//         if (res.data.user?.role === "vendor") {
+//         localStorage.setItem("crm_token", res.token);
+//         localStorage.setItem("crm_user_id", res.user.id);
+
+//         if (res.user?.role === "vendor") {
 //           navigate("/vendordashboard");
-//         } else if (res.data.user?.role === "architect") {
+//         } else if (res.user?.role === "architect") {
 //           navigate("/architectdashboard");
 //         } else {
 //           navigate("/ecom");
@@ -292,17 +292,26 @@ export default Login;
 //       {/* Left Section */}
 //       <div className="lg:w-[40%] bg-black text-white flex flex-col justify-center items-center px-4 py-6 sm:px-6">
 //         <img src={logo} alt="Your Logo" className="h-24 w-60 mb-10 sm:mb-24" />
-//         <img src={homeImage} alt="Home" className="w-3/4 max-w-[500px] h-auto mb-10 sm:mb-16" />
-//         <h2 className="text-[24px] sm:text-[30px] font-bold text-center mb-2">Lorem Ispam</h2>
+//         <img
+//           src={homeImage}
+//           alt="Home"
+//           className="w-3/4 max-w-[500px] h-auto mb-10 sm:mb-16"
+//         />
+//         <h2 className="text-[24px] sm:text-[30px] font-bold text-center mb-2">
+//           Lorem Ispam
+//         </h2>
 //         <p className="text-xs text-center max-w-xs">
-//           Lorem Ipsam is simply dummy text of the printing and typesetting industry.
+//           Lorem Ipsam is simply dummy text of the printing and typesetting
+//           industry.
 //         </p>
 //       </div>
 
 //       {/* Right Section */}
 //       <div className="lg:w-[60%] bg-gray-100 flex justify-center items-center px-4 py-6 sm:px-6">
 //         <div className="w-full max-w-md sm:max-w-lg">
-//           <h2 className="text-[36px] sm:text-[53.33px] font-bold mb-2">Welcome Back</h2>
+//           <h2 className="text-[36px] sm:text-[53.33px] font-bold mb-2">
+//             Welcome Back
+//           </h2>
 //           <p className="text-sm mb-6">
 //             Don’t have an account?{" "}
 //             <a href="/signup" className="text-blue-600">
@@ -336,263 +345,6 @@ export default Login;
 //               type="submit"
 //               disabled={loading}
 //               className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 text-sm"
-//             >
-//               {loading ? "Logging in..." : "LOGIN"}
-//             </button>
-//           </form>
-
-//           <div className="flex items-center my-4">
-//             <hr className="flex-grow border-gray-300" />
-//             <span className="mx-2 text-xs text-gray-500">or</span>
-//             <hr className="flex-grow border-gray-300" />
-//           </div>
-
-//           <button
-//             onClick={googleLogin}
-//             className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50"
-//           >
-//             <FcGoogle size={20} className="mr-2" />
-//             Continue with Google
-//           </button>
-//           <button className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
-//             <FaApple size={20} className="mr-2" />
-//             Continue with Apple
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Login;
-
-// import { useState } from "react";
-// import axios from "axios";
-// import { toast } from "react-toastify";
-// import logo from "../images/logo.jpg";
-// import homeImage from "../images/Home.png";
-// import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-// import { FcGoogle } from "react-icons/fc";
-// import { FaApple } from "react-icons/fa";
-// import { useNavigate } from "react-router-dom";
-// import { useGoogleLogin } from "@react-oauth/google";
-// import { requestFirebaseNotificationPermission } from "../../services/firebase"; // adjust path based on your file structure
-
-// const Login = () => {
-//   const navigate = useNavigate();
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [form, setForm] = useState({
-//     emailOrPhone: "",
-//     password: "",
-//   });
-
-//   const handleChange = (e) => {
-//     setForm({ ...form, [e.target.name]: e.target.value });
-//   };
-
-//   const handleLogin = async (e) => {
-//     e.preventDefault();
-
-//     if (!form.emailOrPhone || !form.password) {
-//       return toast.error("Both fields are required");
-//     }
-
-//     try {
-//       setLoading(true);
-
-//       // 🔐 Login API call
-//       const res = await axios.post(
-//         `${process.env.REACT_APP_API_BASE}/api/auth/login`,
-//         {
-//           email: form.emailOrPhone,
-//           password: form.password,
-//         }
-//       );
-
-//       const { user, token } = res.data;
-
-//       // ✅ Store auth info
-//       localStorage.setItem("crm_token", token);
-//       localStorage.setItem("crm_user_id", user.id);
-//       localStorage.setItem("crm_role", user.role);
-
-//       toast.success("Login successful");
-
-//       // 🚀 Request FCM token & store it if vendor
-//       if (user.role === "vendor") {
-//         const fcmToken = await requestFirebaseNotificationPermission();
-
-//         if (fcmToken) {
-//           await fetch(`${process.env.REACT_APP_API_BASE}/api/vendor/store-token`, {
-//             method: "POST",
-//             headers: { "Content-Type": "application/json" },
-//             body: JSON.stringify({ vendorId: user._id, token: fcmToken }),
-//           });
-
-//           console.log("✅ FCM token stored for vendor.");
-//         } else {
-//           console.warn("⚠️ FCM token not granted.");
-//         }
-
-//         navigate("/vendordashboard");
-//       } else if (user.role === "architect") {
-//         navigate("/architectdashboard");
-//       } else {
-//         navigate("/ecom");
-//       }
-//     } catch (err) {
-//       const message = err?.response?.data?.message || "Login failed";
-//       toast.error(message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // const handleLogin = async (e) => {
-//   //   e.preventDefault();
-
-//   //   if (!form.emailOrPhone || !form.password) {
-//   //     return toast.error("Both fields are required");
-//   //   }
-
-//   //   try {
-//   //     setLoading(true);
-
-//   //     const res = await axios.post(`${process.env.REACT_APP_API_BASE}/api/auth/login`, {
-//   //       email: form.emailOrPhone, // Assuming backend accepts either email or phone in "email" field
-//   //       password: form.password,
-//   //     });
-
-//   //     toast.success("Login successful");
-//   //     localStorage.setItem("crm_token", res.data.token);
-//   //     localStorage.setItem("crm_user_id", res.data.user.id);
-//   //     localStorage.setItem("crm_role",res.data.user.role);
-//   //     if (res.data.user?.role === "vendor") {
-//   //       navigate("/vendordashboard");
-//   //     } else if (res.data.user?.role === "architect") {
-//   //       navigate("/architectdashboard");
-//   //     } else {
-//   //       navigate("/ecom");
-//   //     }
-//   //   } catch (err) {
-//   //     const message = err?.response?.data?.message || "Login failed";
-//   //     toast.error(message);
-//   //   } finally {
-//   //     setLoading(false);
-//   //   }
-//   // };
-//   const googleLogin = useGoogleLogin({
-//     flow: "auth-code",
-//     onSuccess: async (codeResponse) => {
-//       try {
-//         const res = await axios.post(
-//           `${process.env.REACT_APP_API_BASE}/api/auth/google`,
-//           {
-//             code: codeResponse.code,
-//           }
-//         );
-
-//         toast.success("Signed in with Google!");
-//         localStorage.setItem("crm_token", res.data.token);
-//         localStorage.setItem("crm_user_id", res.data.user.id);
-//         if (res.data.user?.role === "vendor") {
-//           navigate("/vendordashboard");
-//         } else if (res.data.user?.role === "architect") {
-//           navigate("/architectdashboard");
-//         } else {
-//           navigate("/ecom");
-//         }
-//       } catch (err) {
-//         console.error("Google Login Error:", err);
-//         toast.error(err?.response?.data?.message || "Google login failed");
-//       }
-//     },
-//     onError: (err) => {
-//       console.error("Google login error", err);
-//       toast.error("Google login was unsuccessful");
-//     },
-//   });
-
-//   return (
-//     <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden">
-//       {/* Left Section */}
-//       <div className="lg:w-[40%] bg-black text-white flex flex-col justify-center items-center px-4 py-6 sm:px-6">
-//         <div className="flex items-center mb-1 w-full justify-center">
-//           <img
-//             src={logo}
-//             alt="Your Logo"
-//             className="h-24 w-60 mb-10 sm:mb-24 "
-//           />
-//         </div>
-//         <img
-//           src={homeImage}
-//           alt="Home"
-//           className="w-3/4 max-w-[500px] h-auto mb-10 sm:mb-16"
-//         />
-//         <h2 className="font-inter font-bold text-[24px] sm:text-[30px] text-center lg:text-left leading-tight mb-2 sm:mr-52">
-//           Lorem Ispam
-//         </h2>
-//         <p className="text-xs text-center mr-14 lg:text-left max-w-xs">
-//           Lorem Ipsam is simply dummy text of the printing and typesetting
-//           industry.
-//         </p>
-//       </div>
-
-//       {/* Right Section */}
-//       <div className="lg:w-[60%] bg-gray-100 flex justify-center items-center px-4 py-6 sm:px-6">
-//         <div className="w-full max-w-md sm:max-w-lg">
-//           <h2 className="font-inter font-bold text-[36px] sm:text-[53.33px] leading-none mb-2">
-//             Welcome Back
-//           </h2>
-//           <p className="text-sm mb-6">
-//             Don’t have an account?{" "}
-//             <a href="/signup" className="text-blue-600">
-//               Sign Up
-//             </a>
-//           </p>
-
-//           <form className="space-y-4" onSubmit={handleLogin}>
-//             <input
-//               name="emailOrPhone"
-//               type="text"
-//               placeholder="Email ID/Phone"
-//               value={form.emailOrPhone}
-//               onChange={handleChange}
-//               className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-//             />
-//             <div className="relative">
-//               <input
-//                 name="password"
-//                 type={showPassword ? "text" : "password"}
-//                 placeholder="Password"
-//                 value={form.password}
-//                 onChange={handleChange}
-//                 autoComplete="current-password"
-//                 className="w-full p-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-//               />
-//               <button
-//                 type="button"
-//                 onClick={() => setShowPassword(!showPassword)}
-//                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-//               >
-//                 {showPassword ? (
-//                   <AiOutlineEyeInvisible size={20} />
-//                 ) : (
-//                   <AiOutlineEye size={20} />
-//                 )}
-//               </button>
-//             </div>
-//             <div className="text-right">
-//               <a href="/forgot-password" className="text-sm text-blue-600">
-//                 Forgot Password
-//               </a>
-//             </div>
-//             <button
-//               type="submit"
-//               disabled={loading}
-//               className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 text-sm"
-//               style={{ backgroundColor: "#2563EB" }}
 //             >
 //               {loading ? "Logging in..." : "LOGIN"}
 //             </button>
