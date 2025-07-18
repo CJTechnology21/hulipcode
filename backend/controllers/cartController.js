@@ -39,7 +39,8 @@ const saveCart = async (req, res) => {
           existingItem.quantity += newItem.quantity || 1;
         } else {
           cart.items.push({
-            productId: new mongoose.Types.ObjectId(newItem._id),
+            productId: mongoose.Types.ObjectId.createFromHexString(newItem._id), // ✅ explicitly handles string _id
+            // productId: new mongoose.Types.ObjectId(newItem._id),
             name: newItem.name,
             image: newItem.image,
             price: newItem.price,
