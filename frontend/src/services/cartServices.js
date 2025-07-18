@@ -1,19 +1,25 @@
 
-// src/services/cartService.js
+// src/services/cartServices.js
 import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
-// Axios instance with credentials enabled
 const axiosInstance = axios.create({
   baseURL: API_BASE,
-  withCredentials: true, // ✅ send cookies automatically
+  withCredentials: true, // ✅ Send cookies
 });
 
-// ✅ Get user cart (optional)
+// ✅ Get user cart
 export const getCartAPI = async () => {
   const res = await axiosInstance.get("/api/cart");
-  return res.data;
+  // console.log("🛒 Cart API response:", res.data);
+
+  // ✅ FIX: Accept both { items: [...] } or direct array []
+  if (Array.isArray(res.data)) {
+    return res.data;
+  }
+
+  return res.data?.items || [];
 };
 
 // ✅ Add item(s) to cart
@@ -30,52 +36,9 @@ export const removeFromCartAPI = async (id) => {
 // ✅ Fetch user reward points
 export const getUserRewardPointsAPI = async () => {
   const res = await axiosInstance.get("/api/user/me");
-  return res.data.rewardPoints || 0;
+  return res.data?.rewardPoints || 0;
 };
-// // src/services/cartService.js
-// import axios from "axios";
-
-// const API_BASE = process.env.REACT_APP_API_BASE;
-
-// // Get user cart (if needed in future)
-// export const getCartAPI = async (token) => {
-//   const res = await axios.get(`${API_BASE}/api/cart`, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//     },
-//   });
-//   return res.data;
-// };
-
-// //  Add item(s) to cart
-// export const addToCartAPI = async (items, token) => {
-//   const res = await axios.post(
-//     `${API_BASE}/api/cart`,
-//     { items },
-//     {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     }
-//   );
-//   return res.data;
-// };
-
-// //  Remove item from cart
-// export const removeFromCartAPI = async (id, token) => {
-//   return axios.delete(`${API_BASE}/api/cart/${id}`, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//     },
-//   });
-// };
-
-// // Fetch user reward points
-// export const getUserRewardPointsAPI = async (token) => {
-//   const res = await axios.get(`${API_BASE}/api/user/me`, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//     },
-//   });
-//   return res.data.rewardPoints || 0;
-// };
+// ✅ Update cart item quantity
+export const updateCartItemAPI = async (id, quantity) => {
+  return axiosInstance.put(`/api/cart/${id}`, { quantity });
+};

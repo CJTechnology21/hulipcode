@@ -1,3 +1,4 @@
+
 // src/app/features/cart/cartSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
@@ -10,26 +11,31 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
+    // ✅ Set cart from API
     setCart(state, action) {
+      if (!Array.isArray(action.payload)) {
+        console.warn("❌ setCart payload not an array:", action.payload);
+        return;
+      }
+
       state.items = action.payload.map((item) => ({
         ...item,
-        _id: item._id.toString(), // ensure consistency
+        _id: item._id?.toString?.(), // Make sure it's a string
       }));
+
+      // console.log("✅ Redux state updated via setCart:", state.items);
     },
 
     addToCart(state, action) {
       const product = action.payload;
-      console.log("addToCart action payload:", product);
-
       if (!product || !product._id) {
         toast.error("Invalid product data");
         return;
       }
 
       const existing = state.items.find(
-        (item) => item._id?.toString() === product._id?.toString()
+        (item) => item._id === product._id.toString()
       );
-      console.log("existing item in cart:", existing);
 
       if (existing) {
         existing.quantity += 1;
@@ -41,9 +47,7 @@ const cartSlice = createSlice({
     },
 
     incrementQuantity(state, action) {
-      const item = state.items.find(
-        (i) => i._id?.toString() === action.payload?.toString()
-      );
+      const item = state.items.find((i) => i._id === action.payload);
       if (item) {
         item.quantity += 1;
         toast.info(`${item.name} quantity incremented`);
@@ -51,27 +55,19 @@ const cartSlice = createSlice({
     },
 
     decrementQuantity(state, action) {
-      const item = state.items.find(
-        (i) => i._id?.toString() === action.payload?.toString()
-      );
+      const item = state.items.find((i) => i._id === action.payload);
       if (item && item.quantity > 1) {
         item.quantity -= 1;
         toast.info(`${item.name} quantity decremented`);
       } else if (item) {
-        state.items = state.items.filter(
-          (i) => i._id?.toString() !== action.payload?.toString()
-        );
+        state.items = state.items.filter((i) => i._id !== action.payload);
         toast.warn(`${item.name} removed from cart`);
       }
     },
 
     removeFromCart(state, action) {
-      const item = state.items.find(
-        (i) => i._id?.toString() === action.payload?.toString()
-      );
-      state.items = state.items.filter(
-        (i) => i._id?.toString() !== action.payload?.toString()
-      );
+      const item = state.items.find((i) => i._id === action.payload);
+      state.items = state.items.filter((i) => i._id !== action.payload);
       toast.error(`${item?.name || "Item"} removed from cart`);
     },
 
@@ -92,7 +88,7 @@ export const {
 
 export default cartSlice.reducer;
 
-
+// // src/app/features/cart/cartSlice.js
 // import { createSlice } from "@reduxjs/toolkit";
 // import { toast } from "react-toastify";
 
@@ -105,20 +101,26 @@ export default cartSlice.reducer;
 //   initialState,
 //   reducers: {
 //     setCart(state, action) {
-//       state.items = action.payload;
-//       // Optional toast:
-//       // toast.info("Cart loaded from backend");
+//       state.items = action.payload.map((item) => ({
+//         ...item,
+//         _id: item._id.toString(), // ensure consistency
+//       }));
 //     },
 
 //     addToCart(state, action) {
 //       const product = action.payload;
+//       console.log("addToCart action payload:", product);
 
 //       if (!product || !product._id) {
 //         toast.error("Invalid product data");
 //         return;
 //       }
 
-//       const existing = state.items.find((item) => item._id === product._id);
+//       const existing = state.items.find(
+//         (item) => item._id?.toString() === product._id?.toString()
+//       );
+//       console.log("existing item in cart:", existing);
+
 //       if (existing) {
 //         existing.quantity += 1;
 //         toast.info(`${existing.name} quantity increased`);
@@ -129,7 +131,9 @@ export default cartSlice.reducer;
 //     },
 
 //     incrementQuantity(state, action) {
-//       const item = state.items.find((i) => i._id === action.payload);
+//       const item = state.items.find(
+//         (i) => i._id?.toString() === action.payload?.toString()
+//       );
 //       if (item) {
 //         item.quantity += 1;
 //         toast.info(`${item.name} quantity incremented`);
@@ -137,25 +141,32 @@ export default cartSlice.reducer;
 //     },
 
 //     decrementQuantity(state, action) {
-//       const item = state.items.find((i) => i._id === action.payload);
+//       const item = state.items.find(
+//         (i) => i._id?.toString() === action.payload?.toString()
+//       );
 //       if (item && item.quantity > 1) {
 //         item.quantity -= 1;
 //         toast.info(`${item.name} quantity decremented`);
 //       } else if (item) {
-//         state.items = state.items.filter((i) => i._id !== action.payload);
+//         state.items = state.items.filter(
+//           (i) => i._id?.toString() !== action.payload?.toString()
+//         );
 //         toast.warn(`${item.name} removed from cart`);
 //       }
 //     },
 
 //     removeFromCart(state, action) {
-//       const item = state.items.find((i) => i._id === action.payload);
-//       state.items = state.items.filter((i) => i._id !== action.payload);
+//       const item = state.items.find(
+//         (i) => i._id?.toString() === action.payload?.toString()
+//       );
+//       state.items = state.items.filter(
+//         (i) => i._id?.toString() !== action.payload?.toString()
+//       );
 //       toast.error(`${item?.name || "Item"} removed from cart`);
 //     },
 
 //     clearCart(state) {
 //       state.items = [];
-//       // toast.info("Cart cleared");
 //     },
 //   },
 // });
@@ -170,3 +181,4 @@ export default cartSlice.reducer;
 // } = cartSlice.actions;
 
 // export default cartSlice.reducer;
+

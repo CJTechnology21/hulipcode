@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { FaShare, FaHeart } from "react-icons/fa";
-import { addToCart } from "../../app/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import { useLocation } from "../../context/LocationContext";
+import { addToCart } from "../../app/features/cart/cartSlice";
 
 import {
   addToCartAPI,
@@ -12,6 +12,8 @@ import {
   addFavouriteAPI,
   removeFavouriteAPI,
 } from "../../services/productServices";
+
+import { getCurrentUser } from "../../services/authServices";
 
 function ProductCard({ product }) {
   const dispatch = useDispatch();
@@ -21,33 +23,64 @@ function ProductCard({ product }) {
   const { location } = useLocation();
 
   const imageUrl =
-    product.images?.[0]?.startsWith("http") ||
-    product.images?.[0]?.startsWith("/")
-      ? product.images[0]
-      : product.images?.[0]
+    product?.images?.[0]?.startsWith("http") || product?.images?.[0]?.startsWith("/")
+      ? product?.images?.[0]
+      : product?.images?.[0]
       ? `${process.env.REACT_APP_API_BASE}/${product.images[0]}`
       : "/images/subcategories/placeholder.png";
 
   const isDelhi = location.city?.toLowerCase().includes("delhi");
-  const basePrice = product.price?.client || 0;
+
+  const basePrice =
+    typeof product?.price === "number"
+      ? product.price
+      : product?.price?.client || 0;
+
   const finalPrice = isDelhi ? basePrice : basePrice + 100;
 
+  // 🔍 Debug user role
   useEffect(() => {
-    // ✅ Fetch role from a secure backend route like /api/auth/me (example)
-    const fetchUserRole = async () => {
+    const fetchUser = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_API_BASE}/api/user/me`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (data.role) setUserRole(data.role);
+        const data = await getCurrentUser();
+        console.log("Fetched user data:", data); // 👈 Debug
+        if (data?.role) {
+          setUserRole(data.role);
+          console.log("User role set to:", data.role); // 👈 Debug
+        } else {
+          console.warn("No role found in user data"); // 👈 Debug
+        }
       } catch (err) {
-        console.error("Failed to fetch user info", err);
+        console.error("Failed to fetch user info", err.message);
       }
     };
 
-    fetchUserRole();
+    fetchUser();
   }, []);
+
+  // 🔍 Debug favourites
+  useEffect(() => {
+    if (!product?._id) return;
+    const fetchFavourites = async () => {
+      try {
+        const res = await getFavouritesAPI();
+        console.log("Fetched favourites:", res.data); // 👈 Debug
+        const found = res.data?.some(
+          (fav) =>
+            fav.productId === product._id ||
+            fav.productId?._id === product._id
+        );
+        console.log("Is favourite?", found); // 👈 Debug
+        setIsFavourite(found);
+      } catch (err) {
+        console.error("Error fetching favourites:", err.message);
+      }
+    };
+
+    fetchFavourites();
+  }, [product?._id]);
+
+  if (!product || !product._id) return null;
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -69,39 +102,17 @@ function ProductCard({ product }) {
         price: finalPrice,
         image: imageUrl,
         vendor: product.vendor,
-        rewardPoints: product.rewardPoints || Math.round(finalPrice * 0.1),
+        rewardPoints: Math.round(finalPrice * 0.1),
       })
     );
 
     try {
-      await addToCartAPI([
-        {
-          _id: product._id,
-          name: product.name,
-          price: finalPrice,
-          image: imageUrl,
-          quantity: 1,
-          vendor: product.vendor,
-        },
-      ]);
+      await addToCartAPI([{ productId: product._id, quantity: 1 }]);
     } catch (err) {
+      console.error("Cart API error:", err);
       toast.error("Could not save cart to server");
     }
   };
-
-  useEffect(() => {
-    const fetchFavourites = async () => {
-      try {
-        const res = await getFavouritesAPI();
-        const found = res.data?.some((fav) => fav.productId?._id === product._id);
-        setIsFavourite(found);
-      } catch (err) {
-        console.error("Error fetching favourites:", err.message);
-      }
-    };
-
-    fetchFavourites();
-  }, [product._id]);
 
   const handleToggleFavourite = async (e) => {
     e.preventDefault();
@@ -119,7 +130,6 @@ function ProductCard({ product }) {
         await addFavouriteAPI(product._id);
         toast.success(`${product.name} added to favourites`);
       }
-
       setIsFavourite(!isFavourite);
     } catch (err) {
       toast.error("Could not update favourites");
@@ -130,7 +140,7 @@ function ProductCard({ product }) {
     <Link to={`/product/${product._id}`} key={product._id}>
       <div className="relative group border rounded-xl overflow-hidden shadow-sm cursor-pointer">
         <img
-          src={imageUrl || "/placeholder.jpg"}
+          src={imageUrl}
           alt={product.name}
           className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
         />
@@ -175,9 +185,7 @@ function ProductCard({ product }) {
 
           {(userRole === "architect" || userRole === "client") ? (
             <>
-              <p className="text-[#0070f3] font-medium mt-1">
-                Price: ₹{finalPrice}
-              </p>
+              <p className="text-[#0070f3] font-medium mt-1">Price: ₹{finalPrice}</p>
               {userRole === "architect" && (
                 <p className="text-green-600 text-sm font-semibold">
                   Reward Points: {Math.round(finalPrice * 0.1)} pts
@@ -194,14 +202,15 @@ function ProductCard({ product }) {
 }
 
 export default ProductCard;
+
+
 // import React, { useEffect, useState } from "react";
 // import { Link, useNavigate } from "react-router-dom";
 // import { useDispatch } from "react-redux";
-// import { jwtDecode } from "jwt-decode";
 // import { FaShare, FaHeart } from "react-icons/fa";
-// import { addToCart } from "../../app/features/cart/cartSlice";
 // import { toast } from "react-toastify";
 // import { useLocation } from "../../context/LocationContext";
+// import { addToCart } from "../../app/features/cart/cartSlice";
 
 // import {
 //   addToCartAPI,
@@ -210,10 +219,13 @@ export default ProductCard;
 //   removeFavouriteAPI,
 // } from "../../services/productServices";
 
+// import { getCurrentUser } from "../../services/authServices";
+
 // function ProductCard({ product }) {
 //   const dispatch = useDispatch();
 //   const navigate = useNavigate();
 //   const [isFavourite, setIsFavourite] = useState(false);
+//   const [userRole, setUserRole] = useState(null);
 //   const { location } = useLocation();
 
 //   const imageUrl =
@@ -224,26 +236,45 @@ export default ProductCard;
 //       ? `${process.env.REACT_APP_API_BASE}/${product.images[0]}`
 //       : "/images/subcategories/placeholder.png";
 
-//   const token = localStorage.getItem("crm_token");
-//   let userRole = null;
-
-//   try {
-//     if (token) {
-//       const decoded = jwtDecode(token);
-//       userRole = decoded.role;
-//     }
-//   } catch (err) {
-//     console.error("JWT decode error:", err);
-//   }
-
 //   const isDelhi = location.city?.toLowerCase().includes("delhi");
 //   const basePrice = product.price?.client || 0;
 //   const finalPrice = isDelhi ? basePrice : basePrice + 100;
 
+//   // ✅ Fetch current user info
+//   useEffect(() => {
+//     const fetchUser = async () => {
+//       try {
+//         const data = await getCurrentUser();
+//         if (data?.role) setUserRole(data.role);
+//       } catch (err) {
+//         console.error("Failed to fetch user", err);
+//       }
+//     };
+//     fetchUser();
+//   }, []);
+
+//   // ✅ Check if product is in favourites
+//   useEffect(() => {
+//     const fetchFavourites = async () => {
+//       try {
+//         const res = await getFavouritesAPI();
+//         const found = res.data?.some((fav) => {
+//           const favProductId = fav.productId?._id || fav.productId;
+//           return favProductId === product._id;
+//         });
+//         setIsFavourite(found);
+//       } catch (err) {
+//         console.error("Error fetching favourites:", err.message);
+//       }
+//     };
+
+//     fetchFavourites();
+//   }, [product._id]);
+
 //   const handleAddToCart = async (e) => {
 //     e.preventDefault();
 
-//     if (!token) {
+//     if (!userRole) {
 //       toast.warning("Login first to add products to cart", { autoClose: 2000 });
 //       return navigate("/login");
 //     }
@@ -265,58 +296,37 @@ export default ProductCard;
 //     );
 
 //     try {
-//       await addToCartAPI(
-//         [
-//           {
-//             _id: product._id,
-//             name: product.name,
-//             price: finalPrice,
-//             image: imageUrl,
-//             quantity: 1,
-//             vendor: product.vendor,
-//           },
-//         ],
-//         token
-//       );
+//       await addToCartAPI([
+//         {
+//           _id: product._id,
+//           name: product.name,
+//           price: finalPrice,
+//           image: imageUrl,
+//           quantity: 1,
+//           vendor: product.vendor,
+//         },
+//       ]);
 //     } catch (err) {
 //       toast.error("Could not save cart to server");
 //     }
 //   };
 
-//   useEffect(() => {
-//     const fetchFavourites = async () => {
-//       const storedToken = localStorage.getItem("crm_token");
-//       if (!storedToken) return;
-
-//       try {
-//         const res = await getFavouritesAPI(storedToken);
-//         const found = res.data?.some((fav) => fav.productId?._id === product._id);
-//         setIsFavourite(found);
-//       } catch (err) {
-//         console.error("Error fetching favourites:", err.message);
-//       }
-//     };
-
-//     fetchFavourites();
-//   }, [product._id]);
-
 //   const handleToggleFavourite = async (e) => {
 //     e.preventDefault();
 
-//     if (!token) {
+//     if (!userRole) {
 //       toast.warning("Login to manage favourites", { autoClose: 2000 });
 //       return navigate("/login");
 //     }
 
 //     try {
 //       if (isFavourite) {
-//         await removeFavouriteAPI(product._id, token);
+//         await removeFavouriteAPI(product._id);
 //         toast.info(`${product.name} removed from favourites`);
 //       } else {
-//         await addFavouriteAPI(product._id, token);
+//         await addFavouriteAPI(product._id);
 //         toast.success(`${product.name} added to favourites`);
 //       }
-
 //       setIsFavourite(!isFavourite);
 //     } catch (err) {
 //       toast.error("Could not update favourites");
@@ -370,7 +380,7 @@ export default ProductCard;
 //           <p className="text-gray-500 text-sm">Brand Name: {product.brand}</p>
 //           <p className="text-gray-500 text-sm truncate">{product.description}</p>
 
-//           {(userRole === "architect" || userRole === "client") && (
+//           {(userRole === "architect" || userRole === "client") ? (
 //             <>
 //               <p className="text-[#0070f3] font-medium mt-1">
 //                 Price: ₹{finalPrice}
@@ -381,9 +391,7 @@ export default ProductCard;
 //                 </p>
 //               )}
 //             </>
-//           )}
-
-//           {!userRole && (
+//           ) : (
 //             <p className="text-gray-400 text-sm mt-1">Login to view pricing</p>
 //           )}
 //         </div>
@@ -393,4 +401,199 @@ export default ProductCard;
 // }
 
 // export default ProductCard;
+// // import React, { useEffect, useState } from "react";
+// // import { Link, useNavigate } from "react-router-dom";
+// // import { useDispatch } from "react-redux";
+// // import { FaShare, FaHeart } from "react-icons/fa";
+// // import { addToCart } from "../../app/features/cart/cartSlice";
+// // import { toast } from "react-toastify";
+// // import { useLocation } from "../../context/LocationContext";
 
+// // import {
+// //   addToCartAPI,
+// //   getFavouritesAPI,
+// //   addFavouriteAPI,
+// //   removeFavouriteAPI,
+// // } from "../../services/productServices";
+
+// // function ProductCard({ product }) {
+// //   const dispatch = useDispatch();
+// //   const navigate = useNavigate();
+// //   const [isFavourite, setIsFavourite] = useState(false);
+// //   const [userRole, setUserRole] = useState(null);
+// //   const { location } = useLocation();
+
+// //   const imageUrl =
+// //     product.images?.[0]?.startsWith("http") ||
+// //     product.images?.[0]?.startsWith("/")
+// //       ? product.images[0]
+// //       : product.images?.[0]
+// //       ? `${process.env.REACT_APP_API_BASE}/${product.images[0]}`
+// //       : "/images/subcategories/placeholder.png";
+
+// //   const isDelhi = location.city?.toLowerCase().includes("delhi");
+// //   const basePrice = product.price?.client || 0;
+// //   const finalPrice = isDelhi ? basePrice : basePrice + 100;
+
+// //   useEffect(() => {
+// //     // ✅ Fetch role from a secure backend route like /api/auth/me (example)
+// //     const fetchUserRole = async () => {
+// //       try {
+// //         const res = await fetch(`${process.env.REACT_APP_API_BASE}/api/user/me`, {
+// //           credentials: "include",
+// //         });
+// //         const data = await res.json();
+// //         if (data.role) setUserRole(data.role);
+// //       } catch (err) {
+// //         console.error("Failed to fetch user info", err);
+// //       }
+// //     };
+
+// //     fetchUserRole();
+// //   }, []);
+
+// //   const handleAddToCart = async (e) => {
+// //     e.preventDefault();
+
+// //     if (!userRole) {
+// //       toast.warning("Login first to add products to cart", { autoClose: 2000 });
+// //       return navigate("/login");
+// //     }
+
+// //     if (userRole !== "architect" && userRole !== "client") {
+// //       toast.warning("Login to view pricing", { autoClose: 2000 });
+// //       return navigate("/login");
+// //     }
+
+// //     dispatch(
+// //       addToCart({
+// //         _id: product._id,
+// //         name: product.name,
+// //         price: finalPrice,
+// //         image: imageUrl,
+// //         vendor: product.vendor,
+// //         rewardPoints: product.rewardPoints || Math.round(finalPrice * 0.1),
+// //       })
+// //     );
+
+// //     try {
+// //       await addToCartAPI([
+// //         {
+// //           _id: product._id,
+// //           name: product.name,
+// //           price: finalPrice,
+// //           image: imageUrl,
+// //           quantity: 1,
+// //           vendor: product.vendor,
+// //         },
+// //       ]);
+// //     } catch (err) {
+// //       toast.error("Could not save cart to server");
+// //     }
+// //   };
+
+// //   useEffect(() => {
+// //     const fetchFavourites = async () => {
+// //       try {
+// //         const res = await getFavouritesAPI();
+// //         const found = res.data?.some((fav) => fav.productId?._id === product._id);
+// //         setIsFavourite(found);
+// //       } catch (err) {
+// //         console.error("Error fetching favourites:", err.message);
+// //       }
+// //     };
+
+// //     fetchFavourites();
+// //   }, [product._id]);
+
+// //   const handleToggleFavourite = async (e) => {
+// //     e.preventDefault();
+
+// //     if (!userRole) {
+// //       toast.warning("Login to manage favourites", { autoClose: 2000 });
+// //       return navigate("/login");
+// //     }
+
+// //     try {
+// //       if (isFavourite) {
+// //         await removeFavouriteAPI(product._id);
+// //         toast.info(`${product.name} removed from favourites`);
+// //       } else {
+// //         await addFavouriteAPI(product._id);
+// //         toast.success(`${product.name} added to favourites`);
+// //       }
+
+// //       setIsFavourite(!isFavourite);
+// //     } catch (err) {
+// //       toast.error("Could not update favourites");
+// //     }
+// //   };
+
+// //   return (
+// //     <Link to={`/product/${product._id}`} key={product._id}>
+// //       <div className="relative group border rounded-xl overflow-hidden shadow-sm cursor-pointer">
+// //         <img
+// //           src={imageUrl || "/placeholder.jpg"}
+// //           alt={product.name}
+// //           className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
+// //         />
+
+// //         {product.tag && (
+// //           <span
+// //             className={`absolute top-3 left-3 px-2 py-1 text-xs rounded-full ${
+// //               product.tag === "New" ? "bg-green-500" : "bg-red-500"
+// //             } text-white`}
+// //           >
+// //             {product.tag}
+// //           </span>
+// //         )}
+
+// //         <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-center items-center space-y-4">
+// //           <button
+// //             className="bg-white text-black text-sm px-6 py-2 rounded shadow font-medium"
+// //             onClick={handleAddToCart}
+// //           >
+// //             Add to cart
+// //           </button>
+// //           <div className="flex gap-6 text-white text-sm items-center">
+// //             <button className="flex items-center gap-2 hover:underline">
+// //               <FaShare /> Share
+// //             </button>
+// //             <button
+// //               className="flex items-center gap-2 hover:underline"
+// //               onClick={handleToggleFavourite}
+// //             >
+// //               <FaHeart color={isFavourite ? "red" : "white"} />
+// //               {isFavourite ? "Unlike" : "Like"}
+// //             </button>
+// //           </div>
+// //         </div>
+
+// //         <div className="p-4 bg-white space-y-1">
+// //           <h4 className="font-semibold">{product.name}</h4>
+// //           <p className="text-gray-500 text-sm">{product.category}</p>
+// //           <p className="text-gray-500 text-sm">Vendor Name: {product.vendorName}</p>
+// //           <p className="text-gray-500 text-sm">Brand Name: {product.brand}</p>
+// //           <p className="text-gray-500 text-sm truncate">{product.description}</p>
+
+// //           {(userRole === "architect" || userRole === "client") ? (
+// //             <>
+// //               <p className="text-[#0070f3] font-medium mt-1">
+// //                 Price: ₹{finalPrice}
+// //               </p>
+// //               {userRole === "architect" && (
+// //                 <p className="text-green-600 text-sm font-semibold">
+// //                   Reward Points: {Math.round(finalPrice * 0.1)} pts
+// //                 </p>
+// //               )}
+// //             </>
+// //           ) : (
+// //             <p className="text-gray-400 text-sm mt-1">Login to view pricing</p>
+// //           )}
+// //         </div>
+// //       </div>
+// //     </Link>
+// //   );
+// // }
+
+// // export default ProductCard;

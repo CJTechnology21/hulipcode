@@ -1,3 +1,4 @@
+// src/components/Cart.jsx
 import React, { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -20,38 +21,48 @@ const Cart = ({ isOpen, onClose }) => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-
   const discountedTotal = total - redeemedPoints;
 
-  // ✅ Fetch cart items and reward points when cart opens
+  // ✅ Fetch cart items when drawer opens
   useEffect(() => {
-    const fetchCartAndPoints = async () => {
+    const fetchCart = async () => {
       try {
-        // Fetch cart from backend (cookie is sent automatically)
-        const cart = await getCartAPI();
-        dispatch(setCart(cart?.items || []));
-
-        // Fetch reward points
-        const rewardPoints = await getUserRewardPointsAPI();
-        const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10% discount
-        setRedeemedPoints(maxRedeemable);
+        const items = await getCartAPI();
+        // console.log("✅ Cart API returned (Cart.jsx):", items);
+        dispatch(setCart(items));
       } catch (err) {
-        console.error("Failed to fetch cart or reward points:", err);
+        console.error("❌ Failed to fetch cart:", err);
       }
     };
 
     if (isOpen) {
-      fetchCartAndPoints();
+      fetchCart();
     }
-  }, [isOpen, total, dispatch]);
+  }, [isOpen, dispatch]);
+
+  // ✅ Fetch reward points after cart updates
+  useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        const rewardPoints = await getUserRewardPointsAPI();
+        const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10%
+        setRedeemedPoints(maxRedeemable);
+      } catch (err) {
+        console.error("❌ Failed to fetch reward points:", err);
+      }
+    };
+
+    if (isOpen && cartItems.length > 0) {
+      fetchPoints();
+    }
+  }, [isOpen, cartItems, total]);
 
   const handleRemove = async (id) => {
-    dispatch(removeFromCart(id)); // Optimistically remove from Redux
-
+    dispatch(removeFromCart(id)); // Optimistic update
     try {
-      await removeFromCartAPI(id); // Server-side removal
+      await removeFromCartAPI(id);
     } catch (err) {
-      console.error("Failed to remove item from server cart:", err);
+      // console.error("❌ Server failed to remove cart item:", err);
     }
   };
 

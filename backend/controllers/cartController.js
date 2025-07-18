@@ -123,13 +123,13 @@ module.exports = {
 };
 
 // const Cart = require('../models/Cart.js')
-module.exports = {
-  saveCart,
-  getCart,
-  clearCart,
-  removeItemFromCart,
-  updateItemQuantity,
-};
+// module.exports = {
+//   saveCart,
+//   getCart,
+//   clearCart,
+//   removeItemFromCart,
+//   updateItemQuantity,
+// };
 
 //   try {
 //     const existingCart = await Cart.findOne({ userId });

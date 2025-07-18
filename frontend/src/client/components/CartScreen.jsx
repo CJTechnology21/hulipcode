@@ -1,48 +1,45 @@
-import axios from 'axios'
+
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice'
-import Header from "./Header";
+import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice';
 import { useNavigate } from 'react-router-dom';
 
+import Header from "./Header";
+import {
+  removeFromCartAPI,
+  updateCartItemAPI,
+} from "../../services/cartServices"; // ✅ updated imports
 
 function CartScreen() {
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart.items);
   const navigate = useNavigate();
-  const token = localStorage.getItem("crm_token");
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
-  useEffect(() => {
-  console.log("Cart Items:", cartItems);
-}, [cartItems]);
 
+  useEffect(() => {
+    console.log("Cart Items:", cartItems);
+  }, [cartItems]);
 
   const handleRemove = async (productId) => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await removeFromCartAPI(productId); // ✅ use service function
       dispatch(removeFromCart(productId));
     } catch (err) {
-      console.error("Failed to remove item:", err);
+      // console.error("Failed to remove item:", err);
     }
   };
 
   const handleIncrement = async (item) => {
     const updatedQty = item.quantity + 1;
     try {
-      await axios.put(
-        `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
-        { quantity: updatedQty },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
       dispatch(incrementQuantity(item._id));
     } catch (err) {
-      console.error("Failed to increment quantity:", err);
+      // console.error("Failed to increment quantity:", err);
     }
   };
 
@@ -50,11 +47,7 @@ function CartScreen() {
     if (item.quantity <= 1) return;
     const updatedQty = item.quantity - 1;
     try {
-      await axios.put(
-        `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
-        { quantity: updatedQty },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
       dispatch(decrementQuantity(item._id));
     } catch (err) {
       console.error("Failed to decrement quantity:", err);
@@ -144,28 +137,69 @@ function CartScreen() {
 }
 
 export default CartScreen;
+// import axios from 'axios'
+// import React, { useEffect } from "react";
+// import { useSelector, useDispatch } from "react-redux";
+// import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice'
+// import Header from "./Header";
+// import { useNavigate } from 'react-router-dom';
 
 
 // function CartScreen() {
 //   const dispatch = useDispatch();
 //   const cartItems = useSelector((state) => state.cart.items);
 //   const navigate = useNavigate();
+//   const token = localStorage.getItem("crm_token");
 
 //   const subtotal = cartItems.reduce(
 //     (acc, item) => acc + item.price * item.quantity,
 //     0
 //   );
-// const handleRemove = async (productId) => {
-//     const token = localStorage.getItem("crm_token");
+//   useEffect(() => {
+//   console.log("Cart Items:", cartItems);
+// }, [cartItems]);
+
+
+//   const handleRemove = async (productId) => {
 //     try {
-//       await axios.delete(`http://localhost:5000/api/cart/${productId}`, {
+//       await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${productId}`, {
 //         headers: { Authorization: `Bearer ${token}` },
 //       });
-//       dispatch(removeFromCart(productId)); // update redux store
+//       dispatch(removeFromCart(productId));
 //     } catch (err) {
 //       console.error("Failed to remove item:", err);
 //     }
 //   };
+
+//   const handleIncrement = async (item) => {
+//     const updatedQty = item.quantity + 1;
+//     try {
+//       await axios.put(
+//         `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
+//         { quantity: updatedQty },
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+//       dispatch(incrementQuantity(item._id));
+//     } catch (err) {
+//       console.error("Failed to increment quantity:", err);
+//     }
+//   };
+
+//   const handleDecrement = async (item) => {
+//     if (item.quantity <= 1) return;
+//     const updatedQty = item.quantity - 1;
+//     try {
+//       await axios.put(
+//         `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
+//         { quantity: updatedQty },
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+//       dispatch(decrementQuantity(item._id));
+//     } catch (err) {
+//       console.error("Failed to decrement quantity:", err);
+//     }
+//   };
+
 //   return (
 //     <div>
 //       <Header />
@@ -176,7 +210,6 @@ export default CartScreen;
 //           <p>Your cart is empty.</p>
 //         ) : (
 //           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//             {/* Cart Items List */}
 //             <div className="md:col-span-2 space-y-4">
 //               {cartItems.map((item) => (
 //                 <div
@@ -192,14 +225,14 @@ export default CartScreen;
 //                     <h2 className="text-lg font-medium">{item.name}</h2>
 //                     <div className="flex items-center mt-2 gap-2">
 //                       <button
-//                         onClick={() => dispatch(decrementQuantity(item._id))}
+//                         onClick={() => handleDecrement(item)}
 //                         className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
 //                       >
 //                         -
 //                       </button>
 //                       <span>{item.quantity}</span>
 //                       <button
-//                         onClick={() => dispatch(incrementQuantity(item._id))}
+//                         onClick={() => handleIncrement(item)}
 //                         className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
 //                       >
 //                         +
@@ -221,7 +254,6 @@ export default CartScreen;
 //               ))}
 //             </div>
 
-//             {/* Summary Section */}
 //             <div className="border rounded-lg p-6 shadow-md h-fit">
 //               <h2 className="text-xl font-semibold mb-4">Summary</h2>
 //               <div className="flex justify-between mb-2">
@@ -236,8 +268,10 @@ export default CartScreen;
 //                 <span>Total</span>
 //                 <span>₹{subtotal.toLocaleString()}</span>
 //               </div>
-//               <button className="w-full mt-6 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-//               onClick={()=>{navigate('/checkout')}}>
+//               <button
+//                 className="w-full mt-6 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+//                 onClick={() => navigate("/checkout")}
+//               >
 //                 Proceed to Checkout
 //               </button>
 //             </div>
@@ -249,3 +283,4 @@ export default CartScreen;
 // }
 
 // export default CartScreen;
+
