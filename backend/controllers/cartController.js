@@ -6,62 +6,62 @@ const saveCart = async (req, res) => {
   try {
     const { userId, items } = req.body;
 
-    if (!userId || !Array.isArray(items)) {
-      return res.status(400).json({ message: 'Invalid payload' });
+    if (!userId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Invalid payload" });
     }
 
-    console.log('🔄 Saving cart for user:', userId);
-    console.log('🛒 Incoming items:', items);
+    console.log("🔄 Saving cart for user:", userId);
+    console.log("🛒 Incoming items:", items);
 
     let cart = await Cart.findOne({ userId });
+
     if (!cart) {
       cart = new Cart({ userId, items: [] });
     }
 
     items.forEach((newItem) => {
       try {
-        if (!newItem || !newItem._id) {
-          console.warn('⚠️ Skipping item with missing _id:', newItem);
+        // Validate _id and vendor
+        if (
+          !newItem?._id ||
+          !mongoose.Types.ObjectId.isValid(newItem._id) ||
+          !newItem?.vendor ||
+          !mongoose.Types.ObjectId.isValid(newItem.vendor)
+        ) {
+          console.warn("❌ Skipping invalid item:", newItem);
           return;
         }
 
-        const newItemIdStr = newItem._id.toString?.();
-        if (!newItemIdStr) {
-          console.warn('⚠️ Skipping item with invalid _id:', newItem);
-          return;
-        }
-
+        const newItemIdStr = newItem._id.toString();
         const existingItem = cart.items.find(
-          (item) => item.productId?.toString?.() === newItemIdStr
+          (item) => item.productId?.toString() === newItemIdStr
         );
 
         if (existingItem) {
           existingItem.quantity += newItem.quantity || 1;
         } else {
           cart.items.push({
-            productId: mongoose.Types.ObjectId.createFromHexString(newItem._id), // ✅ explicitly handles string _id
-            // productId: new mongoose.Types.ObjectId(newItem._id),
+            productId: new mongoose.Types.ObjectId(newItem._id),
             name: newItem.name,
             image: newItem.image,
             price: newItem.price,
             quantity: newItem.quantity || 1,
-            vendor: newItem.vendor,
+            vendor: new mongoose.Types.ObjectId(newItem.vendor),
           });
         }
       } catch (itemError) {
-        console.error('❌ Error processing item:', newItem, itemError);
+        console.error("❌ Error processing item:", newItem, itemError);
       }
     });
 
     await cart.save();
-    res.status(200).json({ message: '✅ Cart saved successfully', cart });
+    res.status(200).json({ message: "✅ Cart saved successfully", cart });
 
   } catch (error) {
-    console.error('❌ Save cart error:', error);
-    res.status(500).json({ message: 'Server error while saving cart' });
+    console.error("❌ Save cart error:", error);
+    res.status(500).json({ message: "Server error while saving cart" });
   }
 };
-
 // Get user's cart
 const getCart = async (req, res) => {
   const userId = req.user?._id || req.body.userId;
@@ -75,6 +75,7 @@ const getCart = async (req, res) => {
     const cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: 'Cart not found' });
     res.status(200).json({ items: cart.items });
+    console.log(cart.items)
   } catch (error) {
     console.error('❌ Get cart error:', error);
     res.status(500).json({ message: 'Server error while fetching cart' });
