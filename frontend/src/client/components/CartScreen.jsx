@@ -1,14 +1,18 @@
-
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice';
-import { useNavigate } from 'react-router-dom';
-
+import {
+  setCart,
+  incrementQuantity,
+  decrementQuantity,
+  removeFromCart,
+} from "../../app/features/cart/cartSlice";
+import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import {
+  getCartAPI,
   removeFromCartAPI,
   updateCartItemAPI,
-} from "../../services/cartServices"; // ✅ updated imports
+} from "../../services/cartServices";
 
 function CartScreen() {
   const dispatch = useDispatch();
@@ -21,38 +25,54 @@ function CartScreen() {
   );
 
   useEffect(() => {
-    console.log("Cart Items:", cartItems);
-  }, [cartItems]);
+    const fetchCart = async () => {
+      try {
+        const items = await getCartAPI();
+        dispatch(setCart(items)); // ✅ Respect your setCart reducer
+      } catch (error) {
+        console.error("Failed to fetch cart:", error);
+      }
+    };
 
-  const handleRemove = async (productId) => {
-    try {
-      await removeFromCartAPI(productId); // ✅ use service function
-      dispatch(removeFromCart(productId));
-    } catch (err) {
-      // console.error("Failed to remove item:", err);
-    }
-  };
+    fetchCart();
+  }, [dispatch]);
+const handleRemove = async (item) => {
+  try {
+    await removeFromCartAPI(item.productId); // ✅ Matches backend
+    dispatch(removeFromCart(item._id));      // ✅ Redux uses cart item's _id
+  } catch (err) {
+    console.error("❌ Remove failed:", err);
+  }
+};
+  // const handleRemove = async (productId) => {
+  //   try {
+  //     await removeFromCartAPI(productId);
+  //     dispatch(removeFromCart(productId)); // ✅ Uses your logic
+  //   } catch (err) {
+  //     console.error("Remove failed:", err);
+  //   }
+  // };
 
-  const handleIncrement = async (item) => {
-    const updatedQty = item.quantity + 1;
-    try {
-      await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
-      dispatch(incrementQuantity(item._id));
-    } catch (err) {
-      // console.error("Failed to increment quantity:", err);
-    }
-  };
+const handleIncrement = async (item) => {
+  const updatedQty = item.quantity + 1;
+  try {
+    await updateCartItemAPI(item.productId, updatedQty);
+    dispatch(incrementQuantity(item._id)); // Still use _id for Redux
+  } catch (err) {
+    console.error("Increment failed:", err);
+  }
+};
 
-  const handleDecrement = async (item) => {
-    if (item.quantity <= 1) return;
-    const updatedQty = item.quantity - 1;
-    try {
-      await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
-      dispatch(decrementQuantity(item._id));
-    } catch (err) {
-      console.error("Failed to decrement quantity:", err);
-    }
-  };
+const handleDecrement = async (item) => {
+  if (item.quantity <= 1) return;
+  const updatedQty = item.quantity - 1;
+  try {
+    await updateCartItemAPI(item.productId, updatedQty);
+    dispatch(decrementQuantity(item._id)); // Still use _id for Redux
+  } catch (err) {
+    console.error("Decrement failed:", err);
+  }
+};
 
   return (
     <div>
@@ -99,7 +119,7 @@ function CartScreen() {
                     </p>
                     <button
                       className="text-red-500 text-sm mt-1 hover:underline"
-                      onClick={() => handleRemove(item._id)}
+                      onClick={() => handleRemove(item)}
                     >
                       Remove
                     </button>
@@ -137,51 +157,49 @@ function CartScreen() {
 }
 
 export default CartScreen;
-// import axios from 'axios'
+
+
 // import React, { useEffect } from "react";
 // import { useSelector, useDispatch } from "react-redux";
-// import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice'
-// import Header from "./Header";
+// import { incrementQuantity, decrementQuantity, removeFromCart } from '../../app/features/cart/cartSlice';
 // import { useNavigate } from 'react-router-dom';
 
+// import Header from "./Header";
+// import {
+//   removeFromCartAPI,
+//   updateCartItemAPI,
+// } from "../../services/cartServices"; // ✅ updated imports
 
 // function CartScreen() {
 //   const dispatch = useDispatch();
 //   const cartItems = useSelector((state) => state.cart.items);
 //   const navigate = useNavigate();
-//   const token = localStorage.getItem("crm_token");
 
 //   const subtotal = cartItems.reduce(
 //     (acc, item) => acc + item.price * item.quantity,
 //     0
 //   );
-//   useEffect(() => {
-//   console.log("Cart Items:", cartItems);
-// }, [cartItems]);
 
+//   useEffect(() => {
+//     console.log("Cart Items:", cartItems);
+//   }, [cartItems]);
 
 //   const handleRemove = async (productId) => {
 //     try {
-//       await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${productId}`, {
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
+//       await removeFromCartAPI(productId); // ✅ use service function
 //       dispatch(removeFromCart(productId));
 //     } catch (err) {
-//       console.error("Failed to remove item:", err);
+//       // console.error("Failed to remove item:", err);
 //     }
 //   };
 
 //   const handleIncrement = async (item) => {
 //     const updatedQty = item.quantity + 1;
 //     try {
-//       await axios.put(
-//         `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
-//         { quantity: updatedQty },
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
+//       await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
 //       dispatch(incrementQuantity(item._id));
 //     } catch (err) {
-//       console.error("Failed to increment quantity:", err);
+//       // console.error("Failed to increment quantity:", err);
 //     }
 //   };
 
@@ -189,11 +207,7 @@ export default CartScreen;
 //     if (item.quantity <= 1) return;
 //     const updatedQty = item.quantity - 1;
 //     try {
-//       await axios.put(
-//         `${process.env.REACT_APP_API_BASE}/api/cart/${item._id}`,
-//         { quantity: updatedQty },
-//         { headers: { Authorization: `Bearer ${token}` } }
-//       );
+//       await updateCartItemAPI(item._id, updatedQty); // ✅ use service function
 //       dispatch(decrementQuantity(item._id));
 //     } catch (err) {
 //       console.error("Failed to decrement quantity:", err);
@@ -283,4 +297,3 @@ export default CartScreen;
 // }
 
 // export default CartScreen;
-

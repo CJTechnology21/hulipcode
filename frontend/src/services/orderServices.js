@@ -18,3 +18,9 @@ export const placeOrderAPI = async (orderData) => {
 export const clearCartAPI = async () => {
   return axiosInstance.delete("/api/cart/clear");
 };
+
+// ✅ Get Current User's Orders
+export const getOrdersAPI = async () => {
+  const res = await axiosInstance.get("/api/orders/my");
+  return res.data;
+};
