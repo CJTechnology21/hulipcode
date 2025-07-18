@@ -49,10 +49,10 @@ export const googleSignupComplete = (data) => {
 
 // ─────── VENDOR ───────
 
-export const storeVendorToken = async (vendorId, token) => {
-  const response = await axiosInstance.post("/api/vendor/store-token", {
-    vendorId,
-    token,
-  });
-  return response.data;
-};
+// export const storeVendorToken = async (vendorId, token) => {
+//   const response = await axiosInstance.post("/api/vendor/store-token", {
+//     vendorId,
+//     token,
+//   });
+//   return response.data;
+// };

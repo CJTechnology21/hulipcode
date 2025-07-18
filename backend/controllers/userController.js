@@ -22,6 +22,7 @@ const getUserProfile = async (req, res) => {
       email: user.email,
       phoneNumber: user.phoneNumber || 'N/A',
       rewardPoints: user.rewardPoints || 0,
+      role:user.role,
     });
   } catch (err) {
     console.error('Error fetching user:', err);

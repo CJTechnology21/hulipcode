@@ -4,6 +4,8 @@ const Cart = require('../models/Cart.js');
 // Save or update entire user's cart
 const saveCart = async (req, res) => {
   const userId = req.user._id;
+
+
   const { items } = req.body;
 
   if (!Array.isArray(items)) {
@@ -41,6 +43,7 @@ const saveCart = async (req, res) => {
 // Get user's cart
 const getCart = async (req, res) => {
   const userId = req.user._id;
+       console.log("🔍 getCart | User ID:", req.user?._id);
 
   try {
     const cart = await Cart.findOne({ userId });

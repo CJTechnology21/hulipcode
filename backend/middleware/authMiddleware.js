@@ -2,19 +2,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
-  let token;
+  let token = req.cookies?.token; // ✅ Priority: cookie-based token
 
-  // Get token from Authorization header if present
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  // ✅ Optional fallback for Authorization header (only if using it)
+  if (!token && req.headers.authorization?.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
-  }
-
-  // Fallback: check cookie
-  if (!token && req.cookies?.token) {
-    token = req.cookies.token;
   }
 
   if (!token) {
@@ -23,7 +15,7 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id || decoded._id || (decoded.user && decoded.user._id);
+    const userId = decoded.id || decoded._id || decoded.user?._id;
 
     const user = await User.findById(userId).select('-password');
 
@@ -35,11 +27,54 @@ const protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Auth error:', err.message);
-    res.status(401).json({ message: 'Token invalid or expired' });
+    return res.status(401).json({ message: 'Token invalid or expired' });
   }
 };
 
 module.exports = { protect };
+
+// const jwt = require('jsonwebtoken');
+// const User = require('../models/User');
+
+// const protect = async (req, res, next) => {
+//   let token;
+
+//   // Get token from Authorization header if present
+//   if (
+//     req.headers.authorization &&
+//     req.headers.authorization.startsWith('Bearer')
+//   ) {
+//     token = req.headers.authorization.split(' ')[1];
+//   }
+
+//   // Fallback: check cookie
+//   if (!token && req.cookies?.token) {
+//     token = req.cookies.token;
+//   }
+
+//   if (!token) {
+//     return res.status(401).json({ message: 'Not authorized, no token' });
+//   }
+
+//   try {
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     const userId = decoded.id || decoded._id || (decoded.user && decoded.user._id);
+
+//     const user = await User.findById(userId).select('-password');
+
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     req.user = user;
+//     next();
+//   } catch (err) {
+//     console.error('Auth error:', err.message);
+//     res.status(401).json({ message: 'Token invalid or expired' });
+//   }
+// };
+
+// module.exports = { protect };
 
 // const jwt = require('jsonwebtoken');
 // const User = require('../models/User');

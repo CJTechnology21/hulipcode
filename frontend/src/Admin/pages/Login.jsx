@@ -53,10 +53,10 @@ const Login = () => {
       toast.success("Login successful");
 
       if (user.role === "vendor") {
-        const fcmToken = await requestFirebaseNotificationPermission();
-        if (fcmToken) {
-          await storeVendorToken(user._id, fcmToken);
-        }
+        // const fcmToken = await requestFirebaseNotificationPermission();
+        // if (fcmToken) {
+        //   await storeVendorToken(user._id, fcmToken);
+        // }
         navigate("/vendordashboard");
       } else if (user.role === "architect") {
         navigate("/architectdashboard");
@@ -83,10 +83,10 @@ const Login = () => {
         localStorage.setItem("crm_role", user.role);
 
         if (user?.role === "vendor") {
-          const fcmToken = await requestFirebaseNotificationPermission();
-          if (fcmToken) {
-            await storeVendorToken(user._id, fcmToken);
-          }
+          // const fcmToken = await requestFirebaseNotificationPermission();
+          // if (fcmToken) {
+          //   await storeVendorToken(user._id, fcmToken);
+          // }
           navigate("/vendordashboard");
         } else if (user?.role === "architect") {
           navigate("/architectdashboard");

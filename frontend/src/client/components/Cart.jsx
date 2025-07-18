@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { removeFromCart } from "../../app/features/cart/cartSlice";
+import { removeFromCart, setCart } from "../../app/features/cart/cartSlice";
 import {
   getUserRewardPointsAPI,
+  getCartAPI,
   removeFromCartAPI,
 } from "../../services/cartServices";
 
@@ -22,32 +23,33 @@ const Cart = ({ isOpen, onClose }) => {
 
   const discountedTotal = total - redeemedPoints;
 
-  // ✅ Fetch reward points when cart opens
+  // ✅ Fetch cart items and reward points when cart opens
   useEffect(() => {
-    const fetchRewardPoints = async () => {
-      const token = localStorage.getItem("crm_token");
-      if (!token) return;
-
+    const fetchCartAndPoints = async () => {
       try {
-        const rewardPoints = await getUserRewardPointsAPI(token);
+        // Fetch cart from backend (cookie is sent automatically)
+        const cart = await getCartAPI();
+        dispatch(setCart(cart?.items || []));
+
+        // Fetch reward points
+        const rewardPoints = await getUserRewardPointsAPI();
         const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10% discount
         setRedeemedPoints(maxRedeemable);
       } catch (err) {
-        console.error("Failed to fetch reward points:", err);
+        console.error("Failed to fetch cart or reward points:", err);
       }
     };
 
     if (isOpen) {
-      fetchRewardPoints();
+      fetchCartAndPoints();
     }
-  }, [isOpen, total]);
+  }, [isOpen, total, dispatch]);
 
   const handleRemove = async (id) => {
-    dispatch(removeFromCart(id));
+    dispatch(removeFromCart(id)); // Optimistically remove from Redux
 
     try {
-      const token = localStorage.getItem("crm_token");
-      await removeFromCartAPI(id, token);
+      await removeFromCartAPI(id); // Server-side removal
     } catch (err) {
       console.error("Failed to remove item from server cart:", err);
     }
@@ -167,8 +169,11 @@ export default Cart;
 // import { FiX } from "react-icons/fi";
 // import { useNavigate } from "react-router-dom";
 // import { useSelector, useDispatch } from "react-redux";
-// import axios from "axios";
-// import { removeFromCart, addToCart } from "../../app/features/cart/cartSlice";
+// import { removeFromCart } from "../../app/features/cart/cartSlice";
+// import {
+//   getUserRewardPointsAPI,
+//   removeFromCartAPI,
+// } from "../../services/cartServices";
 
 // const Cart = ({ isOpen, onClose }) => {
 //   const navigate = useNavigate();
@@ -191,16 +196,7 @@ export default Cart;
 //       if (!token) return;
 
 //       try {
-//         const res = await axios.get(
-//           `${process.env.REACT_APP_API_BASE}/api/user/me`,
-//           {
-//             headers: {
-//               Authorization: `Bearer ${token}`,
-//             },
-//           }
-//         );
-
-//         const rewardPoints = res.data.rewardPoints || 0;
+//         const rewardPoints = await getUserRewardPointsAPI(token);
 //         const maxRedeemable = Math.min(total * 0.1, rewardPoints); // Max 10% discount
 //         setRedeemedPoints(maxRedeemable);
 //       } catch (err) {
@@ -218,11 +214,7 @@ export default Cart;
 
 //     try {
 //       const token = localStorage.getItem("crm_token");
-//       await axios.delete(`${process.env.REACT_APP_API_BASE}/api/cart/${id}`, {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
+//       await removeFromCartAPI(id, token);
 //     } catch (err) {
 //       console.error("Failed to remove item from server cart:", err);
 //     }
@@ -236,11 +228,13 @@ export default Cart;
 //           onClick={onClose}
 //         />
 //       )}
+
 //       <div
 //         className={`fixed top-0 right-0 h-full w-full sm:w-[380px] bg-white z-50 shadow-lg transform transition-transform duration-300 ${
 //           isOpen ? "translate-x-0" : "translate-x-full"
 //         }`}
 //       >
+//         {/* Header */}
 //         <div className="p-5 flex justify-between items-center border-b">
 //           <h2 className="text-xl font-semibold">Shopping Cart</h2>
 //           <button onClick={onClose}>
@@ -248,6 +242,7 @@ export default Cart;
 //           </button>
 //         </div>
 
+//         {/* Cart Items */}
 //         <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
 //           {cartItems.length === 0 ? (
 //             <p className="text-center text-gray-500">Your cart is empty.</p>
@@ -277,23 +272,27 @@ export default Cart;
 //           )}
 //         </div>
 
+//         {/* Price Summary */}
 //         <div className="border-t px-5 py-4 space-y-2">
 //           <div className="flex justify-between items-center font-medium">
 //             <span>Subtotal</span>
 //             <span>₹{total.toLocaleString()}</span>
 //           </div>
+
 //           {redeemedPoints > 0 && (
 //             <div className="flex justify-between items-center text-green-600 text-sm">
 //               <span>Reward Points Applied</span>
 //               <span>-₹{redeemedPoints.toLocaleString()}</span>
 //             </div>
 //           )}
+
 //           <div className="flex justify-between items-center font-semibold text-blue-600">
 //             <span>Total</span>
 //             <span>₹{discountedTotal.toLocaleString()}</span>
 //           </div>
 //         </div>
 
+//         {/* Action Buttons */}
 //         <div className="flex justify-around gap-2 p-4 border-t">
 //           <button
 //             className="border px-4 py-2 rounded-full text-sm font-medium"
@@ -304,6 +303,7 @@ export default Cart;
 //           >
 //             Cart
 //           </button>
+
 //           <button
 //             className="border px-4 py-2 rounded-full text-sm font-medium"
 //             onClick={() => {
@@ -329,3 +329,4 @@ export default Cart;
 // };
 
 // export default Cart;
+
