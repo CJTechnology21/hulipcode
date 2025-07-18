@@ -19,40 +19,40 @@ const saveCart = async (req, res) => {
       cart = new Cart({ userId, items: [] });
     }
 
-    items.forEach((newItem) => {
+    for (const newItem of items) {
       try {
-        // Validate _id and vendor
+        const { _id, vendor, name, image, price, quantity } = newItem;
+
         if (
-          !newItem?._id ||
-          !mongoose.Types.ObjectId.isValid(newItem._id) ||
-          !newItem?.vendor ||
-          !mongoose.Types.ObjectId.isValid(newItem.vendor)
+          !_id ||
+          !mongoose.isValidObjectId(_id) ||
+          !vendor ||
+          !mongoose.isValidObjectId(vendor)
         ) {
           console.warn("❌ Skipping invalid item:", newItem);
-          return;
+          continue;
         }
 
-        const newItemIdStr = newItem._id.toString();
         const existingItem = cart.items.find(
-          (item) => item.productId?.toString() === newItemIdStr
+          (item) => item.productId.toString() === _id.toString()
         );
 
         if (existingItem) {
-          existingItem.quantity += newItem.quantity || 1;
+          existingItem.quantity += quantity || 1;
         } else {
           cart.items.push({
-            productId: new mongoose.Types.ObjectId(newItem._id),
-            name: newItem.name,
-            image: newItem.image,
-            price: newItem.price,
-            quantity: newItem.quantity || 1,
-            vendor: new mongoose.Types.ObjectId(newItem.vendor),
+            productId: _id, // let Mongoose auto-cast
+            name,
+            image,
+            price,
+            quantity: quantity || 1,
+            vendor, // let Mongoose auto-cast
           });
         }
       } catch (itemError) {
         console.error("❌ Error processing item:", newItem, itemError);
       }
-    });
+    }
 
     await cart.save();
     res.status(200).json({ message: "✅ Cart saved successfully", cart });
