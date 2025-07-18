@@ -25,21 +25,21 @@ const saveCart = async (req, res) => {
           return;
         }
 
-        const newItemIdStr = newItem._id?.toString?.();
+        const newItemIdStr = newItem._id.toString?.();
         if (!newItemIdStr) {
           console.warn('⚠️ Skipping item with invalid _id:', newItem);
           return;
         }
 
         const existingItem = cart.items.find(
-          (item) => item._id?.toString?.() === newItemIdStr
+          (item) => item.productId?.toString?.() === newItemIdStr
         );
 
         if (existingItem) {
           existingItem.quantity += newItem.quantity || 1;
         } else {
           cart.items.push({
-            _id: new mongoose.Types.ObjectId(newItem._id),
+            productId: new mongoose.Types.ObjectId(newItem._id),
             name: newItem.name,
             image: newItem.image,
             price: newItem.price,
@@ -63,8 +63,7 @@ const saveCart = async (req, res) => {
 
 // Get user's cart
 const getCart = async (req, res) => {
-  const userId = req.user?._id || req.body.userId; // fallback if no middleware
-
+  const userId = req.user?._id || req.body.userId;
   if (!userId) {
     return res.status(400).json({ message: 'User ID missing in request' });
   }
@@ -96,9 +95,9 @@ const removeItemFromCart = async (req, res) => {
 
     cart.items = cart.items.filter(item => {
       try {
-        return item._id?.toString?.() !== productId;
+        return item.productId?.toString?.() !== productId;
       } catch (e) {
-        console.warn('⚠️ Skipping item with invalid _id during removal:', item);
+        console.warn('⚠️ Skipping item with invalid productId during removal:', item);
         return true;
       }
     });
@@ -111,7 +110,7 @@ const removeItemFromCart = async (req, res) => {
   }
 };
 
-// Update quantity of single item
+// Update quantity of a single item
 const updateItemQuantity = async (req, res) => {
   const userId = req.user?._id || req.body.userId;
   const { productId } = req.params;
@@ -125,7 +124,7 @@ const updateItemQuantity = async (req, res) => {
     const cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: 'Cart not found' });
 
-    const item = cart.items.find(i => i._id?.toString?.() === productId);
+    const item = cart.items.find(i => i.productId?.toString?.() === productId);
     if (!item) return res.status(404).json({ message: 'Item not found in cart' });
 
     item.quantity = quantity;
@@ -141,7 +140,6 @@ const updateItemQuantity = async (req, res) => {
 // Clear user's cart
 const clearCart = async (req, res) => {
   const userId = req.user?._id || req.body.userId;
-
   if (!userId) {
     return res.status(400).json({ message: 'User ID missing in request' });
   }
