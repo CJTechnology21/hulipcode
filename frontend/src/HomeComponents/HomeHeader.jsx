@@ -6,24 +6,23 @@ import logo from "../Admin/images/logo.jpg";
 import LocationSelector from "../Admin/components/Homecomponents/LocationSelector";
 import { FaTimes, FaBars } from "react-icons/fa";
 import CategoryBar from "../client/components/CategoryBar";
-import HomeComponent from "./HomeComponent";
 import { useAuth } from "../context/AuthContext"; // ✅ Make sure the path is correct
 
 function HomeHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, logout, loading } = useAuth(); // ✅ use user from context
+  const { user, logout, loading } = useAuth(); //  use user from context
 
   const handleLogout = async () => {
-    await logout(); // ✅ logout from context (calls server + clears state)
-    dispatch(clearCart()); // ✅ make sure to invoke the action
+    await logout(); //  logout from context (calls server + clears state)
+    dispatch(clearCart()); //  make sure to invoke the action
     navigate("/login");
   };
-//  if (loading) return null; // ✅ prevent flicker or wrong button while loading
+
   return (
     <div>
-      <div className="bg-white min-h-screen font-montreal">
+      <div className="bg-white font-montreal">
         {/* Header */}
         <header className="px-4 py-4 shadow-sm relative z-50 bg-white md:px-6">
           {/* === Top Row === */}
@@ -133,7 +132,7 @@ function HomeHeader() {
 
         {/* Body Content */}
         <CategoryBar />
-        <HomeComponent />
+        {/* <HomeComponent /> */}
       </div>
     </div>
   );

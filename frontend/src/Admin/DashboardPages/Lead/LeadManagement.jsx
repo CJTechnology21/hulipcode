@@ -15,6 +15,7 @@ import SideBar from "../../components/SideBar";
 import { useNavigate } from "react-router-dom";
 import { downloadExpandedRowPDF } from "../../components/PDFExporter";
 import { toast } from "react-toastify";
+import Button from "../../../components/Button";
 
 const tabs = [
   { label: "All Leads", count: 5 },
@@ -180,9 +181,6 @@ export default function Leads() {
 
   const handleSave = async () => {
     try {
-      // TODO: Replace with your real update logic
-      // await api.updateLead(editFormData);
-
       toast.success("Lead updated successfully!");
       setEditRowId(null);
     } catch (error) {
@@ -196,7 +194,6 @@ export default function Leads() {
   };
 
   const [editedLead, setEditedLead] = useState({});
-  //reminder modal states
   const [reminderModalId, setReminderModalId] = useState(null);
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
@@ -226,7 +223,6 @@ export default function Leads() {
       return lead;
     });
 
-    // setLeadsData(updated);
     setReminderModalId(null);
 
     toast.success("Reminder saved successfully!", {
@@ -252,7 +248,6 @@ export default function Leads() {
       >
         <SideBar />
       </div>
-
       {/* Overlay */}
       {sidebarOpen && (
         <div
@@ -260,14 +255,12 @@ export default function Leads() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-
       {/* Main Content */}
       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
         <Header
           title="Leads Manager"
           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
-
         <div className="p-4 space-y-4 ">
           {/* Tabs */}
           <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center gap-3">
@@ -287,8 +280,6 @@ export default function Leads() {
                 </span>
               </button>
             ))}
-
-      
             <div className="ml-auto flex gap-2">
               <button className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2">
                 Leads Config
@@ -301,9 +292,8 @@ export default function Leads() {
               </button>
             </div>
           </div>
-
           {/* Table */}
-          <div className="overflow-x-auto p-6 bg-white rounded-xl shadow ">
+          <div className="overflow-x-auto p-2 bg-white rounded-xl shadow ">
             <table className="w-full border-collapse mt-2 text-sm">
               <thead>
                 <tr className="text-left bg-gray-100">
@@ -349,10 +339,7 @@ export default function Leads() {
               <tbody className="text-sm">
                 {leadsData.map((lead, index) => (
                   <React.Fragment key={lead.id}>
-                    <tr
-                      className="border-b hover:bg-gray-50 cursor-pointer"
-                      // onClick={() => toggleRow(lead.id)}
-                    >
+                    <tr className="border-b hover:bg-gray-50 cursor-pointer">
                       <td
                         className="px-3 py-3"
                         onClick={() => toggleRow(lead.id)}
@@ -376,7 +363,6 @@ export default function Leads() {
                           lead.name
                         )}
                       </td>
-
                       <td className="px-3 py-3">
                         {editRowId === lead.id ? (
                           <input
@@ -388,8 +374,6 @@ export default function Leads() {
                           lead.budget
                         )}
                       </td>
-
-                      {/* <td className="px-3 py-3">{lead.budget}</td> */}
                       <td className="px-3 py-3">
                         {editRowId === lead.id ? (
                           <input
@@ -401,8 +385,6 @@ export default function Leads() {
                           lead.contact
                         )}
                       </td>
-
-                      {/* <td className="px-3 py-3">{lead.contact}</td> */}
                       <td className="px-3 py-3">
                         {editRowId === lead.id ? (
                           <select
@@ -445,15 +427,6 @@ export default function Leads() {
                           </span>
                         )}
                       </td>
-
-                      {/* <td className="px-3 py-3">
-                        <span
-                          className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center whitespace-nowrap truncate ${lead.statusColor}`}
-                          title={lead.status}
-                        >
-                          {lead.status}
-                        </span>
-                      </td> */}
                       <td className="px-3 py-3">
                         {editRowId === lead.id ? (
                           <select
@@ -476,8 +449,6 @@ export default function Leads() {
                           lead.category
                         )}
                       </td>
-
-                      {/* <td className="px-3 py-3">{lead.category}</td> */}
                       <td className="px-3 py-3">
                         <td className="px-3 py-3">
                           <div
@@ -505,11 +476,8 @@ export default function Leads() {
                       <td className="px-3 py-3">
                         <div className="relative inline-block">
                           <button onClick={() => openReminderModal(lead.id)}>
-                            {/* Larger calendar icon */}
                             <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-2xl" />
                           </button>
-
-                          {/* Positioned badge with better spacing */}
                           {lead.reminder && lead.reminder.date && (
                             <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10 shadow">
                               1
@@ -517,21 +485,6 @@ export default function Leads() {
                           )}
                         </div>
                       </td>
-
-                      {/* <td className="px-3 py-3 relative">
-                        <button onClick={() => openReminderModal(lead.id)}>
-                          <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-lg" />
-                          {lead.reminder && lead.reminder.date && (
-                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                              1
-                            </span>
-                          )}
-                        </button>
-                      </td> */}
-
-                      {/* <td className="px-3 py-3">
-                        <FaCalendarAlt className="text-gray-600" />
-                      </td> */}
                       <td className="px-3 py-3">
                         {getSourceIcon(lead.source)}
                       </td>
@@ -588,45 +541,6 @@ export default function Leads() {
                           </div>
                         )}
                       </td>
-
-                      {/* <td className="px-3 py-3 relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // prevent global click handler if any
-                            handleMenuClick(lead.id);
-                          }}
-                          className="text-gray-600 hover:text-gray-800"
-                        >
-                          <HiOutlineDotsVertical className="text-xl" />
-                        </button>
-
-                        {menuOpenId === lead.id && (
-                          <div className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg z-50 text-sm">
-                            <button
-                              onClick={() => {
-                                closeMenu();
-                                setEditRowId(lead.id);
-                                setEditFormData({ ...lead }); // prefill form with current row data
-                              }}
-                              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
-                            >
-                              <FaEdit className="text-gray-500 text-base" />
-                              <span>Edit</span>
-                            </button>
-
-                            <button
-                              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 gap-2"
-                              onClick={() => {
-                                handleDownloadPDF(lead.id);
-                                closeMenu();
-                              }}
-                            >
-                              <FaFileDownload className="text-gray-500 text-base" />
-                              Download PDF
-                            </button>
-                          </div>
-                        )}
-                      </td> */}
                     </tr>
 
                     {/* Expanded Row */}
@@ -636,40 +550,51 @@ export default function Leads() {
                         <td colSpan="12" className="bg-white p-4">
                           <div id={`expandable-row-${lead.id}`}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              {/* Left Column: Site Details */}
                               <div className="text-sm font-semibold text-black">
                                 <h2 className="bg-red-600 text-white px-3 py-1 rounded-full inline-block mb-3">
                                   Site Details
                                 </h2>
                                 <ul className="space-y-1">
                                   <li>
-                                    <strong>Location</strong> : South Ex Part 2
-                                    , Delhi
+                                    <strong>Location</strong>: South Ex Part 2,
+                                    Delhi
                                   </li>
                                   <li>
-                                    <strong>Pincode</strong> : 110066
+                                    <strong>Pincode</strong>: 110066
                                   </li>
                                   <li>
-                                    <strong>Project Type</strong> : 1BHK Floor
+                                    <strong>Project Type</strong>: 1BHK Floor
                                   </li>
                                   <li>
-                                    <strong>Project Floor</strong> : 3rd Floor
+                                    <strong>Project Floor</strong>: 3rd Floor
                                   </li>
                                   <li>
-                                    <strong>Current Condition</strong> : Needs
-                                    renovation , Pipes are all damaged ,
+                                    <strong>Current Condition</strong>: Needs
+                                    renovation, Pipes are all damaged,
                                     Electrical Failures, Client feels Old
                                   </li>
                                   <li>
-                                    <strong>Requirements</strong> : Old but new,
+                                    <strong>Requirements</strong>: Old but new,
                                     kids room, fancy toilet, modular kitchen
                                   </li>
                                   <li>
-                                    <strong>Duration of Project</strong> : 6
+                                    <strong>Duration of Project</strong>: 6
                                     months
                                   </li>
                                 </ul>
-                              </div>
 
+                                {/* Button moved just below Site Details */}
+                                <div className="mt-14">
+                                  <Button
+                                    className="bg-red-700 hover:bg-red-800"
+                                    size="lg"
+                                    onClick={() => navigate("/quotedetails")}
+                                  >
+                                    See Quote Details
+                                  </Button>
+                                </div>
+                              </div>
                               <div className="space-y-6">
                                 {[
                                   {
@@ -743,7 +668,6 @@ export default function Leads() {
             </table>
           </div>
         </div>
-
         {/* Update Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -846,424 +770,7 @@ export default function Leads() {
             </div>
           </div>
         )}
-
-        {/* {reminderModalId && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-sm shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Set Reminder</h3>
-
-              <label className="block text-sm mb-2">Date</label>
-              <input
-                type="date"
-                value={reminderDate}
-                onChange={(e) => setReminderDate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md mb-4"
-              />
-
-              <label className="block text-sm mb-2">Time</label>
-              <input
-                type="time"
-                value={reminderTime}
-                onChange={(e) => setReminderTime(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md mb-4"
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setReminderModalId(null)}
-                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReminderSave}
-                  className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        )} */}
       </div>
     </div>
   );
 }
-
-// export default function Leads() {
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [activeTab, setActiveTab] = useState("All Leads");
-//   const [showModal, setShowModal] = useState(false);
-//   const [modalData, setModalData] = useState({
-//     id: "",
-//     text: "",
-//     datetime: "",
-//   });
-
-//   const openModal = (leadId) => {
-//     setModalData({ id: leadId, text: "", datetime: "" });
-//     setShowModal(true);
-//   };
-
-//   const closeModal = () => {
-//     setShowModal(false);
-//   };
-
-//   const getSourceIcon = (source) => {
-//     switch (source) {
-//       case "facebook":
-//         return <FaFacebook className="text-blue-600" />;
-//       case "instagram":
-//         return <FaInstagram className="text-pink-600" />;
-//       case "google":
-//         return <FaGoogle className="text-red-600" />;
-//       default:
-//         return <FaInstagram />;
-//     }
-//   };
-
-//   return (
-//     <div className="flex h-screen overflow-hidden">
-//       {/* Sidebar */}
-//       <div
-//         className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
-//           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-//         } md:relative md:block`}
-//       >
-//         <SideBar />
-//       </div>
-
-//       {/* Overlay */}
-//       {sidebarOpen && (
-//         <div
-//           className="fixed inset-0 z-40 bg-black bg-opacity-30 md:hidden"
-//           onClick={() => setSidebarOpen(false)}
-//         />
-//       )}
-
-//       {/* Main Content */}
-//       <div className="flex flex-col flex-1 overflow-y-auto bg-white">
-//         <Header
-//           title="Leads Manager"
-//           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
-//         />
-
-//         <div className="p-4 space-y-4">
-//           {/* Tabs */}
-//           <div className="flex gap-3 flex-wrap">
-//             {tabs.map((tab) => (
-//               <button
-//                 key={tab.label}
-//                 onClick={() => setActiveTab(tab.label)}
-//                 className={`flex items-center gap-2 px-4 py-2 rounded-full border font-medium ${
-//                   activeTab === tab.label
-//                     ? "bg-[#a00000] text-white"
-//                     : "bg-gray-100 text-black"
-//                 }`}
-//               >
-//                 {tab.label}
-//                 <span className="bg-white text-black rounded-full px-2 py-0.5 text-sm">
-//                   {tab.count}
-//                 </span>
-//               </button>
-//             ))}
-//             <div className="ml-auto flex gap-2">
-//               <button className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2">
-//                 Leads Config
-//               </button>
-//               <button className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2">
-//                 <FaPlus /> Add Leads
-//               </button>
-//             </div>
-//           </div>
-
-//           {/* Lead Table */}
-//           <div className="overflow-x-auto">
-//             <table className="w-full border-collapse mt-2">
-//               <thead>
-//                 <tr className="text-left bg-gray-100 text-sm">
-//                   {[
-//                     "S.no",
-//                     "Lead ID",
-//                     "Name",
-//                     "Budget",
-//                     "Contact no.",
-//                     "Status",
-//                     "Category",
-//                     "Last Update",
-//                     "Assigned to",
-//                     "Follow Up",
-//                     "Source",
-//                   ].map((head, i) => (
-//                     <th
-//                       key={i}
-//                       className="px-3 py-2 font-bold whitespace-nowrap"
-//                     >
-//                       {head === "S.no" ? <BsFilter /> : head}
-//                     </th>
-//                   ))}
-//                 </tr>
-//                 <tr className="text-xs bg-white">
-//                   <td className="px-3 py-1"><FaFilter className="h-4 w-4" /></td>
-//                   <td className="px-3 py-3">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <select className="w-full p-2 border rounded-lg bg-gray-100">
-//                       <option>Select</option>
-//                     </select>
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <select className="w-full p-2 border rounded-lg bg-gray-100">
-//                       <option value="">Select</option>
-//                       <option>Pending on Client Decision</option>
-//                       <option>Requirement Gathered</option>
-//                       <option>Assigned</option>
-//                       <option>Not Interested</option>
-//                     </select>
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <select className="w-full p-2 border rounded-lg bg-gray-100">
-//                       <option value="">Select</option>
-//                       <option>RESIDENTIAL</option>
-//                       <option>COMMERCIAL</option>
-//                     </select>
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1">
-//                     <input
-//                       className="w-full p-2 border rounded-lg bg-gray-100"
-//                       placeholder="Search"
-//                     />
-//                   </td>
-//                   <td className="px-3 py-1"></td>
-//                 </tr>
-//               </thead>
-
-//               <tbody className="text-sm">
-//                 {leadsData.map((lead, index) => (
-//                   <tr key={lead.id} className="border-b hover:bg-gray-50">
-//                     <td className="px-3 py-3">{index + 1}</td>
-//                     <td className="px-3 py-3">{lead.id}</td>
-//                     <td className="px-3 py-3">{lead.name}</td>
-//                     <td className="px-3 py-3">{lead.budget}</td>
-//                     <td className="px-3 py-3">{lead.contact}</td>
-//                     <td className="px-3 py-3">
-//                       <span
-//                         className={`px-2 py-1 rounded-full text-xs ${lead.statusColor}`}
-//                       >
-//                         {lead.status}
-//                       </span>
-//                     </td>
-//                     <td className="px-3 py-3">{lead.category}</td>
-//                     <td
-//                       className="px-3 py-3 cursor-pointer"
-//                       onClick={() => openModal(lead.id)}
-//                     >
-//                       <div className="bg-white border px-2 py-1 rounded text-xs whitespace-pre-line hover:bg-gray-100">
-//                         {lead.update}
-//                         <br />
-//                         <span className="text-gray-400">DATE: 09/07/2025</span>
-//                       </div>
-//                     </td>
-
-//                     <td className="px-3 py-3">
-//                       <div className={`flex items-center gap-2`}>
-//                         <div
-//                           className={`w-6 h-6 text-xs rounded-full text-center font-bold flex items-center justify-center ${lead.assigned.color}`}
-//                         >
-//                           {lead.assigned.initial}
-//                         </div>
-//                         <span>{lead.assigned.name}</span>
-//                       </div>
-//                     </td>
-//                     <td className="px-3 py-3">
-//                       {lead.followup && (
-//                         <FaCalendar className="text-gray-600 h-6 w-6" />
-//                       )}
-//                     </td>
-//                     <td className="px-3 py-3">{getSourceIcon(lead.source)}</td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         </div>
-//         {showModal && (
-//           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-//             <div className="bg-white p-6 rounded-lg w-full max-w-md space-y-4 shadow-xl">
-//               <h2 className="text-lg font-bold">
-//                 Update Lead - {modalData.id}
-//               </h2>
-//               <textarea
-//                 rows={4}
-//                 className="w-full p-2 border rounded"
-//                 placeholder="Enter update details"
-//                 value={modalData.text}
-//                 onChange={(e) =>
-//                   setModalData({ ...modalData, text: e.target.value })
-//                 }
-//               />
-//               <input
-//                 type="datetime-local"
-//                 className="w-full p-2 border rounded"
-//                 value={modalData.datetime}
-//                 onChange={(e) =>
-//                   setModalData({ ...modalData, datetime: e.target.value })
-//                 }
-//               />
-//               <div className="flex justify-end gap-2">
-//                 <button
-//                   className="px-4 py-2 bg-gray-300 rounded"
-//                   onClick={closeModal}
-//                 >
-//                   Cancel
-//                 </button>
-//                 <button
-//                   className="px-4 py-2 bg-blue-600 text-white rounded"
-//                   onClick={() => {
-//                     // Save logic here
-//                     closeModal();
-//                   }}
-//                 >
-//                   Save
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// import { useState } from "react";
-
-// import Header from "../../components/Header";
-// import {
-//   FaAddressCard,
-//   FaClipboardList,
-//   FaLightbulb,
-//   FaFileAlt,
-//   FaMoneyBillWave,
-// } from "react-icons/fa";
-// import { useNavigate } from "react-router-dom";
-// import SideBar from "../../components/SideBar";
-
-// function Leads() {
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const navigate = useNavigate();
-
-//   const leadModules = [
-//     {
-//       title: "Basic Details",
-//       subtitle: "Manage contact details etc.",
-//       icon: <FaAddressCard className="text-3xl" />,
-//       path: "/leads/leaddetails",
-//     },
-//     {
-//       title: "Quotations & Site Details",
-//       subtitle: "Generate BoQs and Capture Site Details",
-//       icon: <FaClipboardList className="text-3xl" />,
-//       path: "/quote",
-//     },
-//     {
-//       title: "Inspirations",
-//       subtitle: "View Images Liked by Client",
-//       icon: <FaLightbulb className="text-3xl" />,
-//       path: "/leads/inspirations",
-//     },
-//     {
-//       title: "Designs & Documents",
-//       subtitle: "Store All Your Artefacts",
-//       icon: <FaFileAlt className="text-3xl" />,
-//       path: "/leads/documents",
-//     },
-//     {
-//       title: "Financial Planning",
-//       subtitle: "Manage your cashflow",
-//       icon: <FaMoneyBillWave className="text-3xl" />,
-//       path: "/project/finance",
-//     },
-//   ];
-
-//   return (
-//     <div className="flex h-screen overflow-hidden">
-//       {/* Sidebar */}
-//       <div
-//         className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
-//           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-//         } md:relative md:block`}
-//       >
-//         <SideBar />
-//       </div>
-
-//       {/* Overlay for mobile */}
-//       {sidebarOpen && (
-//         <div
-//           className="fixed inset-0 z-40 bg-black bg-opacity-30 md:hidden"
-//           onClick={() => setSidebarOpen(false)}
-//         />
-//       )}
-
-//       {/* Main content */}
-//       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
-//         <Header
-//           title="Lead Manager"
-//           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
-//         />
-
-//         <div className="p-6 space-y-6">
-//           {/* Top Info (optional buttons can go here) */}
-//           <div className="flex items-center justify-end flex-wrap gap-4">
-//             {/* Example button (optional) */}
-//             {/* <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm shadow">Export</button> */}
-//           </div>
-
-//           {/* Lead Module Cards */}
-//           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-//             {leadModules.map((mod, idx) => (
-//               <div
-//                 key={idx}
-//                 onClick={() => navigate(mod.path)}
-//                 className="cursor-pointer bg-white border border-blue-200 hover:shadow-md transition-all rounded-xl p-5 flex flex-col items-center text-center hover:border-blue-400"
-//               >
-//                 <div className="text-blue-500 mb-3">{mod.icon}</div>
-//                 <h3 className="font-semibold text-gray-800">{mod.title}</h3>
-//                 <p className="text-xs text-gray-500 mt-1">{mod.subtitle}</p>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Leads;

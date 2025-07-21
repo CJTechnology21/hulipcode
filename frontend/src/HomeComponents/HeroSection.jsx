@@ -4,6 +4,7 @@ import right_image from "../Admin/images/home_right.png";
 import microsoft from "../Admin/images/Microsoft.png";
 import airbnb from "../Admin/images/Airbnb.png";
 import bissel from "../Admin/images/Bissell.png";
+
 function HeroSection() {
   return (
     <div>
@@ -27,18 +28,17 @@ function HeroSection() {
           {/* Center Content */}
           <div className="flex-1 text-center flex flex-col items-center">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8 max-w-2xl">
-              Lorem Ipsum is simply dummy text of the printing
+              Simplifying Construction with Expert Architects
             </h1>
             <p className="text-gray-600 mb-10 max-w-xl">
-              Lorem Ipsum is simply dummy text of the printing and typesetting
-              industry.
+              We help you find certified architects, streamline the building process, and manage the entire project by acting as a reliable mediator between you and your architect.
             </p>
             <div className="flex justify-center gap-4 mb-6">
               <button className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
-                Get Started
+                Find an Architect
               </button>
               <button className="border border-blue-600 text-blue-600 px-5 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
-                Learn how to hire
+                How We Work
               </button>
             </div>
             <div className="flex items-center justify-center gap-6 text-gray-400 text-sm mt-2">

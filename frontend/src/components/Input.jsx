@@ -16,7 +16,7 @@ export default function Input({
   return (
     <div className="relative">
       <input
-        {...register(name)}
+        {...(typeof register === "function" ? register(name) : {})}
         type={inputType}
         placeholder={placeholder}
         autoComplete={name}
@@ -30,7 +30,11 @@ export default function Input({
           onClick={() => setShowPassword((prev) => !prev)}
           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
         >
-          {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+          {showPassword ? (
+            <AiOutlineEyeInvisible size={20} />
+          ) : (
+            <AiOutlineEye size={20} />
+          )}
         </button>
       )}
       {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}

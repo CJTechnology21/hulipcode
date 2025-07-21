@@ -26,7 +26,7 @@ function Profile() {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:block`}
       >
@@ -44,7 +44,7 @@ function Profile() {
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
         <Header
-          title="Dashboard"
+          title="Architect Profile"
           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
 

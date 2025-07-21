@@ -1,7 +1,8 @@
-
 import React, { useState } from "react";
 import { FaEdit, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { FiFilter } from "react-icons/fi";
+import Button from "../../../components/Button";
+import { useNavigate } from "react-router-dom";
 
 const mockData = [
   {
@@ -71,6 +72,7 @@ const mockData = [
 ];
 
 const QuoteSummary = ({ activeSection }) => {
+  const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [showAddSpaceModal, setShowAddSpaceModal] = useState(false);
 
@@ -140,14 +142,15 @@ const QuoteSummary = ({ activeSection }) => {
       {/* Terms & Conditions */}
       {activeSection === "Summary" && (
         <div className="mt-6">
-          <button
-            className="bg-red-700 hover:bg-red-800 text-white text-sm px-3 py-2 rounded flex items-center gap-2"
+          <Button
+            color="red"
+            size="lg"
+            className="flex items-center gap-2 bg-red-700 hover:bg-red-800"
             onClick={() => setShowTerms((prev) => !prev)}
           >
             Terms & Conditions
             {showTerms ? <FaChevronUp /> : <FaChevronDown />}
-          </button>
-
+          </Button>
           {showTerms && (
             <div className="mt-3 text-xs text-gray-700 bg-gray-50 p-4 rounded shadow-inner">
               <p className="font-semibold mb-2 uppercase">
@@ -164,6 +167,17 @@ const QuoteSummary = ({ activeSection }) => {
               </p>
               <p className="mt-1">2. Payment Terms ...</p>
               <p className="mt-1">3. Project Scope ...</p>
+
+              <div className="mt-4 inline-block">
+                <Button
+                  color="red"
+                  size="lg"
+                  className="bg-red-700 hover:bg-red-800"
+                  onClick={() => navigate("/contract")}
+                >
+                  Sign Agreement
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -3,21 +3,30 @@ import SideBar from "./SideBar";
 import Header from "./Header";
 import { FaSearch, FaFilePdf } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
+import Button from "../../components/Button";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 function Contract() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const navigate = useNavigate();
+
+  const handleContractClick = () => {
+    setSelectedContract("P-100/Q-10"); // you can update to dynamic value if needed
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:relative md:block`}
       >
         <SideBar />
       </div>
 
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-30 md:hidden"
@@ -33,9 +42,9 @@ function Contract() {
         />
         <div className="p-6 flex-1 flex flex-col gap-4">
           <div className="bg-white rounded-xl shadow p-4 flex-1 flex flex-col justify-between">
-            {/* Top Section: Search bar and Contract row */}
+            {/* Top Section */}
             <div className="flex flex-col gap-4">
-              {/* Search bar aligned right */}
+              {/* Search */}
               <div className="flex justify-end">
                 <div className="relative w-64">
                   <input
@@ -47,8 +56,13 @@ function Contract() {
                 </div>
               </div>
 
-              {/* Contract row below search */}
-              <div className="border rounded-lg p-4 flex items-center justify-between bg-gray-50">
+              {/* Contract Row */}
+              <div
+                className={`border rounded-lg p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 cursor-pointer ${
+                  selectedContract ? "ring-2 ring-red-500" : ""
+                }`}
+                onClick={handleContractClick}
+              >
                 <div className="flex items-center gap-3">
                   <FaFilePdf className="text-green-600 text-xl" />
                   <span className="font-medium">P-100/Q-10</span>
@@ -65,12 +79,26 @@ function Contract() {
 
             {/* Bottom Buttons */}
             <div className="flex gap-3 mt-6">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Sign Contract
-              </button>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <Button
+                className="bg-red-700 hover:bg-red-800"
+                size="lg"
+                disabled={!selectedContract}
+                onClick={() => {
+                  toast.success("Agreement Signed Successfully");
+                  navigate("/projects");
+                }}
+              >
+                Sign Agreement
+              </Button>
+
+              <Button
+                className="bg-red-700 hover:bg-red-800"
+                size="lg"
+                disabled={!selectedContract}
+                onClick={() => navigate("/projects")}
+              >
                 Auto Contract
-              </button>
+              </Button>
             </div>
           </div>
         </div>

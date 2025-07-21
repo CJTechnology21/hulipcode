@@ -79,10 +79,11 @@ import SubcategoryPage from "./client/components/SubCategoryPage";
 import InspirationDetail from "./Admin/components/Homecomponents/InspirationDetail";
 import AddProduct from "./client/components/AddNewProduct";
 import { toast } from "react-toastify";
-import CartSync from "./client/components/CartSync";
-import { LocationProvider } from "./context/LocationContext";
+// import CartSync from "./client/components/CartSync";
+// import { LocationProvider } from "./context/LocationContext";
 import QuoteDetail from "./Admin/components/Quote/QuoteDetail";
 import QuoteManager from "./Admin/components/Quote/QuoteManager";
+import HomeArchitectListings from "./HomeComponents/HomeArchitectListings";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -144,6 +145,7 @@ function App() {
         </AuthRedirect>} />
         <Route path="/approval" element={<Approval />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/listings" element={<HomeArchitectListings />} />
         <Route path="/personalprofile" element={<PersonalProfile />} />
         <Route path="/internalprofile" element={<InternalProfile />} />
         <Route path="/dashboard/" element={<Dashboard />} />
@@ -169,7 +171,7 @@ function App() {
         <Route path="/quotetask" element={<QuoteTask />} />
         <Route path="/quotedetails" element={<QuoteDetail />} />
         <Route path="/quoteform" element={<QuoteForm />} />
-         <Route path="/quotemanager" element={<QuoteManager />} />
+        <Route path="/quotemanager" element={<QuoteManager />} />
         {/* product-routes */}
         <Route path="/product" element={<Product />} />
         <Route path="/productform" element={<ProductForm />} />

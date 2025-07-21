@@ -69,7 +69,7 @@ function PersonalProfile() {
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
         <Header
-          title="Dashboard"
+          title="Personal Dashboard"
           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
         <div className="p-6 overflow-y-auto">
