@@ -84,6 +84,8 @@ import { toast } from "react-toastify";
 import QuoteDetail from "./Admin/components/Quote/QuoteDetail";
 import QuoteManager from "./Admin/components/Quote/QuoteManager";
 import HomeArchitectListings from "./HomeComponents/HomeArchitectListings";
+import HomeArchitectDetails from "./HomeComponents/HomeArchitectDetails";
+
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -146,6 +148,7 @@ function App() {
         <Route path="/approval" element={<Approval />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/listings" element={<HomeArchitectListings />} />
+        <Route path="/architectsdetails" element={<HomeArchitectDetails />} />
         <Route path="/personalprofile" element={<PersonalProfile />} />
         <Route path="/internalprofile" element={<InternalProfile />} />
         <Route path="/dashboard/" element={<Dashboard />} />
