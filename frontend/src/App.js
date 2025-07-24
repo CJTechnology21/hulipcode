@@ -85,6 +85,8 @@ import QuoteDetail from "./Admin/components/Quote/QuoteDetail";
 import QuoteManager from "./Admin/components/Quote/QuoteManager";
 import HomeArchitectListings from "./HomeComponents/HomeArchitectListings";
 import HomeArchitectDetails from "./HomeComponents/HomeArchitectDetails";
+import Procurement from "./Admin/components/Procurement/Procurement";
+import AddMaterialsScreen from "./Admin/components/Procurement/AddMaterialsScreen";
 
 function App() {
   useEffect(() => {
@@ -175,6 +177,9 @@ function App() {
         <Route path="/quotedetails" element={<QuoteDetail />} />
         <Route path="/quoteform" element={<QuoteForm />} />
         <Route path="/quotemanager" element={<QuoteManager />} />
+        {/* Procurement Routes */}
+        <Route path="/procurement" element={<Procurement />} />
+         <Route path="/addmaterials" element={<AddMaterialsScreen />} />
         {/* product-routes */}
         <Route path="/product" element={<Product />} />
         <Route path="/productform" element={<ProductForm />} />

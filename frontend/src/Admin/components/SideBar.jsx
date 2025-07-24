@@ -8,6 +8,7 @@ import {
   FaIdBadge,
   FaGift,
 } from "react-icons/fa";
+import { LiaClipboardListSolid } from "react-icons/lia";
 import { MdSupportAgent } from "react-icons/md";
 import { IoIosSettings } from "react-icons/io";
 import logo from "../images/heulip.png";
@@ -17,8 +18,10 @@ const topMenuItems = [
   { name: "Projects", icon: FaFolder, path: "/projects" },
   { name: "Leads", icon: FaUserFriends, path: "/leadmanagement" },
   { name: "Quotation", icon: FaFileInvoiceDollar, path: "/quote" },
+  { name: "Procurement", icon: LiaClipboardListSolid, path: "/Procurement" },
   { name: "Vendors", icon: FaIdBadge, path: "/vendors" },
   { name: "Settings", icon: IoIosSettings, path: "/settings" },
+
 ];
 
 const bottomMenuItems = [
