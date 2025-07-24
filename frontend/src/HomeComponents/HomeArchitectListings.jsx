@@ -5,7 +5,9 @@ import DropDown from "../components/DropDown";
 import SearchBar from "../components/SearchBar";
 import Input from "../components/Input";
 import Button from "../components/Button";
-import { useNavigate } from "react-router-dom";
+import { HiOutlineBarsArrowDown } from "react-icons/hi2";
+import { XMarkIcon } from "@heroicons/react/24/outline"; // For close button
+
 const architects = [
   {
     id: 1,
@@ -136,12 +138,14 @@ function HomeArchitectListings() {
     selectedLocations: [],
   });
   const [sort, setSort] = useState("Most Relevant");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [search, filters]);
 
   const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, checked } = e.target;
 
     if (name === "selectedSkills") {
       const updatedSkills = checked
@@ -157,6 +161,7 @@ function HomeArchitectListings() {
       setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
+
   const filteredArchitects = architects.filter((arch) => {
     const matchesName = arch.name.toLowerCase().includes(search.toLowerCase());
 
@@ -190,6 +195,172 @@ function HomeArchitectListings() {
     );
   });
 
+  const renderFilters = () => (
+    <div className="w-full bg-white rounded-xl shadow-md p-6 space-y-6 overflow-y-auto max-h-[85vh]">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-[#0b1c38]">Filters</h2>
+        <button
+          onClick={() => setShowMobileFilters(false)}
+          className="block lg:hidden text-gray-600"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* All existing filters go here (same as in your code) */}
+      {/* Sqft Rate */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-medium text-gray-800">Sqft Rate</span>
+          <button
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                sqftRateMin: "",
+                sqftRateMax: "",
+              }))
+            }
+            className="text-sm text-blue-500"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            name="sqftRateMin"
+            placeholder="Min ₹/sqft"
+            value={filters.sqftRateMin}
+            onChange={handleFilterChange}
+          />
+          <Input
+            name="sqftRateMax"
+            placeholder="Max ₹/sqft"
+            value={filters.sqftRateMax}
+            onChange={handleFilterChange}
+          />
+        </div>
+      </div>
+
+      {/* Services */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-medium text-gray-800">Services</span>
+          <button
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, selectedSkills: [] }))
+            }
+            className="text-sm text-blue-500"
+          >
+            Clear
+          </button>
+        </div>
+        <SearchBar placeholder="Search services..." />
+        <div className="space-y-1 text-sm text-gray-700">
+          {allSkills.map((skill) => (
+            <div key={skill} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="selectedSkills"
+                value={skill}
+                checked={filters.selectedSkills.includes(skill)}
+                onChange={handleFilterChange}
+              />
+              <label>{skill}</label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Location */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-medium text-gray-800">Location</span>
+          <button
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, selectedLocations: [] }))
+            }
+            className="text-sm text-blue-500"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="space-y-1 text-sm text-gray-700">
+          {allLocations.map((loc) => (
+            <div key={loc} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="selectedLocations"
+                value={loc}
+                checked={filters.selectedLocations.includes(loc)}
+                onChange={handleFilterChange}
+              />
+              <label>{loc}</label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Rating */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-medium text-gray-800">Rating</span>
+          <button
+            onClick={() => setFilters((prev) => ({ ...prev, rating: 0 }))}
+            className="text-sm text-blue-500"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="flex gap-1 text-lg cursor-pointer">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span
+              key={star}
+              onClick={() => setFilters((prev) => ({ ...prev, rating: star }))}
+              className={
+                filters.rating >= star ? "text-yellow-500" : "text-gray-300"
+              }
+            >
+              ★
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Reviews */}
+      <div>
+        <div className="flex justify-between items-center mb-1">
+          <span className="font-medium text-gray-800">Reviews</span>
+          <button
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                minReviews: "",
+                maxReviews: "",
+              }))
+            }
+            className="text-sm text-blue-500"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            name="minReviews"
+            placeholder="Min"
+            value={filters.minReviews}
+            onChange={handleFilterChange}
+          />
+          <Input
+            name="maxReviews"
+            placeholder="Max"
+            value={filters.maxReviews}
+            onChange={handleFilterChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-100">
       <HomeHeader />
@@ -200,203 +371,69 @@ function HomeArchitectListings() {
             Find Certified Architects
           </h1>
           <div className="flex justify-center gap-4">
-            <div className="flex justify-center gap-4">
-              <Button
-                onClick={() => setActiveTab("freelancers")}
-                color="white"
-                className={`rounded-full font-medium ${
-                  activeTab === "freelancers"
-                    ? "bg-blue-700 text-white"
-                    : "bg-blue-900 text-white hover:bg-blue-600"
-                }`}
-                size="md"
-              >
-                Freelancers
-              </Button>
-              <Button
-                onClick={() => setActiveTab("projects")}
-                color="white"
-                className={`rounded-full font-medium ${
-                  activeTab === "projects"
-                    ? "bg-blue-700 text-white"
-                    : "bg-blue-900 text-white hover:bg-blue-600"
-                }`}
-                size="md"
-              >
-                Projects
-              </Button>
-            </div>
+            <Button
+              onClick={() => setActiveTab("freelancers")}
+              variant="custom"
+              className={`rounded-full font-medium ${
+                activeTab === "freelancers"
+                  ? "bg-blue-700 text-white"
+                  : "bg-blue-900 text-white hover:bg-blue-600"
+              }`}
+              size="md"
+            >
+              Freelancers
+            </Button>
+            <Button
+              onClick={() => setActiveTab("projects")}
+              variant="custom"
+              className={`rounded-full font-medium ${
+                activeTab === "projects"
+                  ? "bg-blue-700 text-white"
+                  : "bg-blue-900 text-white hover:bg-blue-600"
+              }`}
+              size="md"
+            >
+              Projects
+            </Button>
           </div>
         </div>
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Filters */}
-          <div className="w-full lg:w-1/4 h-[700px] bg-white rounded-xl shadow-md p-6 space-y-6 overflow-hidden">
-            <h2 className="text-xl font-semibold text-[#0b1c38]">Filters</h2>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-medium text-gray-800">Sqft Rate</span>
-                <button
-                  onClick={() =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      sqftRateMin: "",
-                      sqftRateMax: "",
-                    }))
-                  }
-                  className="text-sm text-blue-500"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  name="sqftRateMin"
-                  placeholder="Min ₹/sqft"
-                  value={filters.sqftRateMin}
-                  onChange={handleFilterChange}
-                />
-                <Input
-                  name="sqftRateMax"
-                  placeholder="Max ₹/sqft"
-                  value={filters.sqftRateMax}
-                  onChange={handleFilterChange}
-                />
-              </div>
-            </div>
 
-            {/* Services */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-medium text-gray-800">Services</span>
-                <button
-                  onClick={() =>
-                    setFilters((prev) => ({ ...prev, selectedSkills: [] }))
-                  }
-                  className="text-sm text-blue-500"
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div className="mb-2">
-                <SearchBar placeholder="Search services..." />
-              </div>
-
-              <div className="space-y-1 text-sm text-gray-700">
-                {allSkills.map((skill) => (
-                  <div key={skill} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="selectedSkills"
-                      value={skill}
-                      checked={filters.selectedSkills.includes(skill)}
-                      onChange={handleFilterChange}
-                    />
-                    <label>{skill}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Location Filter */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-medium text-gray-800">Location</span>
-                <button
-                  onClick={() =>
-                    setFilters((prev) => ({ ...prev, selectedLocations: [] }))
-                  }
-                  className="text-sm text-blue-500"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="space-y-1 text-sm text-gray-700">
-                {allLocations.map((loc) => (
-                  <div key={loc} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="selectedLocations"
-                      value={loc}
-                      checked={filters.selectedLocations.includes(loc)}
-                      onChange={handleFilterChange}
-                    />
-                    <label>{loc}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Rating */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-medium text-gray-800">Rating</span>
-                <button
-                  onClick={() => setFilters((prev) => ({ ...prev, rating: 0 }))}
-                  className="text-sm text-blue-500"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="flex gap-1 text-lg cursor-pointer">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    onClick={() =>
-                      setFilters((prev) => ({ ...prev, rating: star }))
-                    }
-                    className={
-                      filters.rating >= star
-                        ? "text-yellow-500"
-                        : "text-gray-300"
-                    }
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Reviews */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-medium text-gray-800">Reviews</span>
-                <button
-                  onClick={() =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      minReviews: "",
-                      maxReviews: "",
-                    }))
-                  }
-                  className="text-sm text-blue-500"
-                >
-                  Clear
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  name="minReviews"
-                  placeholder="Min"
-                  value={filters.minReviews}
-                  onChange={handleFilterChange}
-                />
-                <Input
-                  name="maxReviews"
-                  placeholder="Max"
-                  value={filters.maxReviews}
-                  onChange={handleFilterChange}
-                />
-              </div>
-            </div>
+        <div className="flex flex-col lg:flex-row gap-8 relative">
+          {/* Sidebar (Desktop) */}
+          <div className="hidden lg:block w-full lg:w-1/4 h-fit sticky top-10">
+            {renderFilters()}
           </div>
 
-          {/* Main Content */}
+          {/* Filter Button for Mobile */}
+          <div className="lg:hidden mb-4 flex justify-end">
+            <button
+              onClick={() => setShowMobileFilters(true)}
+              className="flex items-center gap-2 text-black font-medium"
+            >
+              <HiOutlineBarsArrowDown className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Filter Drawer Modal (Mobile) */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 bg-white h-full w-full p-6 overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-[#0b1c38]">
+                  Filters
+                </h2>
+                <button onClick={() => setShowMobileFilters(false)}>
+                  <XMarkIcon className="h-6 w-6 text-gray-600" />
+                </button>
+              </div>
+              {renderFilters()}
+            </div>
+          )}
+
+
           {/* Main Content */}
           <div className="flex-1">
             {activeTab === "freelancers" ? (
               <>
-                {/* Freelancer search + sort + filters UI stays unchanged */}
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                   <div className="flex flex-col w-full sm:w-1/2">
                     <label className="text-sm text-gray-600 mb-1">
@@ -439,7 +476,6 @@ function HomeArchitectListings() {
               </>
             ) : (
               <>
-                {/* Projects View */}
                 <div className="text-xl font-semibold text-[#0b1c38] mb-6">
                   These are our Previous Projects
                 </div>
@@ -470,52 +506,6 @@ function HomeArchitectListings() {
               </>
             )}
           </div>
-
-          {/* <div className="flex-1">
-         
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-            
-              <div className="flex flex-col w-full sm:w-1/2">
-                <label className="text-sm text-gray-600 mb-1">
-                  Search for Architects
-                </label>
-                <SearchBar
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search architect name..."
-                />
-              </div>
-
-    
-              <div className="w-full sm:w-1/2">
-                <DropDown
-                  label="Sort by"
-                  name="sort"
-                  value={sort}
-                  options={["Most Relevant", "Experience", "Charges"]}
-                  onChange={(e) => setSort(e.target.value)}
-                />
-              </div>
-            </div>
-
-      
-            <div className="text-gray-600 text-sm mb-4">
-              Showing {filteredArchitects.length} result
-              {filteredArchitects.length !== 1 && "s"}
-            </div>
-
-     
-            <div className="grid grid-cols-1 gap-6">
-              {filteredArchitects.map((arch) => (
-                <ArchitectCard key={arch.id} architect={arch} />
-              ))}
-            </div>
-            {filteredArchitects.length === 0 && (
-              <div className="text-center mt-12 text-gray-500">
-                No architects found based on your filters.
-              </div>
-            )}
-          </div> */}
         </div>
       </div>
     </div>

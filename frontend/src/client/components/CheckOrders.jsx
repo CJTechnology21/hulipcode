@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Header from "./Header";
@@ -16,16 +15,16 @@ function CheckOrders() {
   const [orders, setOrders] = useState([]);
   const [isVendor, setIsVendor] = useState(false);
   const [statusUpdates, setStatusUpdates] = useState({});
-  const token = localStorage.getItem("crm_token");
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE}/api/orders/vendor-orders`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE}/api/orders/vendor-orders`,
+          { withCredentials: true } // ✅ Include cookies
+        );
 
-        const role = res.data.role || localStorage.getItem("crm_role");
+        const role = res.data.role;
         if (role === "vendor") {
           setOrders(res.data.orders || []);
           setIsVendor(true);
@@ -40,7 +39,7 @@ function CheckOrders() {
     };
 
     fetchOrders();
-  }, [token]);
+  }, []);
 
   const handleStatusChange = (orderId, newStatus) => {
     setStatusUpdates((prev) => ({
@@ -57,12 +56,10 @@ function CheckOrders() {
       await axios.put(
         `${process.env.REACT_APP_API_BASE}/api/orders/${orderId}/status`,
         { status: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { withCredentials: true } // ✅ Include cookies here as well
       );
 
-      toast.success(" Order status updated");
+      toast.success("Order status updated");
       setOrders((prev) =>
         prev.map((order) =>
           order._id === orderId ? { ...order, status: newStatus } : order
@@ -78,7 +75,7 @@ function CheckOrders() {
   return (
     <div className="min-h-screen bg-gray-50 font-[Poppins]">
       <Header />
-      <SubscriptionVendor/>
+      <SubscriptionVendor />
       <div className="max-w-6xl mx-auto p-6">
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
           <FaBoxOpen /> Vendor Orders
@@ -103,10 +100,15 @@ function CheckOrders() {
                       <FaBarcode /> Order ID: {order._id}
                     </h3>
                     <p className="text-gray-700">
-                      Buyer: <span className="text-blue-600">{order.buyer?.name || "N/A"}</span>
+                      Buyer:{" "}
+                      <span className="text-blue-600">
+                        {order.buyer?.name || "N/A"}
+                      </span>
                     </p>
                     <p className="text-gray-600">Total: ₹{order.totalAmount}</p>
-                    <p className="text-gray-600">Payment: {order.paymentMethod}</p>
+                    <p className="text-gray-600">
+                      Payment: {order.paymentMethod}
+                    </p>
                     <p className="text-sm text-gray-600 mt-1">
                       Current Status:{" "}
                       <span className="font-semibold text-green-600">
@@ -122,7 +124,9 @@ function CheckOrders() {
                     <select
                       className="border px-3 py-1 mt-1 rounded-md"
                       value={statusUpdates[order._id] || ""}
-                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      onChange={(e) =>
+                        handleStatusChange(order._id, e.target.value)
+                      }
                     >
                       <option value="">Select</option>
                       <option value="Received">Received</option>
@@ -153,7 +157,8 @@ function CheckOrders() {
                   <p>{order.shippingAddress?.fullName}</p>
                   <p>{order.shippingAddress?.addressLine}</p>
                   <p>
-                    {order.shippingAddress?.city}, {order.shippingAddress?.state}{" "}
+                    {order.shippingAddress?.city},{" "}
+                    {order.shippingAddress?.state}{" "}
                     {order.shippingAddress?.postalCode}
                   </p>
                   <p> {order.shippingAddress?.phone}</p>
@@ -199,3 +204,4 @@ function CheckOrders() {
 }
 
 export default CheckOrders;
+

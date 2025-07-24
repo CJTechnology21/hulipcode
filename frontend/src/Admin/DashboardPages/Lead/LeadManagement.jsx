@@ -29,6 +29,7 @@ const leadsData = [
   {
     id: "L000565",
     name: "RAVI KUMAR",
+    isHuelip: true,
     budget: "Rs 8,00,000/-",
     contact: "+91-XXXXXXXXXX",
     status: "Pending on Client Decision",
@@ -46,6 +47,7 @@ const leadsData = [
   {
     id: "L000564",
     name: "RISHAB PANT",
+    isHuelip: true,
     budget: "Rs 12,00,000/-",
     contact: "+91-9377747883",
     status: "Requirement Gathered",
@@ -63,6 +65,7 @@ const leadsData = [
   {
     id: "L000563",
     name: "SANIA MIRZ",
+    isHuelip: false,
     budget: "Rs 50,00,000/-",
     contact: "+91-9944773773",
     status: "Assigned",
@@ -80,6 +83,7 @@ const leadsData = [
   {
     id: "L000562",
     name: "RAJ KAPOOR",
+    isHuelip: false,
     budget: "Rs 1,50,00,000/-",
     contact: "+91-XXXXXXXXXX",
     status: "Assigned",
@@ -97,6 +101,7 @@ const leadsData = [
   {
     id: "L000561",
     name: "RAJESH MITTAL",
+    isHuelip: true,
     budget: "Rs 65,00,000/-",
     contact: "+91-7648#48578",
     status: "Not Interested",
@@ -587,9 +592,17 @@ export default function Leads() {
                                 {/* Button moved just below Site Details */}
                                 <div className="mt-14">
                                   <Button
-                                    className="bg-red-700 hover:bg-red-800"
-                                    size="lg"
-                                    onClick={() => navigate("/quotedetails")}
+                                    className="bg-red-700 hover:bg-red-800 text-white"
+                                    variant="custom"
+                                    onClick={() =>
+                                      navigate("/quotedetails", {
+                                        state: {
+                                          qid: lead.id,
+                                          clientName: lead.name,
+                                          isHuelip: lead.isHuelip,
+                                        },
+                                      })
+                                    }
                                   >
                                     See Quote Details
                                   </Button>

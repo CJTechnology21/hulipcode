@@ -80,8 +80,9 @@ function Contract() {
             {/* Bottom Buttons */}
             <div className="flex gap-3 mt-6">
               <Button
-                className="bg-red-700 hover:bg-red-800"
-                size="lg"
+                className="bg-red-700 hover:bg-red-800 text-white"
+                size="md"
+                variant="custom"
                 disabled={!selectedContract}
                 onClick={() => {
                   toast.success("Agreement Signed Successfully");
@@ -92,8 +93,9 @@ function Contract() {
               </Button>
 
               <Button
-                className="bg-red-700 hover:bg-red-800"
-                size="lg"
+                className="bg-red-700 hover:bg-red-800 text-white"
+                size="md"
+                variant="custom"
                 disabled={!selectedContract}
                 onClick={() => navigate("/projects")}
               >
