@@ -1,15 +1,13 @@
 import React from "react";
 import { MdEdit, MdClose } from "react-icons/md";
-
 const formatDate = (date) => {
   if (!date) return "--";
   const d = new Date(date);
   const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0"); // Month is 0-indexed
+  const month = String(d.getMonth() + 1).padStart(2, "0"); // Correct
   const year = d.getFullYear();
   return `${day}-${month}-${year}`;
 };
-
 
 export default function RFQInfoBanner({
   rfqNo = "#12–16",

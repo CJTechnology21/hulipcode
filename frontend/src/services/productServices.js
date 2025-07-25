@@ -42,3 +42,14 @@ export const addFavouriteAPI = (productId) => {
 export const removeFavouriteAPI = (productId) => {
   return axiosInstance.delete(`/api/favourites/${productId}`);
 };
+
+//fetch products by category 
+export const fetchProductsByCategory = async (category) => {
+  try {
+    const res = await axiosInstance.get(`/api/products?category=${encodeURIComponent(category)}`);
+    return res.data || [];
+  } catch (err) {
+    console.error("❌ Failed to fetch products by category:", err.message);
+    return [];
+  }
+};
