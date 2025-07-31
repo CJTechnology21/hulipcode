@@ -87,7 +87,10 @@ import HomeArchitectListings from "./HomeComponents/HomeArchitectListings";
 import HomeArchitectDetails from "./HomeComponents/HomeArchitectDetails";
 import Procurement from "./Admin/components/Procurement/Procurement";
 import AddMaterialsScreen from "./Admin/components/Procurement/AddMaterialsScreen";
-
+import FinanceHome from "./Admin/components/Finance/FinanceHome";
+import Insights from "./Admin/components/Insights/Insights";
+import ProjectsHome from "./Admin/components/projects/ProjectsOverview";
+import ProjectTabs from "./Admin/components/projects/ProjectTabs";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -125,8 +128,8 @@ function App() {
   return (
     <Router>
       {/* <CartSync/> */}
-      {/* <ToastContainer /> */}
-      <ToastContainer
+      <ToastContainer />
+      {/* <ToastContainer
         position="top-center"
         autoClose={2000}
         limit={3}
@@ -136,7 +139,7 @@ function App() {
         closeOnClick
         draggable
         className="custom-toast-container"
-      />
+      /> */}
 
       <SubscriptionVendor />
       <Routes>
@@ -159,9 +162,13 @@ function App() {
         <Route path="/vendormanagement" element={<VendorManagement />} />
         <Route path="/vendormanagementform" element={<VendorManagemenForm />} />
         <Route path="/contract" element={<Contract />} />
+        {/* Insights Routes */}
+        <Route path="/insights" element={<Insights />} />
         {/* project-routes */}
         <Route path="/projects" element={<Projects />} />
         <Route path="/projectform" element={<ProjectForm />} />
+        <Route path="/projectshome" element={<ProjectsHome />} />
+        <Route path="/ptabs/" element={<ProjectTabs />} />
         <Route path="/project/:id" element={<ProjectView />} />
         <Route path="/projectform/:id" element={<ProjectForm />} />
         <Route path="/project/basicdetails" element={<BasicDetails />} />
@@ -179,7 +186,9 @@ function App() {
         <Route path="/quotemanager" element={<QuoteManager />} />
         {/* Procurement Routes */}
         <Route path="/procurement" element={<Procurement />} />
-         <Route path="/addmaterials" element={<AddMaterialsScreen />} />
+        <Route path="/addmaterials" element={<AddMaterialsScreen />} />
+        {/* Finance Routes */}
+        <Route path="/finance" element={<FinanceHome />} />
         {/* product-routes */}
         <Route path="/product" element={<Product />} />
         <Route path="/productform" element={<ProductForm />} />
@@ -215,7 +224,7 @@ function App() {
         <Route path='/favourites' element={<Favourites />} />
         <Route path='/cart' element={<Cart />} />
         <Route path="/product/:id" element={<SingleProductPage />} />
-        < Route path="/addproduct" element={<AddProduct />} />
+        <Route path="/addproduct" element={<AddProduct />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkorders" element={<CheckOrders />} />

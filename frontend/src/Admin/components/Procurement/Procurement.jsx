@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Layout from "../Layout";
 import RfqHome from "./RfqHome";
 import ProcurementContent from "./ProcurementContent";
-
+import PurchaseOrderContent from "./PurchaseOrder";
 function Procurement() {
   const [activeTab, setActiveTab] = useState("RFQ");
 
@@ -22,6 +22,16 @@ function Procurement() {
         </button>
         <button
           className={`px-4 py-2 ${
+            activeTab === "Purchase Order"
+              ? "text-red-600 border-b-2 border-red-600"
+              : "text-gray-600 hover:text-red-600 border-b-2 border-transparent hover:border-blue-300"
+          } transition`}
+          onClick={() => setActiveTab("Purchase Order")}
+        >
+          Purchase Order
+        </button>
+        <button
+          className={`px-4 py-2 ${
             activeTab === "Procurement"
               ? "text-red-600 border-b-2 border-red-600"
               : "text-gray-600 hover:text-red-600 border-b-2 border-transparent hover:border-blue-300"
@@ -31,15 +41,12 @@ function Procurement() {
           Procurement
         </button>
       </div>
-
       {/* Tab Content */}
       <div className="p-4">
-        {activeTab === "RFQ" ? (
-          <div><RfqHome/></div>
-        ) : (
-          <div><ProcurementContent/></div>
-        )}
-      </div>
+        {activeTab === "RFQ" && <RfqHome />}
+        {activeTab === "Purchase Order" && <PurchaseOrderContent />}
+        {activeTab === "Procurement" && <ProcurementContent />}
+      </div>{" "}
     </Layout>
   );
 }
