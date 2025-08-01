@@ -12,9 +12,14 @@ import ProjectMaterials from "./ProjectMaterials";
 import ProjectSubcon from "./ProjectSubcon";
 import ProjectFiles from "./ProjectFiles";
 import ProjectEquipment from "./ProjectEquipment";
+import ProjectSiteMeasurements from "./ProjectSiteMeasurements";
+import ProjectsDesign from "./ProjectsDesign";
+import ProjectsDashboard from "./ProjectsDashboard";
 
 const tabs = [
   "Overview",
+  "Dashboard",
+  "Site Measurements",
   "Design",
   "Estimate",
   "Party",
@@ -31,7 +36,6 @@ const tabs = [
 export default function ProjectTabs() {
   const location = useLocation();
   const projectName = location.state?.projectName || "Unnamed Project";
-
   const [activeTab, setActiveTab] = useState("Overview");
   const [loading, setLoading] = useState(false);
   const [firstLoad, setFirstLoad] = useState(true);
@@ -58,6 +62,12 @@ export default function ProjectTabs() {
     switch (activeTab) {
       case "Overview":
         return <ProjectsOverview />;
+      case "Dashboard":
+        return <ProjectsDashboard />;
+      case "Site Measurements":
+        return <ProjectSiteMeasurements />;
+      case "Design":
+        return <ProjectsDesign />;
       case "Estimate":
         return <ProjectEstimate />;
       case "Party":

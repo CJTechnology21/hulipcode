@@ -43,9 +43,7 @@ const SideBar = () => {
       setCollapsed((prev) => !prev); // Toggle collapse
     } else {
       setCollapsed(false); // Expand for new path
-      setTimeout(() => {
-        navigate(path);
-      }, 100); // Optional delay for smooth transition
+      navigate(path); // Navigate immediately without glitch
     }
   };
 
@@ -56,7 +54,8 @@ const SideBar = () => {
       <li key={name}>
         <button
           onClick={() => handleItemClick(path)}
-          className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-300
+          className={`w-full flex items-center px-4 py-3 rounded-lg 
+            transition-colors duration-150
             ${collapsed ? "justify-center" : "justify-start"}
             ${
               isActive
@@ -124,44 +123,46 @@ export default SideBar;
 //   FaFileInvoiceDollar,
 //   FaIdBadge,
 //   FaGift,
+//   FaMoneyBillWave,
 // } from "react-icons/fa";
 // import { LiaClipboardListSolid } from "react-icons/lia";
 // import { MdSupportAgent } from "react-icons/md";
 // import { IoIosSettings } from "react-icons/io";
 // import logo from "../images/heulip.png";
 
+// // Menu Configs
 // const topMenuItems = [
 //   { name: "Insights", icon: FaChartBar, path: "/insights" },
 //   { name: "Projects", icon: FaFolder, path: "/projects" },
 //   { name: "Leads", icon: FaUserFriends, path: "/leadmanagement" },
 //   { name: "Quotation", icon: FaFileInvoiceDollar, path: "/quote" },
-//   { name: "Procurement", icon: LiaClipboardListSolid, path: "/Procurement" },
-//    { name: "Finance", icon: FaFileInvoiceDollar, path: "/quote" },
+//   { name: "Procurement", icon: LiaClipboardListSolid, path: "/procurement" },
+//   { name: "Finance", icon: FaMoneyBillWave, path: "/finance" },
 //   { name: "Vendors", icon: FaIdBadge, path: "/vendors" },
 //   { name: "Settings", icon: IoIosSettings, path: "/settings" },
-
 // ];
 
 // const bottomMenuItems = [
-//   { name: "Help Center", icon: FaGift, path: "/helpcennter" },
+//   { name: "Help Center", icon: FaGift, path: "/helpcenter" },
 //   { name: "Support", icon: MdSupportAgent, path: "/support" },
 // ];
 
 // const SideBar = () => {
 //   const location = useLocation();
 //   const navigate = useNavigate();
-
-//   // 🔹 Collapse by default
 //   const [collapsed, setCollapsed] = useState(true);
 
 //   const handleItemClick = (path) => {
-//     // 🔹 Expand sidebar on click
-//     setCollapsed(false);
+//     const isSamePath = location.pathname === path;
 
-//     // 🔹 Delay navigation for smooth UI transition
-//     setTimeout(() => {
-//       navigate(path);
-//     }, 100);
+//     if (isSamePath) {
+//       setCollapsed((prev) => !prev); // Toggle collapse
+//     } else {
+//       setCollapsed(false); // Expand for new path
+//       setTimeout(() => {
+//         navigate(path);
+//       }, 100); // Optional delay for smooth transition
+//     }
 //   };
 
 //   const renderMenuItem = ({ name, icon: Icon, path }) => {
@@ -194,7 +195,7 @@ export default SideBar;
 //         collapsed ? "w-20 p-2" : "w-64 p-4"
 //       } bg-white h-screen shadow-md transition-all duration-300 flex flex-col justify-between`}
 //     >
-//       {/* Logo + HUELIP PROJECTS */}
+//       {/* Logo Section */}
 //       <div>
 //         <div className="flex items-center justify-center mb-6">
 //           {!collapsed ? (
@@ -204,8 +205,6 @@ export default SideBar;
 //                 alt="Logo"
 //                 className="h-14 w-14 rounded-full object-cover shadow-md"
 //               />
-
-//               {/* <img src={logo} alt="Logo" className="h-10 w-10 rounded-full" /> */}
 //               <div>
 //                 <h1 className="font-bold text-lg leading-none">HUELIP</h1>
 //                 <p className="text-xs tracking-wide font-semibold">PROJECTS</p>
@@ -220,11 +219,11 @@ export default SideBar;
 //           )}
 //         </div>
 
-//         {/* Top Menu */}
+//         {/* Top Menu Items */}
 //         <ul className="space-y-2">{topMenuItems.map(renderMenuItem)}</ul>
 //       </div>
 
-//       {/* Bottom Menu */}
+//       {/* Bottom Menu Items */}
 //       <ul className="space-y-2 mt-4">{bottomMenuItems.map(renderMenuItem)}</ul>
 //     </div>
 //   );
