@@ -34,7 +34,9 @@ function TwoDLayouts() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [localData, setLocalData] = useState(designData); // ✅ store data locally
+  const [localData, setLocalData] = useState(designData);
+  const [editRowId, setEditRowId] = useState(null);
+  const [editValues, setEditValues] = useState({});
 
   const handleChange = (field) => (e) =>
     setFilters((prev) => ({ ...prev, [field]: e.target.value }));
@@ -60,6 +62,32 @@ function TwoDLayouts() {
 
   const handleAddFile = (newItem) => {
     setLocalData((prev) => [...prev, newItem]);
+  };
+
+  const handleEditClick = (item) => {
+    setEditRowId(item.sno);
+    setEditValues({ ...item });
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    setLocalData((prev) =>
+      prev.map((item) =>
+        item.sno === editRowId ? { ...editValues, sno: item.sno } : item
+      )
+    );
+    setEditRowId(null);
+    setEditValues({});
+  };
+
+  const handleDelete = (sno) => {
+    setLocalData((prev) => prev.filter((item) => item.sno !== sno));
+    if (editRowId === sno) {
+      setEditRowId(null);
+    }
   };
 
   return (
@@ -129,11 +157,31 @@ function TwoDLayouts() {
         </thead>
 
         <tbody>
-          {filteredData.map((item, i) => (
-            <tr key={i} className="border-b hover:bg-gray-50 align-top">
+          {filteredData.map((item) => (
+            <tr key={item.sno} className="border-b hover:bg-gray-50 align-top">
               <td className="px-4 py-3">{item.sno}</td>
-              <td className="px-4 py-3">{item.name}</td>
-              <td className="px-4 py-3">{item.area}</td>
+              <td className="px-4 py-3">
+                {editRowId === item.sno ? (
+                  <input
+                    value={editValues.name}
+                    onChange={(e) => handleEditChange("name", e.target.value)}
+                    className="border px-2 py-1 rounded w-full"
+                  />
+                ) : (
+                  item.name
+                )}
+              </td>
+              <td className="px-4 py-3">
+                {editRowId === item.sno ? (
+                  <input
+                    value={editValues.area}
+                    onChange={(e) => handleEditChange("area", e.target.value)}
+                    className="border px-2 py-1 rounded w-full"
+                  />
+                ) : (
+                  item.area
+                )}
+              </td>
               <td className="px-4 py-3">
                 <div className="flex gap-2 flex-wrap">
                   {item.fileTypes.map((f, idx) => (
@@ -150,7 +198,7 @@ function TwoDLayouts() {
                 <div className="flex gap-1 flex-wrap">
                   {item.versions.map((v, idx) => (
                     <span
-                      key={v.label || v} // support both object or string
+                      key={v.label || v}
                       className="bg-red-700 text-white px-2 py-0.5 text-xs rounded-full"
                       style={{ opacity: 1 - idx * 0.2 }}
                     >
@@ -170,21 +218,47 @@ function TwoDLayouts() {
               <td className="px-4 py-3">{item.uploaded}</td>
               <td className="px-4 py-3">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    statusColors[item.status]
-                  }`}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[item.status]}`}
                 >
                   {item.status}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <div className="flex items-center gap-3 text-xl text-gray-700">
+                <div className="flex items-center gap-2 text-xl text-gray-700">
                   <FiMessageSquare />
                   <FiEye
                     onClick={() => openModal(item)}
                     className="cursor-pointer hover:text-black"
                   />
-                  <BsThreeDotsVertical />
+                  {editRowId === item.sno ? (
+                    <>
+                      <button
+                        onClick={handleSave}
+                        className="text-green-600 text-xs"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditRowId(null)}
+                        className="text-yellow-600 text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <BsThreeDotsVertical
+                        className="cursor-pointer"
+                        onClick={() => handleEditClick(item)}
+                      />
+                      <button
+                        onClick={() => handleDelete(item.sno)}
+                        className="text-red-600 text-xs"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </td>
             </tr>
@@ -192,7 +266,6 @@ function TwoDLayouts() {
         </tbody>
       </table>
 
-      {/* Bottom Buttons */}
       <div className="mt-4 flex justify-end gap-4">
         <Button
           variant="custom"
@@ -202,7 +275,7 @@ function TwoDLayouts() {
         </Button>
         <Button
           variant="custom"
-          onClick={() => setShowAddModal(true)} // ✅ ensures modal opens
+          onClick={() => setShowAddModal(true)}
           className="bg-red-700 text-white px-4 py-1 rounded text-sm font-bold"
         >
           + Add File
@@ -227,7 +300,6 @@ function TwoDLayouts() {
 
 export default TwoDLayouts;
 
-// // components/TwoDLayouts.jsx
 // import React, { useState } from "react";
 // import { FiEye, FiMessageSquare } from "react-icons/fi";
 // import { BsThreeDotsVertical } from "react-icons/bs";
@@ -238,6 +310,7 @@ export default TwoDLayouts;
 // import DesignPreviewModal from "./DesignPreviewModal";
 // import designData from "./DesignData";
 // import AddDesignModal from "./AddDesignModal";
+
 // const statusColors = {
 //   Approved: "bg-green-200 text-green-700",
 //   Rejected: "bg-red-200 text-red-700",
@@ -250,7 +323,7 @@ export default TwoDLayouts;
 // const versions = ["V1", "V2", "V3", "V4"];
 
 // function TwoDLayouts() {
-//   const [filters, setFilters] = React.useState({
+//   const [filters, setFilters] = useState({
 //     name: "",
 //     area: "",
 //     type: "",
@@ -260,10 +333,15 @@ export default TwoDLayouts;
 //     status: "",
 //   });
 
+//   const [selectedFile, setSelectedFile] = useState(null);
+//   const [modalOpen, setModalOpen] = useState(false);
+//   const [showAddModal, setShowAddModal] = useState(false);
+//   const [localData, setLocalData] = useState(designData); // ✅ store data locally
+
 //   const handleChange = (field) => (e) =>
 //     setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
-//   const filteredData = designData.filter((item) => {
+//   const filteredData = localData.filter((item) => {
 //     const match = (value, filter) =>
 //       value.toLowerCase().includes(filter.toLowerCase());
 //     return (
@@ -276,15 +354,12 @@ export default TwoDLayouts;
 //       (!filters.status || item.status === filters.status)
 //     );
 //   });
-//   const [selectedFile, setSelectedFile] = useState(null);
-//   const [modalOpen, setModalOpen] = useState(false);
-//   const [showAddModal, setShowAddModal] = useState(false);
-//   const [localData, setLocalData] = useState(designData);
 
 //   const openModal = (file) => {
 //     setSelectedFile(file);
 //     setModalOpen(true);
 //   };
+
 //   const handleAddFile = (newItem) => {
 //     setLocalData((prev) => [...prev, newItem]);
 //   };
@@ -377,11 +452,11 @@ export default TwoDLayouts;
 //                 <div className="flex gap-1 flex-wrap">
 //                   {item.versions.map((v, idx) => (
 //                     <span
-//                       key={v.label}
+//                       key={v.label || v} // support both object or string
 //                       className="bg-red-700 text-white px-2 py-0.5 text-xs rounded-full"
 //                       style={{ opacity: 1 - idx * 0.2 }}
 //                     >
-//                       {v.label}
+//                       {v.label || v}
 //                     </span>
 //                   ))}
 //                 </div>
@@ -411,8 +486,6 @@ export default TwoDLayouts;
 //                     onClick={() => openModal(item)}
 //                     className="cursor-pointer hover:text-black"
 //                   />
-
-//                   {/* <FiEye /> */}
 //                   <BsThreeDotsVertical />
 //                 </div>
 //               </td>
@@ -431,18 +504,20 @@ export default TwoDLayouts;
 //         </Button>
 //         <Button
 //           variant="custom"
-//           onClick={() => setShowAddModal(true)}
+//           onClick={() => setShowAddModal(true)} // ✅ ensures modal opens
 //           className="bg-red-700 text-white px-4 py-1 rounded text-sm font-bold"
 //         >
 //           + Add File
 //         </Button>
 //       </div>
+
 //       <DesignPreviewModal
 //         isOpen={modalOpen}
 //         onClose={() => setModalOpen(false)}
 //         data={selectedFile}
 //         type="2d"
 //       />
+
 //       <AddDesignModal
 //         isOpen={showAddModal}
 //         onClose={() => setShowAddModal(false)}
