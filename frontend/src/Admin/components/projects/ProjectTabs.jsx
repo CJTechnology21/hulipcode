@@ -21,10 +21,9 @@ const tabs = [
   "Dashboard",
   "Site Measurements",
   "Design",
-  "Estimate",
+  "Quotation",
   "Party",
   "Transaction",
-  "To Do",
   "Task",
   "Attendance",
   "Material",
@@ -68,13 +67,13 @@ export default function ProjectTabs() {
         return <ProjectSiteMeasurements />;
       case "Design":
         return <ProjectsDesign />;
-      case "Estimate":
+      case "Quotation":
         return <ProjectEstimate />;
       case "Party":
         return <ProjectParty />;
       case "Transaction":
         return <ProjectTransaction />;
-      case "To Do":
+      case "Task":
         return <ProjectTodo />;
       case "Attendance":
         return <ProjectAttendance />;

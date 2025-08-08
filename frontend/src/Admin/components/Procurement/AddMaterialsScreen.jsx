@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Layout from "../Layout";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -13,10 +13,14 @@ import { FaTrash } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
 import SuppliersModal from "./SuppliersModal";
 import AddPartyModal from "./AddPartyModal";
+import { generateRFQText } from "../../../utils/generateRFQText";
+import { saveRFQToLocalStorage } from "../../../utils/storageHelpers";
+import { sendRFQEmail } from "../../../utils/emailHelpers";
 
-export default function AddMaterialsScreen() {
-  const location = useLocation();
+function AddMaterialsScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const { project, date, taxType, deliveryLocation } = location.state || {};
 
   const [biddingStartDate, setBiddingStartDate] = useState(null);
@@ -27,9 +31,14 @@ export default function AddMaterialsScreen() {
   const [terms, setTerms] = useState("");
   const [supplier, setSupplier] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [isAddPartyModalOpen, setIsAddPartyModalOpen] = useState(false);
+  const [materialGroups, setMaterialGroups] = useState([]);
+
+  const selectedMaterials = useMemo(() => {
+    const group = materialGroups.find((g) => g.project === project);
+    return group?.items || [];
+  }, [materialGroups, project]);
 
   const openModal = (field) => {
     setModalField(field);
@@ -62,9 +71,17 @@ export default function AddMaterialsScreen() {
     if (modalField === "bidding_end_date") setBiddingEndDate(tempDate);
     if (modalField === "delivery_date") {
       setDeliveryDate(tempDate);
-      setSelectedMaterials((prev) =>
-        prev.map((mat) => ({ ...mat, deliveryDate: tempDate }))
-      );
+      const updated = materialGroups.map((group) => {
+        if (group.project === project) {
+          const updatedItems = group.items.map((item) => ({
+            ...item,
+            deliveryDate: tempDate,
+          }));
+          return { ...group, items: updatedItems };
+        }
+        return group;
+      });
+      setMaterialGroups(updated);
     }
 
     closeModal();
@@ -91,7 +108,9 @@ export default function AddMaterialsScreen() {
       status: "draft",
     };
 
-    const existingDrafts = JSON.parse(localStorage.getItem("rfqDrafts") || "[]");
+    const existingDrafts = JSON.parse(
+      localStorage.getItem("rfqDrafts") || "[]"
+    );
     existingDrafts.push(draftData);
     localStorage.setItem("rfqDrafts", JSON.stringify(existingDrafts));
 
@@ -114,7 +133,6 @@ export default function AddMaterialsScreen() {
           deliveryLocation={deliveryLocation}
         />
 
-        {/* Materials Table */}
         <div className="bg-white border border-gray-300 rounded-lg shadow-sm">
           <div className="grid grid-cols-5 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
             <span>S.No.</span>
@@ -143,9 +161,18 @@ export default function AddMaterialsScreen() {
                       className="border border-gray-300 rounded px-2 py-1 text-sm w-24"
                       value={material.quantity}
                       onChange={(e) => {
-                        const updated = [...selectedMaterials];
-                        updated[idx].quantity = e.target.value;
-                        setSelectedMaterials(updated);
+                        const updated = materialGroups.map((group) => {
+                          if (group.project === project) {
+                            const updatedItems = group.items.map((item, i) =>
+                              i === idx
+                                ? { ...item, quantity: e.target.value }
+                                : item
+                            );
+                            return { ...group, items: updatedItems };
+                          }
+                          return group;
+                        });
+                        setMaterialGroups(updated);
                       }}
                     />
                     <span className="text-gray-500 text-xs">
@@ -160,20 +187,34 @@ export default function AddMaterialsScreen() {
                           : null
                       }
                       onChange={(date) => {
-                        const updated = [...selectedMaterials];
-                        updated[idx].deliveryDate = date;
-                        setSelectedMaterials(updated);
+                        const updated = materialGroups.map((group) => {
+                          if (group.project === project) {
+                            const updatedItems = group.items.map((item, i) =>
+                              i === idx ? { ...item, deliveryDate: date } : item
+                            );
+                            return { ...group, items: updatedItems };
+                          }
+                          return group;
+                        });
+                        setMaterialGroups(updated);
                       }}
                       dateFormat="dd/MM/yyyy"
                       placeholderText="dd-MM-yyyy"
                       className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                     />
                     <Button
-                      onClick={() =>
-                        setSelectedMaterials((prev) =>
-                          prev.filter((_, i) => i !== idx)
-                        )
-                      }
+                      onClick={() => {
+                        const updated = materialGroups.map((group) => {
+                          if (group.project === project) {
+                            const updatedItems = group.items.filter(
+                              (_, i) => i !== idx
+                            );
+                            return { ...group, items: updatedItems };
+                          }
+                          return group;
+                        });
+                        setMaterialGroups(updated);
+                      }}
                       variant="outline"
                       className="text-red-500 hover:text-red-700"
                     >
@@ -216,11 +257,10 @@ export default function AddMaterialsScreen() {
         <MaterialLibraryDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
-          selectedMaterials={selectedMaterials}
-          setSelectedMaterials={setSelectedMaterials}
+          selectedProject={project}
+          setMaterialGroups={setMaterialGroups}
         />
 
-        {/* Terms and Supplier Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
             <label className="text-sm font-semibold text-gray-700 mb-1 block">
@@ -267,7 +307,6 @@ export default function AddMaterialsScreen() {
                 setIsAddPartyModalOpen(true);
               }}
             />
-
             <AddPartyModal
               isOpen={isAddPartyModalOpen}
               onClose={() => setIsAddPartyModalOpen(false)}
@@ -287,12 +326,60 @@ export default function AddMaterialsScreen() {
             color="red"
             variant="custom"
             className="bg-red-600 hover:bg-red-700 text-white"
+            onClick={async () => {
+              if (!supplier || !supplier.email) {
+                toast.error("Please select a supplier with a valid email.");
+                return;
+              }
+
+              const rfqText = generateRFQText({
+                project,
+                deliveryLocation,
+                biddingStartDate,
+                biddingEndDate,
+                deliveryDate,
+                selectedMaterials,
+                terms,
+              });
+
+              const rfqData = {
+                project,
+                deliveryLocation,
+                biddingStartDate,
+                biddingEndDate,
+                deliveryDate,
+                selectedMaterials,
+                terms,
+              };
+
+              try {
+                toast.loading("Sending email...");
+                await sendRFQEmail({
+                  to_email: supplier.email,
+                  project,
+                  deliveryLocation,
+                  biddingStartDate,
+                  biddingEndDate,
+                  deliveryDate,
+                  selectedMaterials,
+                  terms,
+                });
+
+                toast.dismiss();
+                toast.success("RFQ sent successfully!");
+
+                saveRFQToLocalStorage(rfqData, "published");
+                toast.success("RFQ saved as published!");
+              } catch (error) {
+                toast.dismiss();
+                toast.error("Failed to send RFQ.");
+              }
+            }}
           >
             Save & Publish
           </Button>
         </div>
 
-        {/* Date Picker Modal */}
         {modalField && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg relative">
@@ -314,8 +401,9 @@ export default function AddMaterialsScreen() {
               <Button
                 fullWidth
                 color="red"
-                className="mt-4"
+                className="mt-4 bg-red-500 hover:bg-red-600 text-white"
                 onClick={handleSaveDate}
+                variant="custom"
               >
                 Save
               </Button>
@@ -327,14 +415,16 @@ export default function AddMaterialsScreen() {
   );
 }
 
-// import React, { useState } from "react";
+export default AddMaterialsScreen;
+
+// import React, { useState, useEffect, useMemo } from "react";
 // import Layout from "../Layout";
 // import DatePicker from "react-datepicker";
 // import "react-datepicker/dist/react-datepicker.css";
 // import { MdClose } from "react-icons/md";
 // import { toast, ToastContainer } from "react-toastify";
 // import "react-toastify/dist/ReactToastify.css";
-// import { useLocation } from "react-router-dom";
+// import { useLocation, useNavigate } from "react-router-dom";
 // import RFQInfoBanner from "./RFQBanner";
 // import MaterialLibraryDrawer from "./MaterialLibraryDrawer";
 // import Button from "../../../components/Button";
@@ -342,9 +432,13 @@ export default function AddMaterialsScreen() {
 // import { FiSearch } from "react-icons/fi";
 // import SuppliersModal from "./SuppliersModal";
 // import AddPartyModal from "./AddPartyModal";
-
-// export default function AddMaterialsScreen() {
+// import { generateRFQText } from "../../../utils/generateRFQText";
+// import { saveRFQToLocalStorage } from "../../../utils/storageHelpers";
+// import { sendRFQEmail } from "../../../utils/emailHelpers";
+// function AddMaterialsScreen() {
+//   const navigate = useNavigate();
 //   const location = useLocation();
+
 //   const { project, date, taxType, deliveryLocation } = location.state || {};
 
 //   const [biddingStartDate, setBiddingStartDate] = useState(null);
@@ -355,9 +449,17 @@ export default function AddMaterialsScreen() {
 //   const [terms, setTerms] = useState("");
 //   const [supplier, setSupplier] = useState(null);
 //   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-//   const [selectedMaterials, setSelectedMaterials] = useState([]);
 //   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
 //   const [isAddPartyModalOpen, setIsAddPartyModalOpen] = useState(false);
+
+//   // ✅ Main state to track grouped materials
+//   const [materialGroups, setMaterialGroups] = useState([]);
+
+//   // ✅ Get current project's materials
+//   const selectedMaterials = useMemo(() => {
+//     const group = materialGroups.find((g) => g.project === project);
+//     return group?.items || [];
+//   }, [materialGroups, project]);
 
 //   const openModal = (field) => {
 //     setModalField(field);
@@ -390,12 +492,51 @@ export default function AddMaterialsScreen() {
 //     if (modalField === "bidding_end_date") setBiddingEndDate(tempDate);
 //     if (modalField === "delivery_date") {
 //       setDeliveryDate(tempDate);
-//       setSelectedMaterials((prev) =>
-//         prev.map((mat) => ({ ...mat, deliveryDate: tempDate }))
-//       );
+//       const updated = materialGroups.map((group) => {
+//         if (group.project === project) {
+//           const updatedItems = group.items.map((item) => ({
+//             ...item,
+//             deliveryDate: tempDate,
+//           }));
+//           return { ...group, items: updatedItems };
+//         }
+//         return group;
+//       });
+//       setMaterialGroups(updated);
 //     }
 
 //     closeModal();
+//   };
+
+//   const handleSaveDraft = () => {
+//     if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+//       toast.error("Please fill all fields before saving the draft.");
+//       return;
+//     }
+
+//     const draftData = {
+//       project,
+//       date,
+//       taxType,
+//       deliveryLocation,
+//       biddingStartDate,
+//       biddingEndDate,
+//       deliveryDate,
+//       materials: selectedMaterials,
+//       terms,
+//       supplier,
+//       createdAt: new Date().toISOString(),
+//       status: "draft",
+//     };
+
+//     const existingDrafts = JSON.parse(
+//       localStorage.getItem("rfqDrafts") || "[]"
+//     );
+//     existingDrafts.push(draftData);
+//     localStorage.setItem("rfqDrafts", JSON.stringify(existingDrafts));
+
+//     toast.success("Draft saved successfully!");
+//     navigate("/procurement");
 //   };
 
 //   return (
@@ -442,9 +583,18 @@ export default function AddMaterialsScreen() {
 //                       className="border border-gray-300 rounded px-2 py-1 text-sm w-24"
 //                       value={material.quantity}
 //                       onChange={(e) => {
-//                         const updated = [...selectedMaterials];
-//                         updated[idx].quantity = e.target.value;
-//                         setSelectedMaterials(updated);
+//                         const updated = materialGroups.map((group) => {
+//                           if (group.project === project) {
+//                             const updatedItems = group.items.map((item, i) =>
+//                               i === idx
+//                                 ? { ...item, quantity: e.target.value }
+//                                 : item
+//                             );
+//                             return { ...group, items: updatedItems };
+//                           }
+//                           return group;
+//                         });
+//                         setMaterialGroups(updated);
 //                       }}
 //                     />
 //                     <span className="text-gray-500 text-xs">
@@ -459,20 +609,34 @@ export default function AddMaterialsScreen() {
 //                           : null
 //                       }
 //                       onChange={(date) => {
-//                         const updated = [...selectedMaterials];
-//                         updated[idx].deliveryDate = date;
-//                         setSelectedMaterials(updated);
+//                         const updated = materialGroups.map((group) => {
+//                           if (group.project === project) {
+//                             const updatedItems = group.items.map((item, i) =>
+//                               i === idx ? { ...item, deliveryDate: date } : item
+//                             );
+//                             return { ...group, items: updatedItems };
+//                           }
+//                           return group;
+//                         });
+//                         setMaterialGroups(updated);
 //                       }}
 //                       dateFormat="dd/MM/yyyy"
 //                       placeholderText="dd-MM-yyyy"
 //                       className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
 //                     />
 //                     <Button
-//                       onClick={() =>
-//                         setSelectedMaterials((prev) =>
-//                           prev.filter((_, i) => i !== idx)
-//                         )
-//                       }
+//                       onClick={() => {
+//                         const updated = materialGroups.map((group) => {
+//                           if (group.project === project) {
+//                             const updatedItems = group.items.filter(
+//                               (_, i) => i !== idx
+//                             );
+//                             return { ...group, items: updatedItems };
+//                           }
+//                           return group;
+//                         });
+//                         setMaterialGroups(updated);
+//                       }}
 //                       variant="outline"
 //                       className="text-red-500 hover:text-red-700"
 //                     >
@@ -515,11 +679,11 @@ export default function AddMaterialsScreen() {
 //         <MaterialLibraryDrawer
 //           isOpen={isDrawerOpen}
 //           onClose={() => setIsDrawerOpen(false)}
-//           selectedMaterials={selectedMaterials}
-//           setSelectedMaterials={setSelectedMaterials}
+//           selectedProject={project}
+//           setMaterialGroups={setMaterialGroups}
 //         />
 
-//         {/* Terms and Search Supplier */}
+//         {/* Terms and Supplier Section */}
 //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //           <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
 //             <label className="text-sm font-semibold text-gray-700 mb-1 block">
@@ -566,7 +730,6 @@ export default function AddMaterialsScreen() {
 //                 setIsAddPartyModalOpen(true);
 //               }}
 //             />
-
 //             <AddPartyModal
 //               isOpen={isAddPartyModalOpen}
 //               onClose={() => setIsAddPartyModalOpen(false)}
@@ -579,18 +742,62 @@ export default function AddMaterialsScreen() {
 //         </div>
 
 //         <div className="flex justify-end gap-4">
-//           <Button color="red" variant="outlined">
+//           <Button color="red" variant="outlined" onClick={handleSaveDraft}>
 //             Save Draft
 //           </Button>
 //           <Button
 //             color="red"
 //             variant="custom"
 //             className="bg-red-600 hover:bg-red-700 text-white"
+//             onClick={async () => {
+//               const rfqText = generateRFQText({
+//                 project,
+//                 deliveryLocation,
+//                 biddingStartDate,
+//                 biddingEndDate,
+//                 deliveryDate,
+//                 selectedMaterials,
+//                 terms,
+//               });
+
+//               const rfqData = {
+//                 project,
+//                 deliveryLocation,
+//                 biddingStartDate,
+//                 biddingEndDate,
+//                 deliveryDate,
+//                 selectedMaterials,
+//                 terms,
+//               };
+
+//               try {
+//                 toast.loading("Sending email...");
+//                 await sendRFQEmail({
+//                   to_email: supplier?.email || "",
+//                   project,
+//                   rfqText,
+//                 });
+//                 console.log("Sending Email With:", {
+//                   to_email: supplier?.email,
+//                   project,
+//                   rfqText,
+//                 });
+//                 toast.dismiss();
+//                 toast.success("RFQ sent successfully!");
+
+//                 saveRFQToLocalStorage(rfqData, "published");
+//                 toast.success("RFQ saved as published!");
+//               } catch (error) {
+//                 toast.dismiss();
+//                 toast.error("Failed to send RFQ.");
+//               }
+//             }}
 //           >
 //             Save & Publish
 //           </Button>
 //         </div>
 
+//         {/* Date Picker Modal */}
 //         {modalField && (
 //           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
 //             <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg relative">
@@ -612,8 +819,9 @@ export default function AddMaterialsScreen() {
 //               <Button
 //                 fullWidth
 //                 color="red"
-//                 className="mt-4"
+//                 className="mt-4 bg-red-500 hover:bg-red-600 text-white"
 //                 onClick={handleSaveDate}
+//                 variant="custom"
 //               >
 //                 Save
 //               </Button>
@@ -624,3 +832,5 @@ export default function AddMaterialsScreen() {
 //     </Layout>
 //   );
 // }
+
+// export default AddMaterialsScreen;
