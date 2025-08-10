@@ -44,11 +44,11 @@ const carouselPosts = [
     date: "June 10, 2025",
     author: "Alex Smith",
     title: "Top 10 Healthy Snacks for Busy People",
-    image: "https://your-image-4.jpg",
+    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1470",
     content: [
       {
         heading: "Nuts & Seeds",
-        text: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1470"
+        text: "Organize and clear emails daily to reduce digital stress."
       }
     ]
   }

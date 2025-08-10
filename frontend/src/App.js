@@ -59,7 +59,6 @@ import SingleProductPage from "./client/components/SingleProductPage";
 import UserProfile from "./client/components/UserProfile";
 import Favourites from "./client/components/Favourites";
 import Cart from "./client/components/Cart";
-import Blog from './client/Blog'
 import CartScreen from "./client/components/CartScreen";
 import ProjectView from "./Admin/components/projects/ProjectView";
 import CategoryPage from "./client/components/CategoryPage";
@@ -92,7 +91,12 @@ import Insights from "./Admin/components/Insights/Insights";
 import ProjectsHome from "./Admin/components/projects/ProjectsOverview";
 import ProjectTabs from "./Admin/components/projects/ProjectTabs";
 import VendorHome from "./Admin/components/vendor/VendorHome";
+// BlogRoutes
+import Blog from './client/Blog'
 import CarouselDetail from "./client/components/BlogComponents/CarouselDetail";
+import PostStyleOne from "./client/components/BlogComponents/PostStyleOne";
+import PostStyleTwo from "./client/components/BlogComponents/PostStyleTwo";
+import CategoryOne from "./client/components/BlogComponents/CategoryOne";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -116,12 +120,10 @@ function App() {
 
       const { title, body } = notification;
 
-      // Show browser notification
+
       if (Notification.permission === 'granted') {
         new Notification(title, { body });
       }
-
-      // Show toast
       toast.info(`${title}: ${body}`);
 
     });
@@ -222,8 +224,6 @@ function App() {
         <Route path="/shop" element={<Shop />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/blog" element={<Blog />} />
-         <Route path="/blog/carousel/:id" element={<CarouselDetail />} />
         <Route path="/cartscreen" element={<CartScreen />} />
         <Route path="/userProfile" element={<UserProfile />} />
         <Route path='/favourites' element={<Favourites />} />
@@ -238,6 +238,15 @@ function App() {
           element={<SubcategoryPage />}
         />
         <Route path="/inspiration/:category" element={<InspirationDetail />} />
+
+
+        {/* BlogRoutes */}
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/carousel/:id" element={<CarouselDetail />} />
+        <Route path="/poststyleone" element={<PostStyleOne />} />
+        <Route path="/poststyletwo" element={<PostStyleTwo />} />
+        <Route path="/categoryone" element={<CategoryOne />} />
+
       </Routes>
     </Router>
   );

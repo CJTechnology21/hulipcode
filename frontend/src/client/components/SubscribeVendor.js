@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
@@ -39,7 +39,7 @@ const SubscribeVendor = () => {
       });
 
       const token = localStorage.getItem('crm_token');
-      // console.log('📦 Using token:', token);
+      
 
       await axios.post('/api/subscribe', { subscription }, {
         headers: { Authorization: `Bearer ${token}` },
@@ -61,7 +61,7 @@ const SubscribeVendor = () => {
           🔔 Enable Notifications
         </button>
       )} */}
-      {subscribed && <p className="text-green-500">✅ Subscribed for notifications</p>}
+      {subscribed && <p className="text-green-500">✅ Subscribed for notifications {registerPush}</p>}
     </div>
   );
 };

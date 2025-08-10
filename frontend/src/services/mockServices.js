@@ -38,10 +38,10 @@ const mockFavourites = [
 ];
 
 // Mock addresses data
-const mockAddresses = [
-  { id: 1, label: "Home", details: "123 Main Street, City, State, 12345" },
-  { id: 2, label: "Work", details: "456 Office Park, City, State, 67890" },
-];
+// const mockAddresses = [
+//   { id: 1, label: "Home", details: "123 Main Street, City, State, 12345" },
+//   { id: 2, label: "Work", details: "456 Office Park, City, State, 67890" },
+// ];
 
 // Mock API calls (returning promises to simulate async)
 
