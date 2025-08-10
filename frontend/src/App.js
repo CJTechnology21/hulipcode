@@ -91,6 +91,7 @@ import FinanceHome from "./Admin/components/Finance/FinanceHome";
 import Insights from "./Admin/components/Insights/Insights";
 import ProjectsHome from "./Admin/components/projects/ProjectsOverview";
 import ProjectTabs from "./Admin/components/projects/ProjectTabs";
+import VendorHome from "./Admin/components/vendor/VendorHome";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -162,6 +163,8 @@ function App() {
         <Route path="/vendormanagement" element={<VendorManagement />} />
         <Route path="/vendormanagementform" element={<VendorManagemenForm />} />
         <Route path="/contract" element={<Contract />} />
+        {/* vendor */}
+        <Route path="/vendors" element={<VendorHome />} />
         {/* Insights Routes */}
         <Route path="/insights" element={<Insights />} />
         {/* project-routes */}

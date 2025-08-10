@@ -12,7 +12,7 @@ import { FaApple } from "react-icons/fa";
 import { useGoogleLogin } from "@react-oauth/google";
 import { requestFirebaseNotificationPermission } from "../../services/firebase";
 import { storeVendorToken } from "../../services/authServices";
-import { useAuth } from "../../context/AuthContext"; // ✅ use auth context
+import { useAuth } from "../../context/AuthContext"; 
 
 const schema = yup.object().shape({
   emailOrPhone: yup
@@ -31,7 +31,7 @@ const schema = yup.object().shape({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, googleLogin } = useAuth(); // ✅ from context
+  const { login, googleLogin } = useAuth(); 
   const [loading, setLoading] = useState(false);
 
   const {

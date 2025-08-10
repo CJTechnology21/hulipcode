@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 import { BsCalendar3 } from "react-icons/bs";
-import SearchBar from "../../../components/SearchBar"; // Adjust path if needed
-import Button from "../../../components/Button"; // Adjust path if needed
+import SearchBar from "../../../components/SearchBar"; 
+import Button from "../../../components/Button"; 
 
 const days = [
   { date: 27, label: "Sun" },

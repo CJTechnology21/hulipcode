@@ -12,10 +12,9 @@ import { FaHeart } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import logo from "../../Admin/images/logo.jpg";
-
-import { useAuth } from "../../context/AuthContext"; // ✅ AuthContext hook
-import { getCartAPI } from "../../services/cartServices"; // ✅ Cart service
+import logo from "../../Admin/images/main.png";
+import { useAuth } from "../../context/AuthContext"; 
+import { getCartAPI } from "../../services/cartServices"; 
 import { setCart } from "../../app/features/cart/cartSlice";
 
 import Cart from "./Cart";
