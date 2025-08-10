@@ -1,26 +1,29 @@
 import React from "react";
-import Header from "./components/Header";
-import Hero from "./components/BlogComponents/Hero";
-import ImagesSection from "./components/BlogComponents/ImagesSection";
-import LayoutImages from "./components/BlogComponents/LayoutImages";
-import Test from "./components/BlogComponents/Test";
-import Ideas from "./components/BlogComponents/Ideas";
-import Suggest from "./components/BlogComponents/Suggest";
-import Footer from './components/Footer'
+import BlogHeader from "./components/BlogComponents/BlogHeader";
+import NewPosts from "./components/BlogComponents/NewPosts";
+import HomeCarousel from "./components/BlogComponents/HomeCarousel";
+import BlogFooter from "./components/BlogComponents/BlogFooter";
+import RelatedPosts from "./components/BlogComponents/RelatedPosts";
+import MorePosts from "./components/BlogComponents/MorePosts";
+import EditorPicks from "./components/BlogComponents/EditorPicks";
+import LatestPostsone from "./components/BlogComponents/LatestPostsone";
+import LatestPostsTwo from "./components/BlogComponents/LatestPostsTwo";
+import ConversationaBannner from './components/BlogComponents/ConversationBanner'
 function Blog() {
   return (
     <div className="font-figtree">
-      <Header />
-      <Hero />
-      <ImagesSection />
-      <LayoutImages />
-      <Test />
-      <Ideas />
-      <Suggest />
-      <LayoutImages />
-      <Test />
-       <ImagesSection />
-       <Footer/>
+      <BlogHeader />
+      <div className="mt-2">
+        <NewPosts />
+      </div>
+      <HomeCarousel />
+      <MorePosts/>
+      <EditorPicks/>
+      <LatestPostsone/>
+      <LatestPostsTwo/>
+      <ConversationaBannner/>
+      <RelatedPosts />
+      <BlogFooter />
     </div>
   );
 }

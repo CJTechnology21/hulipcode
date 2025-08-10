@@ -92,6 +92,7 @@ import Insights from "./Admin/components/Insights/Insights";
 import ProjectsHome from "./Admin/components/projects/ProjectsOverview";
 import ProjectTabs from "./Admin/components/projects/ProjectTabs";
 import VendorHome from "./Admin/components/vendor/VendorHome";
+import CarouselDetail from "./client/components/BlogComponents/CarouselDetail";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -222,6 +223,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/blog" element={<Blog />} />
+         <Route path="/blog/carousel/:id" element={<CarouselDetail />} />
         <Route path="/cartscreen" element={<CartScreen />} />
         <Route path="/userProfile" element={<UserProfile />} />
         <Route path='/favourites' element={<Favourites />} />
