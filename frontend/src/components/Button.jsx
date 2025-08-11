@@ -1,4 +1,4 @@
-export default function Button({
+ function Button({
   type = "button",
   onClick,
   loading,
@@ -74,3 +74,4 @@ export default function Button({
     </button>
   );
 }
+export default Button;
