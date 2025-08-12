@@ -331,7 +331,7 @@ function AddMaterialsScreen() {
                 toast.error("Please select a supplier with a valid email.");
                 return;
               }
-
+              console.log("Sending RFQ to:", supplier.email);
               const rfqText = generateRFQText({
                 project,
                 deliveryLocation,
