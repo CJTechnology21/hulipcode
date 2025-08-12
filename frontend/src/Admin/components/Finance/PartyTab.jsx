@@ -9,7 +9,7 @@ const PartyTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParty, setSelectedParty] = useState(null);
   const [openModal, setOpenModal] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  // const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const filteredData = partyData.filter((party) =>
     party.name.toLowerCase().includes(searchTerm.toLowerCase())

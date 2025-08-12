@@ -19,6 +19,7 @@ const locationRoutes = require('./routes/location');
 const vendorTokenRoutes = require('./routes/vendorRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subcategoryRoutes = require('./routes/subCategoryRoutes')
+const leadRoutes = require("./routes/leadRoutes")
 // Load environment variables
 dotenv.config();
 
@@ -27,7 +28,7 @@ connectDB();
 
 const app = express();
 
-// ✅ CORS Configuration — allow only your frontend origins
+//  CORS Configuration — allow only your frontend origins
 const allowedOrigins = [
   'http://localhost:3000',
   'https://first-task-alpha.vercel.app'
@@ -36,21 +37,21 @@ app.use(cookieParser());
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log("🌐 Incoming request origin:", origin);
+    console.log("Incoming request origin:", origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn("❌ Blocked by CORS:", origin);
+      console.warn(" Blocked by CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
 }));
 
-// ✅ Middleware to parse JSON
+//  Middleware to parse JSON
 app.use(express.json());
 
-// ✅ Route registrations
+//  Route registrations
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
@@ -62,16 +63,17 @@ app.use('/api/config', configRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
+app.use("/api/leads",leadRoutes);
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 
-// ✅ Health check
+//  Health check
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// ✅ Start server
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
