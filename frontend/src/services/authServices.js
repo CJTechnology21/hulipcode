@@ -47,6 +47,7 @@ export const googleSignupComplete = (data) => {
   return axiosInstance.post("/api/auth/google/details", data).then(res => res.data);
 };
 
+
 // ─────── VENDOR ───────
 
 // export const storeVendorToken = async (vendorId, token) => {
