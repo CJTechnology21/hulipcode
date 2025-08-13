@@ -5,8 +5,8 @@ import Input from "../../../components/Input";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-
-// Validation Schema
+import { toast } from "react-toastify";
+import axios from "axios";
 const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   budget: yup.string().required("Budget is required"),
@@ -57,27 +57,21 @@ function LeadForm() {
       reminderTime: "",
     },
   });
-
   const onSubmit = async (data) => {
     try {
-      const res = await fetch("http://localhost:5000/api/leads", {
-        method: "POST",
+      const res = await axios.post("http://localhost:5000/api/leads", data, {
+        withCredentials: true, 
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
       });
 
-      if (!res.ok) throw new Error("Failed to save lead");
-
-      const result = await res.json();
-      console.log("Lead saved:", result);
-      alert("Lead saved successfully!");
+      console.log("Lead saved:", res.data);
+      toast.success("Lead saved successfully!");
       reset();
     } catch (err) {
       console.error(err);
-      alert("Error saving lead");
+      toast.error("Error saving lead");
     }
   };
-
   return (
     <Layout title="Add New Lead">
       <div className="max-w-9xl p-4 m-4 bg-white rounded-xl min-h-screen">
@@ -90,39 +84,33 @@ function LeadForm() {
           <div>
             <label className="block font-semibold mb-1">Name</label>
             <Input
-              type="text"
-              {...register("name")}
-              className="w-full border rounded p-3"
+              name="name"
+              placeholder="Enter name"
+              register={register}
+              error={errors.name}
             />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name.message}</p>
-            )}
           </div>
 
           {/* Budget */}
           <div>
             <label className="block font-semibold mb-1">Budget</label>
             <Input
-              type="text"
-              {...register("budget")}
-              className="w-full border rounded p-3"
+              name="budget"
+              placeholder="Enter budget"
+              register={register}
+              error={errors.budget}
             />
-            {errors.budget && (
-              <p className="text-red-500 text-sm">{errors.budget.message}</p>
-            )}
           </div>
 
           {/* Contact */}
           <div>
             <label className="block font-semibold mb-1">Contact</label>
             <Input
-              type="text"
-              {...register("contact")}
-              className="w-full border rounded p-3"
+              name="contact"
+              placeholder="Enter contact number"
+              register={register}
+              error={errors.contact}
             />
-            {errors.contact && (
-              <p className="text-red-500 text-sm">{errors.contact.message}</p>
-            )}
           </div>
 
           {/* Status */}
@@ -163,26 +151,23 @@ function LeadForm() {
 
           {/* Assigned */}
           <div>
-            <label className="block font-semibold mb-1">
-              Assigned (User ID)
-            </label>
+            <label className="block font-semibold mb-1">Assigned User ID</label>
             <Input
-              type="text"
-              {...register("assigned")}
-              className="w-full border rounded p-3"
+              name="assigned"
+              placeholder="Enter assigned user ID"
+              register={register}
+              error={errors.assigned}
             />
-            {errors.assigned && (
-              <p className="text-red-500 text-sm">{errors.assigned.message}</p>
-            )}
           </div>
 
           {/* Source */}
           <div>
             <label className="block font-semibold mb-1">Source</label>
             <Input
-              type="text"
-              {...register("source")}
-              className="w-full border rounded p-3"
+              name="source"
+              placeholder="Enter source"
+              register={register}
+              error={errors.source}
             />
           </div>
 
@@ -190,9 +175,10 @@ function LeadForm() {
           <div>
             <label className="block font-semibold mb-1">Reminder Date</label>
             <Input
+              name="reminderDate"
               type="date"
-              {...register("reminderDate")}
-              className="w-full border rounded p-3"
+              register={register}
+              error={errors.reminderDate}
             />
           </div>
 
@@ -200,9 +186,10 @@ function LeadForm() {
           <div>
             <label className="block font-semibold mb-1">Reminder Time</label>
             <Input
+              name="reminderTime"
               type="time"
-              {...register("reminderTime")}
-              className="w-full border rounded p-3"
+              register={register}
+              error={errors.reminderTime}
             />
           </div>
 
@@ -214,11 +201,14 @@ function LeadForm() {
               className="w-full border rounded p-3"
               rows="3"
             />
+            {errors.update && (
+              <p className="text-red-500 text-sm">{errors.update.message}</p>
+            )}
           </div>
 
           {/* Is Huelip */}
           <div className="xl:col-span-3 flex items-center space-x-2">
-            <Input type="checkbox" {...register("isHuelip")} />
+            <input type="checkbox" {...register("isHuelip")} />
             <label>Is Huelip</label>
           </div>
 

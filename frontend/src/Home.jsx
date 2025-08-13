@@ -19,7 +19,7 @@ function Home() {
   return (
     <div className="bg-white min-h-screen font-montreal flex justify-center items-center">
       {loading ? (
-        <ClipLoader color="#4A90E2" size={50} />
+        <ClipLoader color="red" size={50} />
       ) : (
         <div className="w-full">
           <HomeHeader />

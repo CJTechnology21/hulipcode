@@ -9,6 +9,13 @@ import { Provider } from 'react-redux';
 import { store } from './app/store';
 import { LocationProvider } from './context/LocationContext';
 import { AuthProvider } from './context/AuthContext';
+import axios from "axios";
+
+// Make axios always send cookies
+axios.defaults.withCredentials = true;
+
+// Optional: Set your API base URL
+axios.defaults.baseURL = "http://localhost:5000";
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
@@ -25,18 +32,18 @@ root.render(
 );
 
 // ✅ Register Firebase Messaging Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then((registration) => {
-        console.log('✅ Firebase service worker registered:', registration);
-      })
-      .catch((err) => {
-        console.error('❌ Error registering service worker:', err);
-      });
-  });
-}
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker
+//       .register('/firebase-messaging-sw.js')
+//       .then((registration) => {
+//         console.log('✅ Firebase service worker registered:', registration);
+//       })
+//       .catch((err) => {
+//         console.error('❌ Error registering service worker:', err);
+//       });
+//   });
+// }
 
 // Optional: Log web vitals
 reportWebVitals();

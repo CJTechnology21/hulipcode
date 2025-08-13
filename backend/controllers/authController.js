@@ -30,11 +30,22 @@ const setTokenCookie = (res, token) => {
 
   res.cookie('token', token, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'None' : 'Lax',
+    secure: isProd ? true : false, // allow HTTP in dev
+    sameSite: 'None', // ✅ always allow cross-origin
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
+
+// const setTokenCookie = (res, token) => {
+//   const isProd = process.env.NODE_ENV === 'production';
+
+//   res.cookie('token', token, {
+//     httpOnly: true,
+//     secure: isProd,
+//     sameSite: isProd ? 'None' : 'Lax',
+//     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//   });
+// };
 
 // ==============================
 // Register
