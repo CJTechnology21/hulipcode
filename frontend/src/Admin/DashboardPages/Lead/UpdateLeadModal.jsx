@@ -22,7 +22,8 @@ export default function UpdateLeadModal({
 
     setLoading(true);
     try {
-      await patchLead(modalData.id, { update: modalData.text });
+      // ✅ Use _id instead of id
+      await patchLead(modalData._id, { update: modalData.text });
 
       toast.success("Lead updated successfully!");
       refreshLeads && refreshLeads();
@@ -44,7 +45,8 @@ export default function UpdateLeadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white p-6 rounded-lg w-full max-w-md space-y-4 shadow-xl">
-        <h2 className="text-lg font-bold">Update Lead - {modalData.id}</h2>
+        {/* ✅ Use _id for display */}
+        <h2 className="text-lg font-bold">Update Lead - {modalData._id}</h2>
 
         {/* Last Updated / Created Date */}
         <div className="text-gray-500 text-sm">

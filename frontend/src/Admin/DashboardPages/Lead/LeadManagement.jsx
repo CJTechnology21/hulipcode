@@ -152,45 +152,48 @@ export default function Leads() {
 
   const handleEditChange = (e, field) => {
     setEditFormData({ ...editFormData, [field]: e.target.value });
-  };
-  const handleSave = async () => {
-    try {
-      await updateLead(editRowId, editFormData);
+  };const handleSave = async () => {
+  try {
+    // Make sure editRowId is the Mongo _id
+    await updateLead(editRowId, editFormData);
 
-      setLeadList((prev) =>
-        prev.map((lead) =>
-          lead.id === editRowId ? { ...lead, ...editFormData } : lead
-        )
-      );
+    setLeadList((prev) =>
+      prev.map((lead) =>
+        lead._id === editRowId ? { ...lead, ...editFormData } : lead
+      )
+    );
 
-      toast.success("Lead updated successfully!");
-    } catch (err) {
-      console.error("Update failed", err);
-      toast.error("Failed to update lead.");
-    }
+    toast.success("Lead updated successfully!");
+  } catch (err) {
+    console.error("Update failed", err);
+    toast.error("Failed to update lead.");
+  }
 
-    setEditRowId(null);
-    setEditFormData({});
-  };
+  setEditRowId(null);
+  setEditFormData({});
+};
 
-  const handleCancel = () => {
-    setEditRowId(null);
-    setEditFormData({});
-  };
-  const handleDelete = async (id) => {
-    try {
-      await deleteLead(id);
+const handleCancel = () => {
+  setEditRowId(null);
+  setEditFormData({});
+};
 
-      setLeadList((prev) => prev.filter((lead) => lead.id !== id));
+const handleDelete = async (id) => {
+  try {
+    // Make sure id is the Mongo _id
+    await deleteLead(id);
 
-      toast.success("Lead deleted successfully!");
-    } catch (err) {
-      console.error("Delete failed", err);
-      toast.error("Failed to delete lead.");
-    }
+    setLeadList((prev) => prev.filter((lead) => lead._id !== id));
 
-    closeMenu();
-  };
+    toast.success("Lead deleted successfully!");
+  } catch (err) {
+    console.error("Delete failed", err);
+    toast.error("Failed to delete lead.");
+  }
+
+  closeMenu();
+};
+
   const openReminderModal = (id) => {
     const lead = leadList.find((l) => l.id === id);
     if (lead?.reminder) {

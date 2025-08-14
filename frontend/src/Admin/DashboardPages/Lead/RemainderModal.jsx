@@ -10,7 +10,8 @@ export default function ReminderModal({
   onClose,
   refreshLeads,
 }) {
-  const lead = leadsData.find((l) => l.id === reminderModalId);
+  // ✅ Use _id instead of id
+  const lead = leadsData.find((l) => l._id === reminderModalId);
 
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
@@ -36,6 +37,7 @@ export default function ReminderModal({
 
     setLoading(true);
     try {
+      // ✅ Pass _id to backend
       await patchLead(reminderModalId, {
         reminder: { date: reminderDate, time: reminderTime },
       });
