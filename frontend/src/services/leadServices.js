@@ -1,67 +1,51 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:5000/api";
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 // Create axios instance for all requests
 const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // ✅ send cookies with requests
+  baseURL: API_BASE,
+  withCredentials: true,
 });
-
-// ─────── LEADS ───────
 
 // Fetch all leads
 export const fetchLeads = async () => {
-  const res = await axiosInstance.get("/leads");
+  const res = await axiosInstance.get("/api/leads");
   return res.data;
 };
 
 // Create a new lead
 export const createLead = async (leadData) => {
-  const res = await axiosInstance.post("/leads", leadData, {
+  const res = await axiosInstance.post("/api/leads", leadData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
 };
 
-// ─────── ARCHITECTS ───────
-
-// Fetch architects
-export const fetchArchitects = async () => {
-  const res = await axiosInstance.get("/user/architects");
+// Update (PUT) an existing lead
+export const updateLead = async (leadId, leadData) => {
+  const res = await axiosInstance.put(`/api/leads/${leadId}`, leadData, {
+    headers: { "Content-Type": "application/json" },
+  });
   return res.data;
 };
 
-// // src/services/leadServices.js
-// import axios from "axios";
+// Patch (partial update) a lead
+export const patchLead = async (leadId, leadData) => {
+  const res = await axiosInstance.patch(`/api/leads/${leadId}`, leadData, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
+};
 
-// const API_URL = "http://localhost:5000/api/leads";
+// Delete a lead
+export const deleteLead = async (leadId) => {
+  const res = await axiosInstance.delete(`/api/leads/${leadId}`);
+  return res.data;
+};
 
-// export const fetchLeads = async () => {
-//   try {
-//     const response = await axios.get(API_URL);
-//     return response.data;
-//   } catch (error) {
-//     throw error;
-//   }
-// };
-
-// // Create a new lead
-// export const createLead = async (leadData) => {
-//   try {
-//     const response = await axios.post(API_URL, leadData, {
-//       withCredentials: true, // ✅ ensures cookies are sent
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     throw error;
-//   }
-// };
-// export const fetchArchitects = async () => {
-//   const res = await axiosInstance.get("/user/architects");
-//   return res.data;
-// };
-
+// Fetch architects
+export const fetchArchitects = async () => {
+  const res = await axiosInstance.get("/api/user/architects");
+  return res.data;
+};

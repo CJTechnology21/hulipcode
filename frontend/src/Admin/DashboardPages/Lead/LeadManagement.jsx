@@ -9,6 +9,7 @@ import {
   FaPlus,
   FaTrash,
   FaFileDownload,
+  FaEye,
 } from "react-icons/fa";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import { BsFilter } from "react-icons/bs";
@@ -16,7 +17,11 @@ import { useNavigate } from "react-router-dom";
 import { downloadExpandedRowPDF } from "../../components/PDFExporter";
 import { toast } from "react-toastify";
 import { statusColorMap, categoryColorMap, tabs } from "./colorMaps";
-import { fetchLeads } from "../../../services/leadServices";
+import {
+  fetchLeads,
+  updateLead,
+  deleteLead,
+} from "../../../services/leadServices";
 import Button from "../../../components/Button";
 import RemainderModal from "./RemainderModal";
 import UpdateLeadModal from "./UpdateLeadModal";
@@ -24,7 +29,7 @@ import LeadExpandableRow from "./LeadExpandableRow";
 import Layout from "../../components/Layout";
 import SearchBar from "../../../components/SearchBar";
 import ClipLoader from "react-spinners/ClipLoader";
-
+import { formatDateTime } from "../../../utils/dateFormatter";
 export default function Leads() {
   const [activeTab, setActiveTab] = useState("All Leads");
   const [showModal, setShowModal] = useState(false);
@@ -43,9 +48,13 @@ export default function Leads() {
   const [reminderTime, setReminderTime] = useState("");
   const [filters, setFilters] = useState({});
   const [leadList, setLeadList] = useState([]);
-  const [leads, setLeads] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  //eslint-disable-next-line
+  const [selectedLead, setSelectedLead] = useState(null);
+  //eslint-disable-next-line
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fieldMap = {
     1: "id",
@@ -61,7 +70,7 @@ export default function Leads() {
   };
 
   // Fetch leads from API
-   useEffect(() => {
+  useEffect(() => {
     const loadLeads = async () => {
       setLoading(true);
       try {
@@ -94,7 +103,16 @@ export default function Leads() {
   const toggleMenu = (leadId) => {
     setMenuOpenId((prev) => (prev === leadId ? null : leadId));
   };
-  const closeMenu = () => setMenuOpenId(null);
+
+  // const openMenu = (lead) => {
+  //   setSelectedLead(lead);
+  //   setMenuOpen(true);
+  // };
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setSelectedLead(null);
+  };
 
   const openModal = (leadId) => {
     setModalData({ id: leadId, text: "", datetime: "" });
@@ -135,23 +153,22 @@ export default function Leads() {
   const handleEditChange = (e, field) => {
     setEditFormData({ ...editFormData, [field]: e.target.value });
   };
-
   const handleSave = async () => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/leads/${editRowId}`,
-        editFormData
-      );
+      await updateLead(editRowId, editFormData);
+
       setLeadList((prev) =>
         prev.map((lead) =>
           lead.id === editRowId ? { ...lead, ...editFormData } : lead
         )
       );
+
       toast.success("Lead updated successfully!");
     } catch (err) {
       console.error("Update failed", err);
       toast.error("Failed to update lead.");
     }
+
     setEditRowId(null);
     setEditFormData({});
   };
@@ -160,19 +177,20 @@ export default function Leads() {
     setEditRowId(null);
     setEditFormData({});
   };
-
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/leads/${id}`);
+      await deleteLead(id);
+
       setLeadList((prev) => prev.filter((lead) => lead.id !== id));
+
       toast.success("Lead deleted successfully!");
     } catch (err) {
       console.error("Delete failed", err);
       toast.error("Failed to delete lead.");
     }
+
     closeMenu();
   };
-
   const openReminderModal = (id) => {
     const lead = leadList.find((l) => l.id === id);
     if (lead?.reminder) {
@@ -191,6 +209,27 @@ export default function Leads() {
       position: "top-right",
       autoClose: 3000,
     });
+  };
+  // Helper at the top of your file
+  const getUpdate = (update) => {
+    if (!update) return { text: "No updates yet", date: null, time: null };
+
+    let upd = update;
+
+    // If stored as string, parse it
+    if (typeof update === "string") {
+      try {
+        upd = JSON.parse(update);
+      } catch {
+        upd = { text: update, date: null, time: null };
+      }
+    }
+
+    return {
+      text: upd.text || "No updates yet",
+      date: upd.date || null,
+      time: upd.time || null,
+    };
   };
 
   return (
@@ -418,18 +457,34 @@ export default function Leads() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-3">
+                        <td>
                           <div
                             onClick={() => openModal(lead.id)}
-                            className="bg-white border px-2 py-1 rounded text-xs cursor-pointer hover:bg-gray-100"
+                            className="bg-white border px-3 py-2 rounded text-xs cursor-pointer hover:bg-gray-100"
                           >
-                            {lead.update}
-                            <br />
-                            <span className="text-gray-400">
-                              DATE: 09/07/2025
-                            </span>
+                            {(() => {
+                              const { text, date, time } = getUpdate(
+                                lead.update
+                              );
+                              return (
+                                <>
+                                  <div className="mb-1">{text}</div>
+                                  <div className="text-gray-400 text-[10px]">
+                                    DATE:{" "}
+                                    {formatDateTime(
+                                      { date, time },
+                                      lead.createdAt
+                                    )}
+                                    {lead.updatedAt && text !== "No updates yet"
+                                      ? " (Updated)"
+                                      : ""}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </td>
+                        {/* assigned lead */}
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <div
@@ -489,6 +544,17 @@ export default function Leads() {
 
                           {menuOpenId === lead.id && !editRowId && (
                             <div className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg z-50 text-sm">
+                              <Button
+                                variant="custom"
+                                onClick={() => {
+                                  navigate("/leadinfo", { state: { lead } });
+                                  // onClose();
+                                }}
+                                className="flex items-center w-full px-3 py-2 hover:bg-blue-50 gap-2 text-sm text-blue-600"
+                              >
+                                <FaEye className="text-blue-500" />
+                                <span>View</span>
+                              </Button>
                               <Button
                                 variant="custom"
                                 onClick={() => {

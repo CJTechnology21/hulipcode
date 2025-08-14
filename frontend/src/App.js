@@ -97,6 +97,7 @@ import CarouselDetail from "./client/components/BlogComponents/CarouselDetail";
 import PostStyleOne from "./client/components/BlogComponents/PostStyleOne";
 import PostStyleTwo from "./client/components/BlogComponents/PostStyleTwo";
 import CategoryOne from "./client/components/BlogComponents/CategoryOne";
+import LeadInfo from "./Admin/DashboardPages/Lead/LeadInfo";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -213,6 +214,7 @@ function App() {
         {/* Leadroutes */}
         <Route path="/leadmanagement" element={<LeadManagement />} />
         <Route path="/leads/leaddetails" element={<LeadDetails />} />
+        <Route path="/leadinfo" element={<LeadInfo />} />
         <Route path="/leads/inspirations" element={<Inspirations />} />
         <Route path="/leadform" element={<LeadForm />} />
         {/* Ai-Routes */}
