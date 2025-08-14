@@ -85,16 +85,31 @@ function LeadForm() {
 
   // Handle form submit
   const onSubmit = async (data) => {
-    try {
-      await createLead(data);
-      toast.success("Lead saved successfully!");
-      reset();
-      setSearchTerm("");
-    } catch (err) {
-      console.error(err);
-      toast.error("Error saving lead");
-    }
-  };
+  try {
+    const payload = { ...data };
+    delete payload.id; // ensure no duplicate id gets sent
+    await createLead(payload);
+    toast.success("Lead saved successfully!");
+    reset();
+    setSearchTerm("");
+  } catch (err) {
+    console.error("Create Lead Error:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Error saving lead");
+  }
+};
+
+  // const onSubmit = async (data) => {
+  //   try {
+  //     await createLead(data);
+  //     toast.success("Lead saved successfully!");
+  //     reset();
+  //     setSearchTerm("");
+  //   } catch (err) {
+  //     console.error(err);
+  //     console.error("Create Lead Error:", err.response?.data || err.message);
+  //     toast.error("Error saving lead");
+  //   }
+  // };
 
   // Filter architects by search term
   const filteredArchitects = architects.filter((arch) =>
@@ -241,64 +256,6 @@ function LeadForm() {
               </div>
             )}
           </div>
-
-          {/* <div className="relative">
-            <label className="block font-semibold mb-1">Assigned User</label>
-            <input
-              type="text"
-              placeholder="Search project..."
-              className={`w-full border rounded p-3 ${
-                errors.assigned ? "border-red-500" : ""
-              }`}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-            />
-            <input type="hidden" {...register("assigned")} />
-            {showDropdown && (
-              <div
-                className="absolute left-0 mt-1 w-full bg-white border rounded shadow-lg z-20"
-                style={{
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                }}
-              >
-                {loadingArchitects ? (
-                  <p className="p-3">Loading...</p>
-                ) : filteredArchitects.length > 0 ? (
-                  filteredArchitects.map((arch) => (
-                    <div
-                      key={arch._id}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setValue("assigned", arch._id);
-                        setSearchTerm(arch.projectName);
-                        setShowDropdown(false);
-                      }}
-                    >
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold uppercase">
-                        {arch.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          {arch.name}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="p-3 text-gray-500">No results found</p>
-                )}
-              </div>
-            )}
-          </div> */}
 
           {/* Source */}
           <div>

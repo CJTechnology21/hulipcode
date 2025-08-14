@@ -1,8 +1,7 @@
-
 const mongoose = require('mongoose');
 
 const leadSchema = new mongoose.Schema({
-  id: { type: String, unique: true }, 
+  id: { type: String }, // custom display ID, not unique
   name: { type: String, required: true },
   isHuelip: { type: Boolean, default: false },
   budget: { type: String, required: true },
@@ -22,7 +21,7 @@ const leadSchema = new mongoose.Schema({
       'Quotation Approved'
     ]
   },
-  category: { type: String, enum: ['RESIDENTIAL', 'COMMERCIAL'] },
+  category: { type: String, enum: ['RESIDENTIAL', 'COMMERCIAL','INDUSTRIAL','INDUSTRIAL','RETAIL'] },
   update: { type: String },
   assigned: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   source: { type: String },
@@ -32,11 +31,11 @@ const leadSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// Pre-save hook to generate ID
+// Pre-save hook to generate display ID for user
 leadSchema.pre('save', async function (next) {
   if (!this.id) {
     const count = await mongoose.model('Lead').countDocuments();
-    this.id = 'L' + String(count + 1).padStart(6, '0'); // e.g., L000565
+    this.id = 'L' + String(count + 1).padStart(6, '0'); // e.g., L000001
   }
   next();
 });

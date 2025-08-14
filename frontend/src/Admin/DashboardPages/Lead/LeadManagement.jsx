@@ -132,10 +132,13 @@ export default function Leads() {
         return <FaInstagram />;
     }
   };
-
   const toggleRow = (id) => {
-    setExpandedRow((prevId) => (prevId === id ? null : id));
-  };
+  setExpandedRow(expandedRow === id ? null : id);
+};
+
+  // const toggleRow = (id) => {
+  //   setExpandedRow((prevId) => (prevId === id ? null : id));
+  // };
 
   const handleDownloadPDF = async (leadId) => {
     try {
