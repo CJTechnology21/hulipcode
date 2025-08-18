@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
-
+const Counter = require('./Counter'); // import the shared Counter model
 // Counter schema to keep track of last used ID
-const counterSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  seq: { type: Number, default: 0 },
-});
-
-const Counter = mongoose.model('Counter', counterSchema);
 
 // Lead schema
 const leadSchema = new mongoose.Schema({

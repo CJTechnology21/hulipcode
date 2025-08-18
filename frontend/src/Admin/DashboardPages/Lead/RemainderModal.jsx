@@ -3,6 +3,7 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import { toast } from "react-toastify";
 import { patchLead } from "../../../services/leadServices";
+import { formatDateTime } from "../../../utils/dateFormatter";
 
 export default function ReminderModal({
   reminderModalId,
@@ -10,45 +11,27 @@ export default function ReminderModal({
   onClose,
   refreshLeads,
 }) {
+  // Find the lead in the list by ID
   const lead = leadsData.find((l) => l._id === reminderModalId);
 
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Function to get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
-
-  // ✅ Function to get nearest quarter-hour in HH:MM format
-  const getNearestQuarterHour = () => {
-    const now = new Date();
-    now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
-    return now.toTimeString().slice(0, 5);
-  };
-
+  // Initialize modal state only once when modal opens
   useEffect(() => {
     if (lead) {
-      const dateVal = lead.reminder?.date
-        ? lead.reminder.date.split("T")[0] // Ensure YYYY-MM-DD
-        : getTodayDate();
-
-      const timeVal = lead.reminder?.time
-        ? lead.reminder.time.slice(0, 5) // Ensure HH:MM
-        : getNearestQuarterHour();
-
-      setReminderDate(dateVal);
-      setReminderTime(timeVal);
+      setReminderDate(lead.reminder?.date || "");
+      setReminderTime(lead.reminder?.time || "");
+    } else {
+      setReminderDate("");
+      setReminderTime("");
     }
-  }, [lead]);
+  }, [reminderModalId]); // ✅ only runs when modal opens
 
   if (!reminderModalId) return null;
 
   const handleReminderSave = async () => {
-    console.log("Saving reminder:", reminderDate, reminderTime);
-
     if (!reminderDate.trim() || !reminderTime.trim()) {
       toast.error("Please select both date and time");
       return;
@@ -56,15 +39,34 @@ export default function ReminderModal({
 
     setLoading(true);
     try {
-      await patchLead(reminderModalId, {
-        reminder: { date: reminderDate, time: reminderTime },
-      });
+      const payload = {
+        reminder: {
+          date: reminderDate, // ✅ now will take newly entered value
+          time: reminderTime, // ✅ now will take newly entered value
+        },
+      };
+
+      console.log("🛠 DEBUG — Saving reminder");
+      console.log("Lead ID:", reminderModalId);
+      console.log("Payload:", payload);
+
+      const res = await patchLead(reminderModalId, payload);
+
+      console.log("API Response:", res);
+
+      if (!res || res.error) {
+        throw new Error(res?.error || "No response from API");
+      }
 
       toast.success("Reminder saved successfully!");
-      refreshLeads && refreshLeads();
+
+      if (refreshLeads) {
+        await refreshLeads();
+      }
+
       onClose();
     } catch (error) {
-      console.error(error);
+      console.error("❌ ERROR saving reminder:", error);
       toast.error("Failed to save reminder");
     } finally {
       setLoading(false);
@@ -81,7 +83,6 @@ export default function ReminderModal({
           <label className="block mb-1 text-sm font-medium">Date</label>
           <Input
             type="date"
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             value={reminderDate}
             onChange={(e) => setReminderDate(e.target.value)}
           />
@@ -90,24 +91,21 @@ export default function ReminderModal({
         {/* Time Picker */}
         <div className="mb-4">
           <label className="block mb-1 text-sm font-medium">Time</label>
-          <div className="border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-red-500">
-            <Input
-              type="time"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              value={reminderTime}
-              onChange={(e) => setReminderTime(e.target.value)}
-            />
-          </div>
+          <Input
+            type="time"
+            value={reminderTime}
+            onChange={(e) => setReminderTime(e.target.value)}
+          />
         </div>
 
-        {/* Existing Reminder Display */}
+        {/* Existing Reminder */}
         <div className="text-xs text-gray-600 mb-4">
           {lead?.reminder?.date ? (
             <div className="bg-gray-100 p-2 rounded text-sm">
               Existing Reminder:{" "}
               <span className="font-medium text-black">
-                {lead.reminder.date.split("T")[0]} at{" "}
-                {lead.reminder.time.slice(0, 5)}
+                {formatDateTime({ date: lead.reminder.date }, null).split(" ")[0]}{" "}
+                at {lead.reminder.time}
               </span>
             </div>
           ) : (
@@ -115,19 +113,14 @@ export default function ReminderModal({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Buttons */}
         <div className="flex justify-end gap-2">
-          <Button
-            variant="custom"
-            onClick={onClose}
-            className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100"
-            disabled={loading}
-          >
+          <Button variant="custom" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button
             onClick={handleReminderSave}
-            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+            className="bg-red-600 text-white hover:bg-red-600"
             disabled={loading}
           >
             {loading ? "Saving..." : "Save"}
@@ -143,6 +136,7 @@ export default function ReminderModal({
 // import Button from "../../../components/Button";
 // import { toast } from "react-toastify";
 // import { patchLead } from "../../../services/leadServices";
+// import { formatDateTime } from "../../../utils/dateFormatter";
 
 // export default function ReminderModal({
 //   reminderModalId,
@@ -150,43 +144,63 @@ export default function ReminderModal({
 //   onClose,
 //   refreshLeads,
 // }) {
-//   // ✅ Use _id instead of id
+//   // Find the lead in the list by ID
 //   const lead = leadsData.find((l) => l._id === reminderModalId);
 
 //   const [reminderDate, setReminderDate] = useState("");
 //   const [reminderTime, setReminderTime] = useState("");
 //   const [loading, setLoading] = useState(false);
 
-//   // Sync state with lead data when it becomes available
-//   useEffect(() => {
-//     if (lead) {
-//       setReminderDate(lead.reminder?.date || "");
-//       setReminderTime(lead.reminder?.time || "");
-//     }
-//   }, [lead]);
+//   // Load lead reminder when modal opens
+// useEffect(() => {
+//   if (lead) {
+//     setReminderDate(lead.reminder?.date || "");
+//     setReminderTime(lead.reminder?.time || "");
+//   } else {
+//     setReminderDate("");
+//     setReminderTime("");
+//   }
+// }, [lead]);
+
 
 //   if (!reminderModalId) return null;
 
 //   const handleReminderSave = async () => {
-//     console.log("Saving reminder:", reminderDate, reminderTime);
-
-//     if (!reminderDate || !reminderTime) {
+//     if (!reminderDate.trim() || !reminderTime.trim()) {
 //       toast.error("Please select both date and time");
 //       return;
 //     }
 
 //     setLoading(true);
 //     try {
-//       // ✅ Pass _id to backend
-//       await patchLead(reminderModalId, {
-//         reminder: { date: reminderDate, time: reminderTime },
-//       });
+//       const payload = {
+//         reminder: {
+//           date: reminderDate,
+//           time: reminderTime,
+//         },
+//       };
+
+//       console.log("🛠 DEBUG — Saving reminder");
+//       console.log("Lead ID:", reminderModalId);
+//       console.log("Payload:", payload);
+
+//       const res = await patchLead(reminderModalId, payload);
+
+//       console.log("API Response:", res);
+
+//       if (!res || res.error) {
+//         throw new Error(res?.error || "No response from API");
+//       }
 
 //       toast.success("Reminder saved successfully!");
-//       refreshLeads && refreshLeads();
+
+//       if (refreshLeads) {
+//         await refreshLeads();
+//       }
+
 //       onClose();
 //     } catch (error) {
-//       console.error(error);
+//       console.error("❌ ERROR saving reminder:", error);
 //       toast.error("Failed to save reminder");
 //     } finally {
 //       setLoading(false);
@@ -203,7 +217,6 @@ export default function ReminderModal({
 //           <label className="block mb-1 text-sm font-medium">Date</label>
 //           <Input
 //             type="date"
-//             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
 //             value={reminderDate}
 //             onChange={(e) => setReminderDate(e.target.value)}
 //           />
@@ -212,23 +225,21 @@ export default function ReminderModal({
 //         {/* Time Picker */}
 //         <div className="mb-4">
 //           <label className="block mb-1 text-sm font-medium">Time</label>
-//           <div className="border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-red-500">
-//             <Input
-//               type="time"
-//               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-//               value={reminderTime}
-//               onChange={(e) => setReminderTime(e.target.value)}
-//             />
-//           </div>
+//           <Input
+//             type="time"
+//             value={reminderTime}
+//             onChange={(e) => setReminderTime(e.target.value)}
+//           />
 //         </div>
 
-//         {/* Existing Reminder Display */}
+//         {/* Existing Reminder */}
 //         <div className="text-xs text-gray-600 mb-4">
 //           {lead?.reminder?.date ? (
 //             <div className="bg-gray-100 p-2 rounded text-sm">
 //               Existing Reminder:{" "}
 //               <span className="font-medium text-black">
-//                 {lead.reminder.date} at {lead.reminder.time}
+//                 {formatDateTime({ date: lead.reminder.date }, null).split(" ")[0]}{" "}
+//                 at {lead.reminder.time}
 //               </span>
 //             </div>
 //           ) : (
@@ -236,19 +247,14 @@ export default function ReminderModal({
 //           )}
 //         </div>
 
-//         {/* Action Buttons */}
+//         {/* Buttons */}
 //         <div className="flex justify-end gap-2">
-//           <Button
-//             variant="custom"
-//             onClick={onClose}
-//             className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100"
-//             disabled={loading}
-//           >
+//           <Button variant="custom" onClick={onClose} disabled={loading}>
 //             Cancel
 //           </Button>
 //           <Button
 //             onClick={handleReminderSave}
-//             className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+//             className="bg-red-600 text-white hover:bg-red-600"
 //             disabled={loading}
 //           >
 //             {loading ? "Saving..." : "Save"}

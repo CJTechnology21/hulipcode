@@ -90,6 +90,7 @@ import FinanceHome from "./Admin/components/Finance/FinanceHome";
 import Insights from "./Admin/components/Insights/Insights";
 import ProjectsHome from "./Admin/components/projects/ProjectsOverview";
 import ProjectTabs from "./Admin/components/projects/ProjectTabs";
+import AddProjectModal from "./Admin/components/projects/AddProjectModal";
 import VendorHome from "./Admin/components/vendor/VendorHome";
 // BlogRoutes
 import Blog from './client/Blog'
@@ -173,6 +174,7 @@ function App() {
         <Route path="/insights" element={<Insights />} />
         {/* project-routes */}
         <Route path="/projects" element={<Projects />} />
+        <Route path="/addproject" element={<AddProjectModal />} />
         <Route path="/projectform" element={<ProjectForm />} />
         <Route path="/projectshome" element={<ProjectsHome />} />
         <Route path="/ptabs/" element={<ProjectTabs />} />

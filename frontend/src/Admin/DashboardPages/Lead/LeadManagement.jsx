@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   FaCalendarAlt,
   FaEdit,
@@ -70,22 +69,23 @@ export default function Leads() {
   };
 
   // Fetch leads from API
-  useEffect(() => {
-    const loadLeads = async () => {
-      setLoading(true);
-      try {
-        const leads = await fetchLeads();
-        setLeadList(leads);
-        setError(null);
-      } catch (err) {
-        setError(err.message || "Error loading leads");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadLeads = async () => {
+    setLoading(true);
+    try {
+      const leads = await fetchLeads();
+      setLeadList(leads);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Error loading leads");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadLeads();
   }, []);
+
   const filteredLeads = leadList.filter((lead) => {
     return Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
@@ -114,10 +114,16 @@ export default function Leads() {
     setSelectedLead(null);
   };
 
-  const openModal = (leadId) => {
-    setModalData({ id: leadId, text: "", datetime: "" });
+  const openModal = (lead) => {
+    setModalData({
+      _id: lead._id,
+      text: lead.update?.text || "",
+      createdAt: lead.createdAt,
+      updatedAt: lead.updatedAt,
+    });
     setShowModal(true);
   };
+
   const closeModal = () => setShowModal(false);
 
   const getSourceIcon = (source) => {
@@ -133,8 +139,8 @@ export default function Leads() {
     }
   };
   const toggleRow = (id) => {
-  setExpandedRow(expandedRow === id ? null : id);
-};
+    setExpandedRow(expandedRow === id ? null : id);
+  };
 
   // const toggleRow = (id) => {
   //   setExpandedRow((prevId) => (prevId === id ? null : id));
@@ -208,16 +214,19 @@ export default function Leads() {
   };
 
   const openReminderModal = (id) => {
-    const lead = leadList.find((l) => l.id === id);
-    if (lead?.reminder) {
-      setReminderDate(lead.reminder.date);
-      setReminderTime(lead.reminder.time);
-    } else {
-      setReminderDate("");
-      setReminderTime("");
-    }
     setReminderModalId(id);
   };
+  // const openReminderModal = (id) => {
+  //   const lead = leadList.find((l) => l._id === id);
+  //   if (lead?.reminder) {
+  //     setReminderDate(lead.reminder.date);
+  //     setReminderTime(lead.reminder.time);
+  //   } else {
+  //     setReminderDate("");
+  //     setReminderTime("");
+  //   }
+  //   setReminderModalId(id);
+  // };
 
   const handleReminderSave = () => {
     setReminderModalId(null);
@@ -474,7 +483,7 @@ export default function Leads() {
                         </td>
                         <td>
                           <div
-                            onClick={() => openModal(lead._id)}
+                            onClick={() => openModal(lead)}
                             className="bg-white border px-3 py-2 rounded text-xs cursor-pointer hover:bg-gray-100"
                           >
                             {(() => {
@@ -622,9 +631,16 @@ export default function Leads() {
           modalData={modalData}
           setModalData={setModalData}
           closeModal={closeModal}
-          handleSave={() => closeModal()}
+          refreshLeads={loadLeads}
         />
         <RemainderModal
+          reminderModalId={reminderModalId}
+          leadsData={leadList}
+          onClose={() => setReminderModalId(null)}
+          refreshLeads={loadLeads}
+        />
+
+        {/* <RemainderModal
           reminderModalId={reminderModalId}
           leadsData={leadList}
           reminderDate={reminderDate}
@@ -633,7 +649,7 @@ export default function Leads() {
           setReminderTime={setReminderTime}
           handleReminderSave={handleReminderSave}
           onClose={() => setReminderModalId(null)}
-        />
+        /> */}
       </div>
     </Layout>
   );

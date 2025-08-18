@@ -16,10 +16,12 @@ const subscribeRoutes = require('./routes/subscribeRoutes');
 const configRoutes = require('./routes/configRoutes');
 const pushRoutes = require("./routes/push");
 const locationRoutes = require('./routes/location');
+const leadRoutes = require("./routes/leadRoutes")
+const projectRoutes = require('./routes/projectRoutes');
 const vendorTokenRoutes = require('./routes/vendorRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subcategoryRoutes = require('./routes/subCategoryRoutes')
-const leadRoutes = require("./routes/leadRoutes")
+
 // Load environment variables
 dotenv.config();
 
@@ -64,6 +66,7 @@ app.use('/api/push', pushRoutes);
 app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
 app.use("/api/leads",leadRoutes);
+app.use('/api/projects',projectRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 
