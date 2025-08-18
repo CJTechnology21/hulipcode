@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 // Create axios instance
 const axiosInstance = axios.create({
   baseURL: API_BASE,
-  withCredentials: true, // ✅ ensures cookies (JWT) are sent
+  withCredentials: true, 
 });
 
 // Fetch all projects

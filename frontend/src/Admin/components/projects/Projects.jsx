@@ -3,7 +3,7 @@ import { FaCheckCircle } from "react-icons/fa";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import Layout from "../Layout";
 import SearchBar from "../../../components/SearchBar";
-import DropDown from "../../../components/DropDown"; // ✅ custom dropdown
+import DropDown from "../../../components/DropDown"; 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,6 @@ function Projects() {
   const [activeTab, setActiveTab] = useState("all");
   const navigate = useNavigate();
 
-  // ✅ Keys mapped to headers for filters
   const searchKeys = [
     "id",
     "name",
@@ -33,7 +32,7 @@ function Projects() {
     "cashFlow",
   ];
 
-  // ✅ Fetch projects from backend
+  // Fetch projects
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -43,7 +42,7 @@ function Projects() {
             ...p,
             progress: p.progress || 50,
             cashFlow: p.cashFlow || 0,
-            cashFlowType: p.cashFlowType || "IN", // added type (IN/OUT)
+            cashFlowType: p.cashFlowType || "IN",
             showMenu: false,
             isEditing: false,
           }))
@@ -57,6 +56,7 @@ function Projects() {
     loadProjects();
   }, []);
 
+  // Filters
   const filteredProjects = projects.filter((proj) => {
     const isProtected = activeTab === "protect" ? proj.isHuelip : true;
     const matchesFilters = Object.entries(filters).every(([key, val]) =>
@@ -65,6 +65,7 @@ function Projects() {
     return isProtected && matchesFilters;
   });
 
+  // Status colors
   const getStatusColor = (status) => {
     switch (status) {
       case "EXECUTION IN PROGRESS":
@@ -83,10 +84,10 @@ function Projects() {
   };
 
   // Delete
-  const handleDelete = async (id) => {
+  const handleDelete = async (_id) => {
     try {
-      await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+      await deleteProject(_id);
+      setProjects((prev) => prev.filter((p) => p._id !== _id));
       toast.error("Project deleted!");
     } catch (err) {
       console.error("Delete project error:", err);
@@ -95,13 +96,13 @@ function Projects() {
   };
 
   // Save (PUT update)
-  const handleSave = async (id) => {
-    const proj = projects.find((p) => p.id === id);
+  const handleSave = async (_id) => {
+    const proj = projects.find((p) => p._id === _id);
     try {
-      await updateProject(id, proj);
+      const updated = await updateProject(_id, proj);
       setProjects((prev) =>
         prev.map((p) =>
-          p.id === id ? { ...p, isEditing: false, showMenu: false } : p
+          p._id === _id ? { ...updated, isEditing: false, showMenu: false } : p
         )
       );
       toast.success("Project updated!");
@@ -112,17 +113,18 @@ function Projects() {
   };
 
   // Edit
-  const handleEdit = (id) => {
+  const handleEdit = (_id) => {
     setProjects((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, isEditing: true, showMenu: false } : p
+        p._id === _id ? { ...p, isEditing: true, showMenu: false } : p
       )
     );
   };
 
-  const handleChange = (id, key, value) => {
+  // Field change
+  const handleChange = (_id, key, value) => {
     setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [key]: value } : p))
+      prev.map((p) => (p._id === _id ? { ...p, [key]: value } : p))
     );
   };
 
@@ -207,7 +209,7 @@ function Projects() {
           <tbody>
             {filteredProjects.map((proj, idx) => (
               <tr
-                key={proj.id}
+                key={proj._id}
                 className="border-t hover:bg-gray-50 transition duration-150"
               >
                 <td className="p-3">{idx + 1}</td>
@@ -237,7 +239,7 @@ function Projects() {
                             "COMPLETED",
                           ]}
                           onChange={(e) =>
-                            handleChange(proj.id, "status", e.target.value)
+                            handleChange(proj._id, "status", e.target.value)
                           }
                         />
                       ) : key === "category" ? (
@@ -251,14 +253,14 @@ function Projects() {
                             "RETAIL",
                           ]}
                           onChange={(e) =>
-                            handleChange(proj.id, "category", e.target.value)
+                            handleChange(proj._id, "category", e.target.value)
                           }
                         />
                       ) : (
                         <Input
                           value={proj[key]}
                           onChange={(e) =>
-                            handleChange(proj.id, key, e.target.value)
+                            handleChange(proj._id, key, e.target.value)
                           }
                           className="w-full border rounded p-1 text-sm"
                         />
@@ -277,14 +279,14 @@ function Projects() {
                   </td>
                 ))}
 
-                {/* Progress bar (editable too) */}
+                {/* Progress */}
                 <td className="p-3 w-32">
                   {proj.isEditing ? (
                     <Input
                       type="number"
                       value={proj.progress}
                       onChange={(e) =>
-                        handleChange(proj.id, "progress", Number(e.target.value))
+                        handleChange(proj._id, "progress", Number(e.target.value))
                       }
                       className="w-full border rounded p-1 text-sm"
                     />
@@ -303,7 +305,7 @@ function Projects() {
                   )}
                 </td>
 
-                {/* Cashflow editable (amount + type) */}
+                {/* Cashflow */}
                 <td className="p-3 font-medium text-xs">
                   {proj.isEditing ? (
                     <div className="flex gap-2">
@@ -312,7 +314,7 @@ function Projects() {
                         value={proj.cashFlow}
                         onChange={(e) =>
                           handleChange(
-                            proj.id,
+                            proj._id,
                             "cashFlow",
                             Number(e.target.value)
                           )
@@ -324,7 +326,7 @@ function Projects() {
                         value={proj.cashFlowType}
                         options={["IN", "OUT"]}
                         onChange={(e) =>
-                          handleChange(proj.id, "cashFlowType", e.target.value)
+                          handleChange(proj._id, "cashFlowType", e.target.value)
                         }
                       />
                     </div>
@@ -333,12 +335,12 @@ function Projects() {
                   )}
                 </td>
 
-                {/* Protect column */}
+                {/* Protect */}
                 <td className="p-3 text-center text-green-600">
                   {proj.isHuelip && <FaCheckCircle />}
                 </td>
 
-                {/* Action menu */}
+                {/* Actions */}
                 <td className="p-3 text-gray-600 relative">
                   <Button
                     aria-label="Actions"
@@ -346,7 +348,7 @@ function Projects() {
                       e.stopPropagation();
                       setProjects((prev) =>
                         prev.map((p) =>
-                          p.id === proj.id
+                          p._id === proj._id
                             ? { ...p, showMenu: !p.showMenu }
                             : { ...p, showMenu: false }
                         )
@@ -363,7 +365,7 @@ function Projects() {
                           className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSave(proj.id);
+                            handleSave(proj._id);
                           }}
                         >
                           Save
@@ -374,7 +376,7 @@ function Projects() {
                           className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleEdit(proj.id);
+                            handleEdit(proj._id);
                           }}
                         >
                           Edit
@@ -385,7 +387,7 @@ function Projects() {
                         className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-600"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(proj.id);
+                          handleDelete(proj._id);
                         }}
                       >
                         Delete
