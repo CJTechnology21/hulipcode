@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Button from "../../../../components/Button";
-
+import { createTask } from "../../../../services/taskServices"; 
 function TaskModal({ isOpen, onClose, addTask }) {
   const [formData, setFormData] = useState({
     item: "",
@@ -13,12 +13,22 @@ function TaskModal({ isOpen, onClose, addTask }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting task:", formData); // debug log
-    addTask(formData);
-    setFormData({ item: "", startDate: "", endDate: "", progress: "" });
-    onClose();
+    try {
+      // Call service instead of raw axios
+      const res = await createTask(formData);
+
+      console.log("Task saved:", res);
+
+      if (addTask) addTask(res);
+
+      setFormData({ item: "", startDate: "", endDate: "", progress: "" });
+      onClose();
+    } catch (error) {
+      console.error("Error saving task:", error);
+      alert("Failed to save task. Please try again.");
+    }
   };
 
   if (!isOpen) return null;
@@ -91,7 +101,6 @@ function TaskModal({ isOpen, onClose, addTask }) {
 export default TaskModal;
 
 // import React, { useState } from "react";
-// import Input from "../../../../components/Input";
 // import Button from "../../../../components/Button";
 
 // function TaskModal({ isOpen, onClose, addTask }) {
@@ -108,6 +117,7 @@ export default TaskModal;
 
 //   const handleSubmit = (e) => {
 //     e.preventDefault();
+//     console.log("Submitting task:", formData); // debug log
 //     addTask(formData);
 //     setFormData({ item: "", startDate: "", endDate: "", progress: "" });
 //     onClose();
@@ -116,11 +126,13 @@ export default TaskModal;
 //   if (!isOpen) return null;
 
 //   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-//       <div className="bg-white p-6 rounded-xl w-96">
-//         <h3 className="font-semibold text-gray-800 mb-4">Add Task</h3>
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
+//       <div className="bg-white p-6 rounded-xl w-full max-w-md sm:max-w-lg">
+//         <h3 className="font-semibold text-gray-800 mb-4 text-lg sm:text-xl">
+//           Add Task
+//         </h3>
 //         <form onSubmit={handleSubmit} className="space-y-3">
-//           <Input
+//           <input
 //             type="text"
 //             name="item"
 //             value={formData.item}
@@ -129,7 +141,7 @@ export default TaskModal;
 //             className="w-full border p-2 rounded"
 //             required
 //           />
-//           <Input
+//           <input
 //             type="date"
 //             name="startDate"
 //             value={formData.startDate}
@@ -137,7 +149,7 @@ export default TaskModal;
 //             className="w-full border p-2 rounded"
 //             required
 //           />
-//           <Input
+//           <input
 //             type="date"
 //             name="endDate"
 //             value={formData.endDate}
@@ -145,7 +157,7 @@ export default TaskModal;
 //             className="w-full border p-2 rounded"
 //             required
 //           />
-//           <Input
+//           <input
 //             type="number"
 //             name="progress"
 //             value={formData.progress}

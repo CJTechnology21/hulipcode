@@ -34,6 +34,7 @@ const tabs = [
 
 export default function ProjectTabs() {
   const location = useLocation();
+  const projectId = location.state?.projectId;
   const projectName = location.state?.projectName || "Unnamed Project";
   const [activeTab, setActiveTab] = useState("Overview");
   const [loading, setLoading] = useState(false);
@@ -60,7 +61,7 @@ export default function ProjectTabs() {
   const renderContent = () => {
     switch (activeTab) {
       case "Overview":
-        return <ProjectsOverview projectName={projectName}/>;
+        return <ProjectsOverview projectId ={projectId} projectName={projectName}/>;
       case "Dashboard":
         return <ProjectsDashboard />;
       case "Site Measurements":

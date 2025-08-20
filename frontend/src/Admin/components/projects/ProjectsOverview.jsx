@@ -5,7 +5,7 @@ import AttendanceModal from "./OverviewComponents/AttendanceModal";
 import PhotoModal from "./OverviewComponents/PhotoModal";
 import Button from "../../../components/Button";
 import { formatDate } from "../../../utils/dateFormatter";
-function ProjectsOverview() {
+function ProjectsOverview(projectId, projectName) {
   // State for data
   const [tasks, setTasks] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -347,8 +347,17 @@ function ProjectsOverview() {
       <TaskModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        addTask={(task) => setTasks([...tasks, task])}
+        addTask={(task) => {
+          const taskWithProject = { ...task, project: projectId };
+          setTasks([...tasks, taskWithProject]);
+        }}
       />
+
+      {/* <TaskModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        addTask={(task) => setTasks([...tasks, task])}
+      /> */}
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
