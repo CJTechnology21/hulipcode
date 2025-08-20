@@ -35,7 +35,8 @@ const app = express();
 //  CORS Configuration — allow only your frontend origins
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://first-task-alpha.vercel.app'
+  'https://first-task-alpha.vercel.app',
+  'https://first-task-1pscijvoq-coyipo7369-wenkuucoms-projects.vercel.app',
 ];
 app.use(cookieParser());
 
