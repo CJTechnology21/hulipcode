@@ -2,6 +2,7 @@
 const express = require("express");
 const multer = require("multer");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const Photo = require("../models/Photo");
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -17,6 +18,10 @@ const s3 = new S3Client({
 router.post("/", upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
     const key = `uploads/${Date.now()}_${file.originalname}`;
 
     await s3.send(
@@ -31,11 +36,67 @@ router.post("/", upload.single("file"), async (req, res) => {
     // Construct a public URL
     const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-    res.json({ url });
+    // Save in MongoDB
+    const photo = new Photo({ url });
+    await photo.save();
+
+    res.json({ url, photoId: photo._id, message: "Uploaded & saved" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Upload failed" });
   }
 });
 
+// get all uploaded photos
+router.get("/", async (req, res) => {
+  try {
+    const photos = await Photo.find().sort({ uploadedAt: -1 });
+    res.json(photos);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch photos" });
+  }
+});
+
 module.exports = router;
+
+// // backend/routes/upload.js
+// const express = require("express");
+// const multer = require("multer");
+// const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
+// const router = express.Router();
+// const upload = multer({ storage: multer.memoryStorage() });
+
+// const s3 = new S3Client({
+//   region: process.env.AWS_REGION,
+//   credentials: {
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   },
+// });
+
+// router.post("/", upload.single("file"), async (req, res) => {
+//   try {
+//     const file = req.file;
+//     const key = `uploads/${Date.now()}_${file.originalname}`;
+
+//     await s3.send(
+//       new PutObjectCommand({
+//         Bucket: process.env.AWS_BUCKET_NAME,
+//         Key: key,
+//         Body: file.buffer,
+//         ContentType: file.mimetype,
+//       })
+//     );
+
+//     // Construct a public URL
+//     const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+//     res.json({ url });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Upload failed" });
+//   }
+// });
+
+// module.exports = router;

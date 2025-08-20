@@ -53,14 +53,14 @@ export default function ProjectTabs() {
 
       return () => clearTimeout(timeout);
     },
-    [activeTab],
-    firstLoad
+    [activeTab,firstLoad],
+    // firstLoad
   );
 
   const renderContent = () => {
     switch (activeTab) {
       case "Overview":
-        return <ProjectsOverview />;
+        return <ProjectsOverview projectName={projectName}/>;
       case "Dashboard":
         return <ProjectsDashboard />;
       case "Site Measurements":
