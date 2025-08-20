@@ -5,7 +5,7 @@ import AttendanceModal from "./OverviewComponents/AttendanceModal";
 import PhotoModal from "./OverviewComponents/PhotoModal";
 import Button from "../../../components/Button";
 import { formatDate } from "../../../utils/dateFormatter";
-function ProjectsOverview(projectId, projectName) {
+function ProjectsOverview({ projectId, projectName }) {
   // State for data
   const [tasks, setTasks] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -344,6 +344,7 @@ function ProjectsOverview(projectId, projectName) {
       </div>
 
       {/* Modals */}
+
       <TaskModal
         isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
@@ -351,29 +352,28 @@ function ProjectsOverview(projectId, projectName) {
           const taskWithProject = { ...task, project: projectId };
           setTasks([...tasks, taskWithProject]);
         }}
+        projectId={projectId} // <-- missing earlier
       />
 
-      {/* <TaskModal
-        isOpen={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
-        addTask={(task) => setTasks([...tasks, task])}
-      /> */}
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
         addInvoice={addInvoice}
         nextId={invoices.length + 1}
+        projectId={projectId}
       />
 
       <AttendanceModal
         isOpen={showAttendanceModal}
         onClose={() => setShowAttendanceModal(false)}
         addAttendance={addAttendance}
+        projectId= {projectId}
       />
       <PhotoModal
         isOpen={showPhotoModal}
         onClose={() => setShowPhotoModal(false)}
         addPhoto={(url) => setPhotos([...photos, url])}
+        projectId= {projectId}
       />
     </div>
   );

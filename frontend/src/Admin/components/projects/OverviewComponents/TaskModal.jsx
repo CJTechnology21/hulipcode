@@ -1,13 +1,18 @@
 import React, { useState } from "react";
 import Button from "../../../../components/Button";
-import { createTask } from "../../../../services/taskServices"; 
-function TaskModal({ isOpen, onClose, addTask }) {
+import { createTask } from "../../../../services/overViewServices";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+function TaskModal({ isOpen, onClose, addTask, projectId }) {
   const [formData, setFormData] = useState({
-    item: "",
+    name: "",
     startDate: "",
     endDate: "",
     progress: "",
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -15,19 +20,31 @@ function TaskModal({ isOpen, onClose, addTask }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      // Call service instead of raw axios
-      const res = await createTask(formData);
 
-      console.log("Task saved:", res);
+    const taskPayload = {
+      projectId, // ✅ Include projectId in payload
+      name: formData.name,
+      description: "",
+      startDate: formData.startDate || null,
+      endDate: formData.endDate || null,
+      progress: formData.progress || 0,
+    };
+
+    try {
+      setLoading(true);
+      // ✅ Call the service
+      const res = await createTask(taskPayload);
 
       if (addTask) addTask(res);
 
-      setFormData({ item: "", startDate: "", endDate: "", progress: "" });
+      toast.success("Task saved successfully!");
+      setFormData({ name: "", startDate: "", endDate: "", progress: "" });
       onClose();
     } catch (error) {
-      console.error("Error saving task:", error);
-      alert("Failed to save task. Please try again.");
+      console.error("Error saving task:", error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Failed to save task");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,13 +54,13 @@ function TaskModal({ isOpen, onClose, addTask }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
       <div className="bg-white p-6 rounded-xl w-full max-w-md sm:max-w-lg">
         <h3 className="font-semibold text-gray-800 mb-4 text-lg sm:text-xl">
-          Add Task
+          Add Task 
         </h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="text"
-            name="item"
-            value={formData.item}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
             placeholder="Task Name"
             className="w-full border p-2 rounded"
@@ -87,9 +104,14 @@ function TaskModal({ isOpen, onClose, addTask }) {
             <Button
               variant="custom"
               type="submit"
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 cursor-pointer text-white rounded"
+              disabled={loading}
+              className={`px-4 py-2 rounded text-white ${
+                loading
+                  ? "bg-red-400 cursor-not-allowed"
+                  : "bg-red-500 hover:bg-red-600 cursor-pointer"
+              }`}
             >
-              Add
+              {loading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -102,25 +124,52 @@ export default TaskModal;
 
 // import React, { useState } from "react";
 // import Button from "../../../../components/Button";
+// import { createTask } from "../../../../services/taskServices";
+// import { toast } from "react-toastify";
+// import "react-toastify/dist/ReactToastify.css";
 
-// function TaskModal({ isOpen, onClose, addTask }) {
+// function TaskModal({ isOpen, onClose, addTask, projectId }) {
 //   const [formData, setFormData] = useState({
-//     item: "",
+//     name: "",
 //     startDate: "",
 //     endDate: "",
 //     progress: "",
 //   });
 
+//   const [loading, setLoading] = useState(false);
+
 //   const handleChange = (e) => {
 //     setFormData({ ...formData, [e.target.name]: e.target.value });
 //   };
 
-//   const handleSubmit = (e) => {
+//   const handleSubmit = async (e) => {
 //     e.preventDefault();
-//     console.log("Submitting task:", formData); // debug log
-//     addTask(formData);
-//     setFormData({ item: "", startDate: "", endDate: "", progress: "" });
-//     onClose();
+
+//     const taskPayload = {
+//       name: formData.name,
+//       description: "",
+//       startDate: formData.startDate || null,
+//       endDate: formData.endDate || null,
+//       // progress not in model yet, so ignore (or extend schema if you need it)
+//     };
+
+//     try {
+//       setLoading(true);
+//       const res = await createTask(taskPayload);
+//       if (addTask) addTask(res);
+
+//       toast.success("Task saved successfully ");
+//       setFormData({ name: "", startDate: "", endDate: "", progress: "" });
+//       onClose();
+//     } catch (error) {
+//       console.error(
+//         "Error saving task:",
+//         error.response?.data || error.message
+//       );
+//       toast.error("Failed to save task ");
+//     } finally {
+//       setLoading(false);
+//     }
 //   };
 
 //   if (!isOpen) return null;
@@ -129,13 +178,13 @@ export default TaskModal;
 //     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
 //       <div className="bg-white p-6 rounded-xl w-full max-w-md sm:max-w-lg">
 //         <h3 className="font-semibold text-gray-800 mb-4 text-lg sm:text-xl">
-//           Add Task
+//           Add Task 
 //         </h3>
 //         <form onSubmit={handleSubmit} className="space-y-3">
 //           <input
 //             type="text"
-//             name="item"
-//             value={formData.item}
+//             name="name" // ✅ use name
+//             value={formData.name}
 //             onChange={handleChange}
 //             placeholder="Task Name"
 //             className="w-full border p-2 rounded"
@@ -179,9 +228,14 @@ export default TaskModal;
 //             <Button
 //               variant="custom"
 //               type="submit"
-//               className="px-4 py-2 bg-red-500 hover:bg-red-600 cursor-pointer text-white rounded"
+//               disabled={loading}
+//               className={`px-4 py-2 rounded text-white ${
+//                 loading
+//                   ? "bg-red-400 cursor-not-allowed"
+//                   : "bg-red-500 hover:bg-red-600 cursor-pointer"
+//               }`}
 //             >
-//               Add
+//               {loading ? "Saving..." : "Save"}
 //             </Button>
 //           </div>
 //         </form>
