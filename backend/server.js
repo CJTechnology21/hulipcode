@@ -21,7 +21,8 @@ const projectRoutes = require('./routes/projectRoutes');
 const vendorTokenRoutes = require('./routes/vendorRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subcategoryRoutes = require('./routes/subCategoryRoutes')
-
+const s3Routes = require('./routes/s3Routes')
+const uploadRoutes = require('./routes/upload')
 // Load environment variables
 dotenv.config();
 
@@ -67,6 +68,8 @@ app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
 app.use("/api/leads",leadRoutes);
 app.use('/api/projects',projectRoutes)
+app.use('/api/s3',s3Routes)
+app.use("/api/upload", uploadRoutes);
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 
