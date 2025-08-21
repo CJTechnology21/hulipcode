@@ -1,6 +1,6 @@
 const AWS = require("aws-sdk");
 const Photo = require("../models/Photo");
-
+const mongoose = require('mongoose')
 // Configure AWS S3
 const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
