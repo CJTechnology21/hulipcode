@@ -39,7 +39,7 @@ function AttendanceModal({ isOpen, onClose, addAttendance, projectId }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-xl w-96">
         <h3 className="font-semibold text-gray-800 mb-4">
-          Mark Attendance {projectId && `(Project ID: ${projectId})`}
+          Mark Attendance 
         </h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input

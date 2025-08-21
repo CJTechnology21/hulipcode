@@ -1,31 +1,153 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TaskModal from "./OverviewComponents/TaskModal";
 import InvoiceModal from "./OverviewComponents/InvoiceModal";
 import AttendanceModal from "./OverviewComponents/AttendanceModal";
 import PhotoModal from "./OverviewComponents/PhotoModal";
 import Button from "../../../components/Button";
 import { formatDate } from "../../../utils/dateFormatter";
+import {
+  fetchTasksByProject,
+  fetchInvoices,
+  fetchAttendance,
+  fetchProjectPhotos,
+} from "../../../services/overViewServices";
+import TaskSchedule from "./OverviewComponents/TaskShedule";
+import InvoiceTable from "./OverviewComponents/InvoiceTable";
+import AttendanceTable from "./OverviewComponents/AttendanceTable";
 function ProjectsOverview({ projectId, projectName }) {
   // State for data
   const [tasks, setTasks] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const addInvoice = (invoice) => {
     setInvoices((prev) => [...prev, invoice]);
   };
 
   const addAttendance = (record) => {
-    setAttendance((prev) => [...prev, record]); // store objects
+    setAttendance((prev) => [...prev, record]);
   };
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadTasks = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchTasksByProject(projectId);
+        setTasks(data.tasks || []);
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+        setTasks([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTasks();
+  }, [projectId]);
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadInvoices = async () => {
+      try {
+        setLoadingInvoices(true);
+        const data = await fetchInvoices(projectId);
+        // console.log("Fetched invoices:", data);
+
+        // Handle different API response shapes
+        if (Array.isArray(data)) {
+          setInvoices(data);
+        } else if (data.invoices) {
+          setInvoices(data.invoices);
+        } else if (data.data) {
+          setInvoices(data.data);
+        } else {
+          setInvoices([]);
+        }
+      } catch (err) {
+        console.error("Error fetching invoices:", err);
+        setInvoices([]);
+      } finally {
+        setLoadingInvoices(false);
+      }
+    };
+
+    loadInvoices();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadAttendance = async () => {
+      try {
+        setLoading(true); // or make a new loadingAttendance state if needed
+        const data = await fetchAttendance(projectId);
+
+        if (Array.isArray(data)) {
+          setAttendance(data);
+        } else if (data.attendance) {
+          setAttendance(data.attendance);
+        } else if (data.data) {
+          setAttendance(data.data);
+        } else {
+          setAttendance([]);
+        }
+      } catch (err) {
+        console.error("Error fetching attendance:", err);
+        setAttendance([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAttendance();
+  }, [projectId]);
+
+  // Fetch photos from backend
+  // const fetchPhotos = async () => {
+  //   try {
+  //     const { data } = await axios.get(
+  //       `http://localhost:5000/api/photo/get-photos/${projectId}`
+  //     );
+  //     setPhotos(data.photos);
+  //   } catch (error) {
+  //     console.error("Error fetching photos:", error);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (projectId) fetchPhotos();
+  // }, [projectId]);
+
+  // Fetch photos from backend
+  const loadPhotos = async () => {
+    if (!projectId) return;
+    try {
+      const data = await fetchProjectPhotos(projectId);
+      // data should be { photos: [...] } based on backend response
+      setPhotos(data.photos || []);
+    } catch (error) {
+      console.error("Failed to load project photos:", error);
+    }
+  };
+
+  // Load photos on mount and whenever projectId changes
+  useEffect(() => {
+    loadPhotos();
+  }, [projectId]);
 
   // State for modal visibility
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-
+  //loading modals
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  // eslint-disable-next-line
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
   return (
     <div className="p-4 md:p-6 w-full space-y-6 bg-gray-50">
       {/* Top Summary Section */}
@@ -154,157 +276,74 @@ function ProjectsOverview({ projectId, projectName }) {
       {/* Task Schedule + Invoices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Task Schedule */}
-        <div className="bg-white p-4 rounded-xl shadow">
-          <div className="flex justify-between mb-2 items-center">
-            <h3 className="font-semibold text-gray-800">Task Schedule</h3>
-            <Button
-              variant="custom"
-              className="text-xs text-white bg-blue-500 px-3 py-1 rounded hover:bg-blue-600"
-              onClick={() => setShowTaskModal(true)}
-            >
-              + Add Task
-            </Button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-700 border">
-              <thead>
-                <tr className="text-gray-500 border-b bg-gray-50">
-                  <th className="py-2 px-3 text-left">S.No</th>
-                  <th className="py-2 px-3 text-left">Item</th>
-                  <th className="py-2 px-3 text-left">Start Date</th>
-                  <th className="py-2 px-3 text-left">End Date</th>
-                  <th className="py-2 px-3 text-left">Progress</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center text-gray-400 py-4">
-                      No tasks scheduled
-                    </td>
-                  </tr>
-                ) : (
-                  tasks.map((task, idx) => (
-                    <tr
-                      key={idx}
-                      className="border-t hover:bg-gray-50 transition"
-                    >
-                      <td className="px-3 py-2">{idx + 1}</td>
-                      <td className="px-3 py-2">{task.item}</td>
-                      <td className="px-3 py-2">
-                        {formatDate(task.startDate)}
-                      </td>
-                      <td className="px-3 py-2">{formatDate(task.endDate)}</td>
-                      <td className="px-3 py-2">
-                        {task.progress ? `${task.progress}%` : "-"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
+        <TaskSchedule
+          tasks={tasks}
+          loading={loading}
+          setTasks={setTasks}
+          setShowTaskModal={setShowTaskModal}
+          formatDate={formatDate}
+        />
         {/* Sales Invoices */}
-        <div className="bg-white p-4 rounded-xl shadow">
-          <div className="flex justify-between mb-2 items-center">
-            <h3 className="font-semibold text-gray-800">Sales Invoices</h3>
-            <Button
-              variant="custom"
-              className="text-xs text-white bg-green-500 px-3 py-1 rounded hover:bg-green-600"
-              onClick={() => setShowInvoiceModal(true)}
-            >
-              + Add Invoice
-            </Button>
-          </div>
-
-          {invoices.length === 0 ? (
-            <div className="h-24 text-center text-sm text-gray-400 flex items-center justify-center border rounded">
-              No invoices to show
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-gray-700 border">
-                <thead>
-                  <tr className="text-gray-500 border-b bg-gray-50">
-                    <th className="py-2 px-3 text-left">ID</th>
-                    <th className="py-2 px-3 text-left">Firm</th>
-                    <th className="py-2 px-3 text-left">Date</th>
-                    <th className="py-2 px-3 text-left">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className="border-t hover:bg-gray-50 transition"
-                    >
-                      <td className="px-3 py-2">{inv.id}</td>
-                      <td className="px-3 py-2">{inv.firm}</td>
-                      <td className="px-3 py-2">{formatDate(inv.date)}</td>
-                      <td className="px-3 py-2">₹ {inv.amount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <InvoiceTable
+          invoices={invoices}
+          loadingInvoices={loadingInvoices}
+          setInvoices={setInvoices}
+          setShowInvoiceModal={setShowInvoiceModal}
+          formatDate={formatDate}
+        />
       </div>
 
       {/* Labour Attendance & Photos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Attendance */}
+        <AttendanceTable
+          attendance={attendance}
+          loading={loadingAttendance}
+          setAttendance={setAttendance}
+          setShowAttendanceModal={setShowAttendanceModal}
+          formatDate={formatDate}
+        />
+        {/* Photos */}
         <div className="bg-white p-4 rounded-xl shadow">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-gray-800">Labour Attendance</h3>
+            <h3 className="font-semibold text-gray-800">Project Photos</h3>
             <Button
-              className="text-xs text-white bg-indigo-500 px-3 py-1 rounded hover:bg-indigo-600"
-              onClick={() => setShowAttendanceModal(true)}
+              variant="custom"
+              className="text-xs text-white bg-gray-700 px-3 py-1 rounded hover:bg-gray-800"
+              onClick={() => setShowPhotoModal(true)}
             >
-              + Mark Attendance
+              + Add Photo
             </Button>
           </div>
 
-          {attendance.length === 0 ? (
-            <div className="h-24 text-center text-sm text-gray-400 flex items-center justify-center">
-              No attendance records
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border">
-                <thead className="bg-gray-100 text-gray-700">
-                  <tr>
-                    <th className="p-2 border">Name</th>
-                    <th className="p-2 border">Date</th>
-                    <th className="p-2 border">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendance.map((record, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="p-2 border">{record.name}</td>
-                      <td className="p-2 border">{record.date}</td>
-                      <td
-                        className={`p-2 border ${
-                          record.status === "Full Day"
-                            ? "text-green-600"
-                            : "text-yellow-600"
-                        }`}
-                      >
-                        {record.status}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="grid grid-cols-3 gap-2">
+            {photos.length === 0
+              ? Array(3)
+                  .fill(0)
+                  .map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
+                    >
+                      No image
+                    </div>
+                  ))
+              : photos.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
+                  >
+                    <img
+                      src={p.url} // <-- use p.url here
+                      alt={`Project ${idx}`}
+                      className="h-full w-full object-cover rounded"
+                    />
+                  </div>
+                ))}
+          </div>
         </div>
-        {/* Photos */}
-        <div className="bg-white p-4 rounded-xl shadow">
+
+        {/* <div className="bg-white p-4 rounded-xl shadow">
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-semibold text-gray-800">Project Photos</h3>
             <Button
@@ -340,7 +379,7 @@ function ProjectsOverview({ projectId, projectName }) {
                   </div>
                 ))}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Modals */}
@@ -367,13 +406,13 @@ function ProjectsOverview({ projectId, projectName }) {
         isOpen={showAttendanceModal}
         onClose={() => setShowAttendanceModal(false)}
         addAttendance={addAttendance}
-        projectId= {projectId}
+        projectId={projectId}
       />
       <PhotoModal
         isOpen={showPhotoModal}
         onClose={() => setShowPhotoModal(false)}
         addPhoto={(url) => setPhotos([...photos, url])}
-        projectId= {projectId}
+        projectId={projectId}
       />
     </div>
   );

@@ -13,9 +13,10 @@ const taskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // reference to User model
     },
-    startDate: { type: Date },  
-    endDate: { type: Date },     
-    dueDate: { type: Date },     
+    startDate: { type: Date },
+    endDate: { type: Date },
+    dueDate: { type: Date },
+    progress: { type: Number },
     status: {
       type: String,
       enum: ["TODO", "IN_PROGRESS", "REVIEW", "DONE"],

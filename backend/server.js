@@ -26,6 +26,7 @@ const uploadRoutes = require('./routes/upload')
 const taskRoutes = require('./routes/taskRoutes')
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes')
+const photoRoutes = require("./routes/photoRoutes")
 // Load environment variables
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/tasks",taskRoutes)
 app.use('/api/invoice',invoiceRoutes)
 app.use('/api/attendance',attendanceRoutes);
+app.use('/api/photo',photoRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

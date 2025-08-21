@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   createInvoice,
   getInvoices,
-  getInvoiceById,
+  getInvoicesByProject,
   updateInvoice,
   deleteInvoice,
 } = require("../controllers/invoiceController");
@@ -11,7 +11,7 @@ const {
 // Routes
 router.post("/", createInvoice);      // Create invoice
 router.get("/", getInvoices);         // Get all invoices
-router.get("/:id", getInvoiceById);   // Get single invoice
+router.get("/", getInvoicesByProject);   // Get single invoice
 router.put("/:id", updateInvoice);    // Update invoice
 router.delete("/:id", deleteInvoice); // Delete invoice
 

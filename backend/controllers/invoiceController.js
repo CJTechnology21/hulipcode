@@ -1,6 +1,6 @@
 const Invoice = require("../models/Invoice");
 
-// ✅ Create Invoice
+//  Create Invoice
 const createInvoice = async (req, res) => {
     try {
         const { firm, date, amount, projectId } = req.body;
@@ -18,7 +18,7 @@ const createInvoice = async (req, res) => {
     }
 };
 
-// ✅ Get All Invoices
+//  Get All Invoices
 const getInvoices = async (req, res) => {
     try {
         const invoices = await Invoice.find().populate("projectId", "name");
@@ -28,19 +28,35 @@ const getInvoices = async (req, res) => {
     }
 };
 
-// ✅ Get Invoice by ID
-const getInvoiceById = async (req, res) => {
-    try {
-        const invoice = await Invoice.findById(req.params.id).populate("projectId", "name");
-        if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+// Get Invoice by project ID
 
-        res.status(200).json(invoice);
+const getInvoicesByProject = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+
+        // Validate projectId
+        if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ message: "Invalid or missing projectId" });
+        }
+
+        // Fetch invoices for this project
+        const invoices = await Invoice.find({ projectId })
+            .populate("projectId", "name") // populate project name
+            .sort({ createdAt: -1 });
+
+        if (!invoices || invoices.length === 0) {
+            return res.status(404).json({ message: "No invoices found for this project" });
+        }
+
+        res.status(200).json({ invoices });
     } catch (error) {
-        res.status(500).json({ message: "Error fetching invoice", error: error.message });
+        console.error("Get Invoices Error:", error);
+        res.status(500).json({ message: "Server error while fetching invoices" });
     }
 };
 
-// ✅ Update Invoice
+
+// Update Invoice
 const updateInvoice = async (req, res) => {
     try {
         const invoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, {
@@ -55,7 +71,7 @@ const updateInvoice = async (req, res) => {
     }
 };
 
-// ✅ Delete Invoice
+// Delete Invoice
 const deleteInvoice = async (req, res) => {
     try {
         const invoice = await Invoice.findByIdAndDelete(req.params.id);
@@ -68,4 +84,4 @@ const deleteInvoice = async (req, res) => {
 };
 
 
-module.exports = { createInvoice, deleteInvoice, updateInvoice, getInvoiceById, getInvoices }
+module.exports = { createInvoice, deleteInvoice, updateInvoice, getInvoicesByProject, getInvoices }

@@ -1,5 +1,5 @@
 const Task = require("../models/Tasks");
-
+const mongoose = require("mongoose");
 // ==============================
 // Create Task (flexible fields)
 // ==============================
@@ -16,7 +16,7 @@ const createTask = async (req, res) => {
     const task = await Task.create({
       name,
       projectId,
-      ...rest, // take any other optional fields
+      ...rest, 
     });
 
     res.status(201).json({
@@ -31,16 +31,21 @@ const createTask = async (req, res) => {
 // ==============================
 // Get All Tasks (with optional project filter)
 // ==============================
-const getTasks = async (req, res) => {
+const getTasksByProject = async (req, res) => {
   try {
     const { projectId } = req.query;
 
-    let filter = {};
-    if (projectId) filter.projectId = projectId;
+    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid or missing projectId" });
+    }
 
-    const tasks = await Task.find(filter)
-      .populate("assignedTo", "name email role") // populate assigned user
+    const tasks = await Task.find({ projectId })  // No need for new ObjectId()
+      .populate("assignedTo", "name email role")
       .sort({ createdAt: -1 });
+
+    if (!tasks || tasks.length === 0) {
+      return res.status(404).json({ message: "No tasks found for this project" });
+    }
 
     res.status(200).json({ tasks });
   } catch (err) {
@@ -128,7 +133,7 @@ const deleteTask = async (req, res) => {
 
 module.exports = {
   createTask,
-  getTasks,
+  getTasksByProject,
   getTaskById,
   updateTask,
   patchTask,

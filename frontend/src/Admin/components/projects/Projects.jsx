@@ -162,8 +162,8 @@ function Projects() {
           <ClipLoader color="red" size={50} />
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left bg-white">
+        <div className="overflow-x-hidden p-4 m-4 rounded-lg">
+          <table className="min-w-full text-sm text-left bg-white rounded-lg shadow-lg">
             <thead className="bg-gray-200 text-black font-semibold uppercase text-xs">
               <tr>
                 {["#", "Project ID", "Project Name", "Client Name", "City / Area", "Category", "Status", "Progress", "In / Out", "Protect", ""].map(

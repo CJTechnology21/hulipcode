@@ -2,29 +2,29 @@ const express = require("express");
 const router = express.Router();
 const {
   createTask,
-  getTasks,
+  getTasksByProject,
   getTaskById,
   updateTask,
   patchTask,
   deleteTask,
 } = require("../controllers/taskController");
 
-// ✅ Create new task
+//  Create new task
 router.post("/", createTask);
 
-// ✅ Get all tasks (with optional filters: ?projectId=xxx, ?status=TODO)
-router.get("/", getTasks);
+//  Get all tasks (with optional filters: ?projectId=xxx, ?status=TODO)
+router.get("/", getTasksByProject);
 
-// ✅ Get single task by ID
+//  Get single task by ID
 router.get("/:id", getTaskById);
 
-// ✅ Full update (PUT)
+//  Full update (PUT)
 router.put("/:id", updateTask);
 
-// ✅ Partial update (PATCH)
+//  Partial update (PATCH)
 router.patch("/:id", patchTask);
 
-// ✅ Delete task
+//  Delete task
 router.delete("/:id", deleteTask);
 
 module.exports = router;
