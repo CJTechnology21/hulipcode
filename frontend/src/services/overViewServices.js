@@ -123,7 +123,7 @@ export const deleteAttendance = async (attendanceId) => {
 export const generateUploadURL = async (fileName, fileType) => {
   if (!fileName || !fileType) throw new Error("fileName and fileType are required");
 
-  const res = await axiosInstance.post("/api/photo/upload-url", { fileName, fileType });
+  const res = await axiosInstance.post("/api/photo/generate-upload-url", { fileName, fileType });
   return res.data; // { uploadUrl, url }
 };
 
@@ -131,7 +131,7 @@ export const generateUploadURL = async (fileName, fileType) => {
 export const addProjectPhoto = async (projectId, url) => {
   if (!projectId || !url) throw new Error("projectId and url are required");
 
-  const res = await axiosInstance.post("/api/photo", { projectId, url });
+  const res = await axiosInstance.post("/api/photo/add-photo", { projectId, url });
   return res.data; // { message, fileUrl, photo }
 };
 

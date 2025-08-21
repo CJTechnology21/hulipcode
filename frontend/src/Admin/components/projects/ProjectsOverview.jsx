@@ -342,44 +342,6 @@ function ProjectsOverview({ projectId, projectName }) {
                 ))}
           </div>
         </div>
-
-        {/* <div className="bg-white p-4 rounded-xl shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-gray-800">Project Photos</h3>
-            <Button
-              variant="custom"
-              className="text-xs text-white bg-gray-700 px-3 py-1 rounded hover:bg-gray-800"
-              onClick={() => setShowPhotoModal(true)}
-            >
-              + Add Photo
-            </Button>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {photos.length === 0
-              ? Array(3)
-                  .fill(0)
-                  .map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
-                    >
-                      No image
-                    </div>
-                  ))
-              : photos.map((p, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
-                  >
-                    <img
-                      src={p}
-                      alt={`Project ${idx}`}
-                      className="h-full w-full object-cover rounded"
-                    />
-                  </div>
-                ))}
-          </div>
-        </div> */}
       </div>
 
       {/* Modals */}
