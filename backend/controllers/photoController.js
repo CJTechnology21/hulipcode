@@ -73,13 +73,15 @@ const addProjectPhoto = async (req, res) => {
 
 const getProjectPhotos = async (req, res) => {
   try {
-    const { projectId } = req.query; // <-- use query instead of params
+    const { projectId } = req.query; // coming as string
 
     if (!projectId) {
       return res.status(400).json({ error: "Project ID is required" });
     }
 
-    const photos = await Photo.find({ projectId });
+    // Cast string to ObjectId
+    const photos = await Photo.find({ projectId: new mongoose.Types.ObjectId(projectId) });
+
     const urls = photos.map(p => p.url);
 
     res.status(200).json({ photos: urls });
