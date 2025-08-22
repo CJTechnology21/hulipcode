@@ -141,36 +141,40 @@ function TwoDLayouts({ projectId }) {
       return { ...prev, fileTypes: updated };
     });
   };
-  const handleSave = async () => {
-    try {
-      let updatedItem = { ...editValues };
+ const handleSave = async () => {
+  try {
+    if (!editValues._id) throw new Error("Layout ID missing");
 
-      // Append new version if uploaded
-      if (newVersionFile) {
-        const newLabel = `V${(editValues.versions?.length || 0) + 1}`;
-        const newVersion = {
-          label: newLabel,
-          image: URL.createObjectURL(newVersionFile),
-        };
-        updatedItem.versions = [...(editValues.versions || []), newVersion];
-      }
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append("name", editValues.name);
+    formData.append("area", editValues.area);
+    formData.append("status", editValues.status || "Draft");
 
-      await updateLayout(editValues._id, updatedItem); // Use MongoDB _id
-      setLayouts((prev) =>
-        prev.map((item) =>
-          item.sno === editRowId ? { ...updatedItem, sno: item.sno } : item
-        )
-      );
-
-      toast.success("Layout updated successfully!");
-      setEditRowId(null);
-      setEditValues({});
-      setNewVersionFile(null);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update layout.");
+    // Append file if a new version is uploaded
+    if (newVersionFile) {
+      formData.append("file", newVersionFile); // actual file sent to backend
     }
-  };
+
+    // Call backend PATCH endpoint
+    const updatedLayout = await patchLayout(editValues._id, formData);
+
+    // Update state
+    setLayouts((prev) =>
+      prev.map((item) =>
+        item.sno === editRowId ? { ...updatedLayout, sno: item.sno } : item
+      )
+    );
+
+    toast.success("Layout updated successfully!");
+    setEditRowId(null);
+    setEditValues({});
+    setNewVersionFile(null);
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to update layout.");
+  }
+};
 
   const handleDelete = async (sno, layoutId) => {
     try {
@@ -386,36 +390,6 @@ function TwoDLayouts({ projectId }) {
                 )}
               </td>
 
-              {/* <td className="px-4 py-3 flex items-center gap-2">
-                {editRowId === item.sno ? (
-                  <select
-                    value={editValues.assigned?.name}
-                    onChange={(e) => {
-                      const person = assignees.find(
-                        (a) => a.name === e.target.value
-                      );
-                      handleEditChange("assigned", person);
-                    }}
-                    className="border px-2 py-1 rounded text-sm"
-                  >
-                    {assignees.map((a) => (
-                      <option key={a.name} value={a.name}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <>
-                    <div
-                      className={`w-6 h-6 rounded-full text-white text-xs font-bold ${item.assigned?.color} flex items-center justify-center`}
-                    >
-                      {item.assigned?.name?.[0]}
-                    </div>
-                    <span>{item.assigned?.name}</span>
-                  </>
-                )}
-              </td> */}
-
               <td className="px-4 py-3">{formatDate(item.uploaded)}</td>
 
               {/* Status */}
@@ -488,14 +462,24 @@ function TwoDLayouts({ projectId }) {
       </table>
 
       {/* ✅ CARD layout for small screens */}
+      {/* CARD layout for small screens */}
       <div className="block md:hidden space-y-4">
         {filteredData.map((item) => (
           <div
             key={item.sno}
             className="bg-white p-4 rounded-lg shadow border text-sm"
           >
+            {/* Header */}
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold">{item.name}</h3>
+              {editRowId === item.sno ? (
+                <input
+                  value={editValues.name}
+                  onChange={(e) => handleEditChange("name", e.target.value)}
+                  className="border px-2 py-1 rounded w-full"
+                />
+              ) : (
+                <h3 className="font-bold">{item.name}</h3>
+              )}
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                   statusColors[item.status]
@@ -504,46 +488,165 @@ function TwoDLayouts({ projectId }) {
                 {item.status}
               </span>
             </div>
-            <p>
-              <span className="font-semibold">Area:</span> {item.area}
-            </p>
-            <p>
-              <span className="font-semibold">File Types:</span>{" "}
-              {(item.fileTypes || []).join(", ")}
-            </p>
-            <p>
-              <span className="font-semibold">Versions:</span>{" "}
-              {(item.versions || []).map((v) => v.label || v).join(", ")}
-            </p>
-            <p>
-              <span className="font-semibold">Assigned:</span>{" "}
-              {item.assigned?.name}
-            </p>
-            <p>
-              <span className="font-semibold">Uploaded:</span> {item.uploaded}
-            </p>
-            <div className="flex gap-3 mt-3 text-lg text-gray-700">
+
+            {/* Body */}
+            {editRowId === item.sno ? (
+              <>
+                <div className="mb-2">
+                  <span className="font-semibold">Area: </span>
+                  <input
+                    value={editValues.area}
+                    onChange={(e) => handleEditChange("area", e.target.value)}
+                    className="border px-2 py-1 rounded w-full text-sm"
+                  />
+                </div>
+
+                {/* File Types */}
+                <div className="mb-2">
+                  <span className="font-semibold">File Types: </span>
+                  <div className="flex gap-2 flex-wrap">
+                    {fileTypes.map((type) => (
+                      <label
+                        key={type}
+                        className="flex items-center gap-1 text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(editValues.fileTypes || []).includes(type)}
+                          onChange={() => handleToggleFileType(type)}
+                        />
+                        {type}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Versions */}
+                <div className="mb-2">
+                  <span className="font-semibold">Versions: </span>
+                  <div className="flex gap-1 flex-wrap">
+                    {(editValues.versions || []).map((v, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-red-700 text-white px-2 py-0.5 text-xs rounded-full"
+                        style={{ opacity: 1 - idx * 0.2 }}
+                      >
+                        {v.label}
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setNewVersionFile(e.target.files[0])}
+                    className="text-xs mt-1"
+                  />
+                </div>
+
+                {/* Assigned */}
+                <div className="mb-2">
+                  <span className="font-semibold">Assigned: </span>
+                  <select
+                    value={editValues.assigned?.name || ""}
+                    onChange={(e) => {
+                      const person = assignees.find(
+                        (a) => a.name === e.target.value
+                      );
+                      handleEditChange("assigned", person);
+                    }}
+                    className="border px-2 py-1 rounded text-sm w-full"
+                  >
+                    <option value="">Select Architect</option>
+                    {assignees.map((a) => (
+                      <option key={a._id} value={a.name}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div className="mb-2">
+                  <span className="font-semibold">Status: </span>
+                  <select
+                    value={editValues.status}
+                    onChange={(e) => handleEditChange("status", e.target.value)}
+                    className="border px-2 py-1 rounded text-sm w-full"
+                  >
+                    {statuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>
+                  <span className="font-semibold">Area:</span> {item.area}
+                </p>
+                <p>
+                  <span className="font-semibold">File Types:</span>{" "}
+                  {(item.fileTypes || []).join(", ")}
+                </p>
+                <p>
+                  <span className="font-semibold">Versions:</span>{" "}
+                  {(item.versions || []).map((v) => v.label || v).join(", ")}
+                </p>
+                <p>
+                  <span className="font-semibold">Assigned:</span>{" "}
+                  {item.assigned?.name}
+                </p>
+                <p>
+                  <span className="font-semibold">Uploaded:</span>{" "}
+                  {item.uploaded}
+                </p>
+              </>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-3 text-lg text-gray-700 items-center">
               <FiMessageSquare />
               <FiEye
                 onClick={() => openModal(item)}
                 className="cursor-pointer hover:text-black"
               />
-              <BsThreeDotsVertical
-                className="cursor-pointer"
-                onClick={() => handleEditClick(item)}
-              />
-              <button
-                onClick={() => handleDelete(item.sno)}
-                className="text-red-600 text-xs"
-              >
-                Delete
-              </button>
+
+              {editRowId === item.sno ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="text-green-600 text-xs"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditRowId(null)}
+                    className="text-yellow-600 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <BsThreeDotsVertical
+                    className="cursor-pointer"
+                    onClick={() => handleEditClick(item)}
+                  />
+                  <button
+                    onClick={() => handleDelete(item.sno, item._id)}
+                    className="text-red-600 text-xs"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Buttons */}
       <div className="mt-4 flex justify-end gap-4">
         <Button
           variant="custom"
