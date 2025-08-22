@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 // Version schema with multiple images
 const VersionSchema = new mongoose.Schema({
   label: { type: String, required: true },
-  images: [
-    { type: String, required: true } // Array of image URLs
-  ],
+  images: {
+    type: String, required: true  // Array of image URLs
+  },
 });
 
 // TwoDLayout schema with comments referencing User
