@@ -187,6 +187,66 @@ const createLayout = async (req, res) => {
     });
 };
 
+// Add a comment to a layout
+const addCommentToLayout = async (req, res) => {
+  try {
+    const { layoutId, text } = req.body;
+    const userId = req.user._id; // from auth middleware
+
+    if (!layoutId || !mongoose.Types.ObjectId.isValid(layoutId)) {
+      return res.status(400).json({ message: "Invalid layoutId" });
+    }
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "Comment text is required" });
+    }
+
+    const layout = await TwoDLayout.findById(layoutId);
+    if (!layout) {
+      return res.status(404).json({ message: "Layout not found" });
+    }
+
+    const comment = { author: userId, text };
+    layout.comments.push(comment);
+    await layout.save();
+
+    // Populate author info
+    const populatedComment = await layout.populate({
+      path: "comments.author",
+      select: "name email profilePic",
+    });
+
+    res.status(201).json(populatedComment.comments.slice(-1)[0]); // return the newly added comment
+  } catch (err) {
+    console.error("Add Comment Error:", err);
+    res.status(500).json({ message: "Server error while adding comment" });
+  }
+};
+// Get all comments for a specific project
+const getCommentsByProject = async (req, res) => {
+  try {
+    const { projectId } = req.query;
+
+    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid projectId" });
+    }
+
+    const layouts = await TwoDLayout.find({ projectId })
+      .select("comments") // get only comments
+      .populate("comments.author", "name email profilePic")
+      .sort({ createdAt: -1 });
+
+    // Flatten comments from all layouts
+    const comments = layouts.flatMap((layout) =>
+      layout.comments.map((c) => ({ ...c.toObject(), layoutId: layout._id }))
+    );
+
+    res.status(200).json(comments);
+  } catch (err) {
+    console.error("Get Comments Error:", err);
+    res.status(500).json({ message: "Server error while fetching comments" });
+  }
+};
+
 module.exports = {
     getAllLayouts,
     getLayoutById,
@@ -195,4 +255,6 @@ module.exports = {
     patchLayout,
     deleteLayout,
     getLayoutsByProject,
+    addCommentToLayout,
+    getCommentsByProject,
 }

@@ -33,7 +33,7 @@ export default function ArchitectProfileView() {
         setOrders(ordersData || []);
         setFavourites(favouritesData || []);
       } catch (err) {
-        console.error("❌ Failed to fetch architect data:", err);
+        console.error(" Failed to fetch architect data:", err);
       } finally {
         setLoading(false);
       }
@@ -56,7 +56,7 @@ export default function ArchitectProfileView() {
   if (!user) {
     return (
       <div className="p-6 text-center text-red-500">
-        ❌ No architect profile found.
+         No architect profile found.
       </div>
     );
   }

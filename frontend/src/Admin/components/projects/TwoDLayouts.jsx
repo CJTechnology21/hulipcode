@@ -14,7 +14,6 @@ import { formatDate } from "../../../utils/dateFormatter";
 import {
   fetchLayouts,
   patchLayout,
-  updateLayout,
   deleteLayout,
 } from "../../../services/twoDServices";
 import { fetchArchitects } from "../../../services/leadServices";
@@ -463,7 +462,7 @@ function TwoDLayouts({ projectId }) {
         </tbody>
       </table>
 
-      {/* ✅ CARD layout for small screens */}
+    
       {/* CARD layout for small screens */}
       <div className="block md:hidden space-y-4">
         {filteredData.map((item) => (
@@ -671,6 +670,7 @@ function TwoDLayouts({ projectId }) {
         onClose={() => setModalOpen(false)}
         data={selectedFile}
         type="2d"
+        projectId={projectId}
       />
 
       <AddDesignModal

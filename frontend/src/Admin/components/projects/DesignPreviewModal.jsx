@@ -3,17 +3,20 @@ import { Fragment, useEffect, useState } from "react";
 import { FaMinusCircle, FaPlusCircle } from "react-icons/fa";
 import { FiDownload, FiMessageSquare, FiShare2, FiX } from "react-icons/fi";
 import Button from "../../../components/Button";
+import { useAuth } from "../../../context/AuthContext"; 
+import { fetchCommentsByProject, addComment } from "../../../services/twoDServices"; // ✅ import services
 
-function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
+function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
+  // eslint-disable-next-line 
+  const { user, loading: authLoading } = useAuth(); 
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [zoomLevels, setZoomLevels] = useState([1, 1]);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-
-  const currentUser = { name: "John Doe" };
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (data?.versions?.length) {
@@ -23,15 +26,54 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
     }
   }, [data]);
 
+  // Fetch comments when drawer opens
+  useEffect(() => {
+    if (showComments && projectId) {
+      loadComments();
+    }
+    // eslint-disable-next-line 
+  }, [showComments, projectId]);
+
+  const loadComments = async () => {
+    try {
+      setLoadingComments(true);
+      const fetched = await fetchCommentsByProject(projectId);
+      setComments(fetched);
+    } catch (err) {
+      console.error("Error fetching comments:", err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    if (!user) {
+      alert("You must be logged in to add a comment.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      // ✅ pass layoutId = data._id
+      const created = await addComment(data._id, newComment);
+      setComments((prev) => [created, ...prev]);
+      setNewComment("");
+    } catch (err) {
+      console.error("Error adding comment:", err);
+      alert("Failed to add comment.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!data || !selectedVersion) return null;
 
-  // Helper to detect PDF
   const isPDF = (url) => url?.toLowerCase().endsWith(".pdf");
 
-  // Get all files for current version
   const getFiles = () => {
     if (!selectedVersion) return [];
-    // Assume each version has either `image` or `file` (PDF) property
     const file = selectedVersion.file || selectedVersion.image;
     return [file, data.versions.length === 1 ? file : selectedVersion.file || selectedVersion.image];
   };
@@ -46,17 +88,6 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
     setZoomLevels((prev) =>
       prev.map((z, i) => (i === selectedFileIndex ? Math.max(z - 0.2, 0.5) : z))
     );
-  };
-
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    const newEntry = {
-      user: currentUser,
-      text: newComment,
-      date: new Date().toLocaleString(),
-    };
-    setComments((prev) => [newEntry, ...prev]);
-    setNewComment("");
   };
 
   const handleDownload = (url) => {
@@ -82,14 +113,8 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
                   Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt; {data.name}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <FaPlusCircle
-                    className="cursor-pointer text-xl"
-                    onClick={handleZoomIn}
-                  />
-                  <FaMinusCircle
-                    className="cursor-pointer text-xl"
-                    onClick={handleZoomOut}
-                  />
+                  <FaPlusCircle className="cursor-pointer text-xl" onClick={handleZoomIn} />
+                  <FaMinusCircle className="cursor-pointer text-xl" onClick={handleZoomOut} />
                   <Button className="bg-green-500 text-white text-sm px-3 py-1 rounded" variant="custom">
                     Approve
                   </Button>
@@ -146,11 +171,7 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
                     >
                       {fileSrc ? (
                         isPDF(fileSrc) ? (
-                          <embed
-                            src={fileSrc}
-                            type="application/pdf"
-                            className="w-full h-full"
-                          />
+                          <embed src={fileSrc} type="application/pdf" className="w-full h-full" />
                         ) : (
                           <img
                             src={fileSrc}
@@ -180,14 +201,16 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
                       </div>
 
                       <div className="flex-1 overflow-y-auto p-3">
-                        {comments.length === 0 ? (
+                        {loadingComments ? (
+                          <p className="text-gray-500 text-xs">Loading comments...</p>
+                        ) : comments.length === 0 ? (
                           <p className="text-gray-500 text-xs">No comments yet.</p>
                         ) : (
                           comments.map((comment, idx) => (
                             <div key={idx} className="mb-4 flex items-start gap-3">
                               <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold uppercase">
-                                {comment.user?.name
-                                  ? comment.user.name
+                                {comment.author?.name
+                                  ? comment.author.name
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")
@@ -196,9 +219,11 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-semibold">
-                                    {comment.user?.name ?? "Unknown"}
+                                    {comment.author?.name ?? "Unknown"}
                                   </span>
-                                  <span className="text-xs text-gray-400">{comment.date}</span>
+                                  <span className="text-xs text-gray-400">
+                                    {new Date(comment.createdAt).toLocaleString()}
+                                  </span>
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
                               </div>
@@ -208,20 +233,29 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
                       </div>
 
                       <div className="p-3 border-t">
-                        <textarea
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          placeholder="Add comment..."
-                          className="w-full border rounded p-2 text-xs"
-                          rows={2}
-                        />
-                        <Button
-                          onClick={handleAddComment}
-                          className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 cursor-pointer text-xs py-1"
-                          variant="custom"
-                        >
-                          Submit
-                        </Button>
+                        {user ? (
+                          <>
+                            <textarea
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder="Add comment..."
+                              className="w-full border rounded p-2 text-xs"
+                              rows={2}
+                            />
+                            <Button
+                              onClick={handleAddComment}
+                              disabled={submitting}
+                              className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 cursor-pointer text-xs py-1"
+                              variant="custom"
+                            >
+                              {submitting ? "Submitting..." : "Submit"}
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-500 text-center">
+                            Please log in to add comments.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -242,56 +276,73 @@ export default DesignPreviewModal;
 // import { FaMinusCircle, FaPlusCircle } from "react-icons/fa";
 // import { FiDownload, FiMessageSquare, FiShare2, FiX } from "react-icons/fi";
 // import Button from "../../../components/Button";
-
-// function DesignPreviewModal({ isOpen, onClose, data, type = "2d" }) {
+// import { useAuth } from "../../../context/AuthContext"; 
+// function DesignPreviewModal({ isOpen, onClose, data, type = "2d" ,projectId }) {
+//   // eslint-disable-next-line
+//   const { user, loading: authLoading } = useAuth(); 
 //   const [selectedVersion, setSelectedVersion] = useState(null);
 //   const [zoomLevels, setZoomLevels] = useState([1, 1]);
-//   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+//   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
 
 //   const [showComments, setShowComments] = useState(false);
 //   const [comments, setComments] = useState([]);
 //   const [newComment, setNewComment] = useState("");
 
-//   const currentUser = { name: "John Doe" };
-
 //   useEffect(() => {
 //     if (data?.versions?.length) {
 //       setSelectedVersion(data.versions[0]);
 //       setZoomLevels([1, 1]);
-//       setSelectedImageIndex(0);
+//       setSelectedFileIndex(0);
 //     }
 //   }, [data]);
 
 //   if (!data || !selectedVersion) return null;
 
-//   const getImages = () => {
-//     const img = selectedVersion.image;
-//     return [img, data.versions.length === 1 ? img : selectedVersion.image];
+//   // Helper to detect PDF
+//   const isPDF = (url) => url?.toLowerCase().endsWith(".pdf");
+
+//   // Get all files for current version
+//   const getFiles = () => {
+//     if (!selectedVersion) return [];
+//     const file = selectedVersion.file || selectedVersion.image;
+//     return [file, data.versions.length === 1 ? file : selectedVersion.file || selectedVersion.image];
 //   };
 
 //   const handleZoomIn = () => {
 //     setZoomLevels((prev) =>
-//       prev.map((z, i) => (i === selectedImageIndex ? Math.min(z + 0.2, 3) : z))
+//       prev.map((z, i) => (i === selectedFileIndex ? Math.min(z + 0.2, 3) : z))
 //     );
 //   };
 
 //   const handleZoomOut = () => {
 //     setZoomLevels((prev) =>
-//       prev.map((z, i) =>
-//         i === selectedImageIndex ? Math.max(z - 0.2, 0.5) : z
-//       )
+//       prev.map((z, i) => (i === selectedFileIndex ? Math.max(z - 0.2, 0.5) : z))
 //     );
 //   };
 
 //   const handleAddComment = () => {
 //     if (!newComment.trim()) return;
+
+//     // ✅ Only allow logged-in users to comment
+//     if (!user) {
+//       alert("You must be logged in to add a comment.");
+//       return;
+//     }
+
 //     const newEntry = {
-//       user: currentUser,
+//       user,
 //       text: newComment,
 //       date: new Date().toLocaleString(),
 //     };
 //     setComments((prev) => [newEntry, ...prev]);
 //     setNewComment("");
+//   };
+
+//   const handleDownload = (url) => {
+//     const link = document.createElement("a");
+//     link.href = url;
+//     link.download = url.split("/").pop();
+//     link.click();
 //   };
 
 //   return (
@@ -307,8 +358,7 @@ export default DesignPreviewModal;
 //               {/* Header */}
 //               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 border-b bg-gray-50 gap-2 sm:gap-0">
 //                 <div className="text-sm font-semibold">
-//                   Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt;{" "}
-//                   {data.name}
+//                   Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt; {data.name}
 //                 </div>
 //                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
 //                   <FaPlusCircle
@@ -325,9 +375,13 @@ export default DesignPreviewModal;
 //                   <Button className="text-red-600 font-bold text-sm" variant="custom">
 //                     Reject
 //                   </Button>
-//                   <FiDownload className="cursor-pointer text-lg" title="Download" />
+//                   <FiDownload
+//                     className="cursor-pointer text-lg"
+//                     title="Download"
+//                     onClick={() => handleDownload(getFiles()[selectedFileIndex])}
+//                   />
 //                   <FiMessageSquare
-//                     className={`cursor-pointer text-lg ${showComments ? 'text-red-500' : ''}`}
+//                     className={`cursor-pointer text-lg ${showComments ? "text-red-500" : ""}`}
 //                     title="Comments"
 //                     onClick={() => setShowComments(!showComments)}
 //                   />
@@ -346,7 +400,7 @@ export default DesignPreviewModal;
 //                       onClick={() => {
 //                         setSelectedVersion(v);
 //                         setZoomLevels([1, 1]);
-//                         setSelectedImageIndex(0);
+//                         setSelectedFileIndex(0);
 //                       }}
 //                       className={`text-xs font-bold px-2 py-1 rounded-md flex-shrink-0 ${
 //                         selectedVersion?.label === v.label
@@ -359,26 +413,34 @@ export default DesignPreviewModal;
 //                   ))}
 //                 </div>
 
-//                 {/* Image Containers */}
+//                 {/* File Containers */}
 //                 <div className="flex-1 p-4 sm:p-6 bg-gray-100 flex flex-col sm:flex-row gap-4 justify-center items-center relative">
-//                   {getImages().map((imgSrc, idx) => (
+//                   {getFiles().map((fileSrc, idx) => (
 //                     <div
 //                       key={idx}
 //                       className={`w-full sm:w-1/2 h-[50vh] sm:h-[70vh] bg-white border rounded-lg shadow-sm p-2 flex items-center justify-center overflow-hidden cursor-pointer ${
-//                         selectedImageIndex === idx ? "ring-2 ring-red-500" : ""
+//                         selectedFileIndex === idx ? "ring-2 ring-red-500" : ""
 //                       }`}
-//                       onClick={() => setSelectedImageIndex(idx)}
+//                       onClick={() => setSelectedFileIndex(idx)}
 //                     >
-//                       {imgSrc ? (
-//                         <img
-//                           src={imgSrc}
-//                           alt={`Version-${selectedVersion.label}-${idx}`}
-//                           className="max-h-full max-w-full object-contain transition-transform duration-300"
-//                           style={{ transform: `scale(${zoomLevels[idx]})` }}
-//                           onError={(e) => (e.target.style.display = "none")}
-//                         />
+//                       {fileSrc ? (
+//                         isPDF(fileSrc) ? (
+//                           <embed
+//                             src={fileSrc}
+//                             type="application/pdf"
+//                             className="w-full h-full"
+//                           />
+//                         ) : (
+//                           <img
+//                             src={fileSrc}
+//                             alt={`Version-${selectedVersion.label}-${idx}`}
+//                             className="max-h-full max-w-full object-contain transition-transform duration-300"
+//                             style={{ transform: `scale(${zoomLevels[idx]})` }}
+//                             onError={(e) => (e.target.style.display = "none")}
+//                           />
+//                         )
 //                       ) : (
-//                         <p className="text-gray-500 text-sm">No image</p>
+//                         <p className="text-gray-500 text-sm">No file</p>
 //                       )}
 //                     </div>
 //                   ))}
@@ -388,7 +450,12 @@ export default DesignPreviewModal;
 //                     <div className="absolute top-0 right-0 w-full sm:w-[300px] h-full bg-white border-l shadow-lg flex flex-col z-10">
 //                       <div className="p-3 border-b font-semibold text-sm flex justify-between items-center">
 //                         Comments
-//                         <button onClick={() => setShowComments(false)} className="text-gray-600 hover:text-black">×</button>
+//                         <button
+//                           onClick={() => setShowComments(false)}
+//                           className="text-gray-600 hover:text-black"
+//                         >
+//                           ×
+//                         </button>
 //                       </div>
 
 //                       <div className="flex-1 overflow-y-auto p-3">
@@ -410,9 +477,7 @@ export default DesignPreviewModal;
 //                                   <span className="text-sm font-semibold">
 //                                     {comment.user?.name ?? "Unknown"}
 //                                   </span>
-//                                   <span className="text-xs text-gray-400">
-//                                     {comment.date}
-//                                   </span>
+//                                   <span className="text-xs text-gray-400">{comment.date}</span>
 //                                 </div>
 //                                 <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
 //                               </div>
@@ -422,20 +487,28 @@ export default DesignPreviewModal;
 //                       </div>
 
 //                       <div className="p-3 border-t">
-//                         <textarea
-//                           value={newComment}
-//                           onChange={(e) => setNewComment(e.target.value)}
-//                           placeholder="Add comment..."
-//                           className="w-full border rounded p-2 text-xs"
-//                           rows={2}
-//                         />
-//                         <Button
-//                           onClick={handleAddComment}
-//                           className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 cursor-pointer text-xs py-1"
-//                           variant="custom"
-//                         >
-//                           Submit
-//                         </Button>
+//                         {user ? (
+//                           <>
+//                             <textarea
+//                               value={newComment}
+//                               onChange={(e) => setNewComment(e.target.value)}
+//                               placeholder="Add comment..."
+//                               className="w-full border rounded p-2 text-xs"
+//                               rows={2}
+//                             />
+//                             <Button
+//                               onClick={handleAddComment}
+//                               className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 cursor-pointer text-xs py-1"
+//                               variant="custom"
+//                             >
+//                               Submit
+//                             </Button>
+//                           </>
+//                         ) : (
+//                           <p className="text-xs text-gray-500 text-center">
+//                             Please log in to add comments.
+//                           </p>
+//                         )}
 //                       </div>
 //                     </div>
 //                   )}
