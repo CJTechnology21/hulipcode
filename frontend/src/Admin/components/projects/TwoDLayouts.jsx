@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { formatDate } from "../../../utils/dateFormatter";
 import {
   fetchLayouts,
+  patchLayout,
   updateLayout,
   deleteLayout,
 } from "../../../services/twoDServices";
