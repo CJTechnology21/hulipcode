@@ -2,10 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-
-
-// Import custom modules
 const connectDB = require('./utils/db');
+// Import custom modules
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
@@ -27,6 +25,7 @@ const taskRoutes = require('./routes/taskRoutes')
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes')
 const photoRoutes = require("./routes/photoRoutes")
+const twoDRoutes = require("./routes/twoDRoutes")
 // Load environment variables
 dotenv.config();
 
@@ -79,6 +78,7 @@ app.use("/api/tasks",taskRoutes)
 app.use('/api/invoice',invoiceRoutes)
 app.use('/api/attendance',attendanceRoutes);
 app.use('/api/photo',photoRoutes)
+app.use("/api/2dlayout",twoDRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

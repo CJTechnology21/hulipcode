@@ -54,42 +54,76 @@ export default function ProjectTabs() {
 
       return () => clearTimeout(timeout);
     },
-    [activeTab,firstLoad],
+    [activeTab, firstLoad]
     // firstLoad
   );
-
   const renderContent = () => {
+    const commonProps = { projectId, projectName };
+
     switch (activeTab) {
       case "Overview":
-        return <ProjectsOverview projectId ={projectId} projectName={projectName}/>;
+        return <ProjectsOverview {...commonProps} />;
       case "Dashboard":
-        return <ProjectsDashboard />;
+        return <ProjectsDashboard {...commonProps} />;
       case "Site Measurements":
-        return <ProjectSiteMeasurements />;
+        return <ProjectSiteMeasurements {...commonProps} />;
       case "Design":
-        return <ProjectsDesign />;
+        return <ProjectsDesign {...commonProps} />;
       case "Quotation":
-        return <ProjectEstimate />;
+        return <ProjectEstimate {...commonProps} />;
       case "Party":
-        return <ProjectParty />;
+        return <ProjectParty {...commonProps} />;
       case "Transaction":
-        return <ProjectTransaction />;
+        return <ProjectTransaction {...commonProps} />;
       case "Task":
-        return <ProjectTodo />;
+        return <ProjectTodo {...commonProps} />;
       case "Attendance":
-        return <ProjectAttendance />;
+        return <ProjectAttendance {...commonProps} />;
       case "Material":
-        return <ProjectMaterials projectName={projectName} />;
+        return <ProjectMaterials {...commonProps} />;
       case "Subcon":
-        return <ProjectSubcon />;
+        return <ProjectSubcon {...commonProps} />;
       case "Files":
-        return <ProjectFiles />;
+        return <ProjectFiles {...commonProps} />;
       case "Equipment":
-        return <ProjectEquipment />;
+        return <ProjectEquipment {...commonProps} />;
       default:
         return <div className="p-6">{activeTab} content goes here...</div>;
     }
   };
+
+  // const renderContent = () => {
+  //   switch (activeTab) {
+  //     case "Overview":
+  //       return <ProjectsOverview projectId ={projectId} projectName={projectName}/>;
+  //     case "Dashboard":
+  //       return <ProjectsDashboard projectId= {projectId}/>;
+  //     case "Site Measurements":
+  //       return <ProjectSiteMeasurements />;
+  //     case "Design":
+  //       return <ProjectsDesign projectId= {projectId} />;
+  //     case "Quotation":
+  //       return <ProjectEstimate />;
+  //     case "Party":
+  //       return <ProjectParty />;
+  //     case "Transaction":
+  //       return <ProjectTransaction />;
+  //     case "Task":
+  //       return <ProjectTodo />;
+  //     case "Attendance":
+  //       return <ProjectAttendance />;
+  //     case "Material":
+  //       return <ProjectMaterials projectName={projectName} />;
+  //     case "Subcon":
+  //       return <ProjectSubcon />;
+  //     case "Files":
+  //       return <ProjectFiles />;
+  //     case "Equipment":
+  //       return <ProjectEquipment />;
+  //     default:
+  //       return <div className="p-6">{activeTab} content goes here...</div>;
+  //   }
+  // };
 
   return (
     <Layout title={projectName}>

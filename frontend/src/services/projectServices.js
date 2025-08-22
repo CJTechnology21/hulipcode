@@ -4,6 +4,7 @@ import axios from "axios";
 const API_BASE = process.env.REACT_APP_API_BASE;
 
 // Create axios instance
+
 const axiosInstance = axios.create({
   baseURL: API_BASE,
   withCredentials: true, 
@@ -44,3 +45,10 @@ export const deleteProject = async (projectId) => {
   const res = await axiosInstance.delete(`/api/projects/${projectId}`);
   return res.data;
 };
+
+// Fetch project by ID
+export const fetchProjectById = async (projectId) => {
+  const res = await axiosInstance.get(`/api/projects/${projectId}`);
+  return res.data;
+};
+

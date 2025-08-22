@@ -124,15 +124,16 @@ function ProjectsOverview({ projectId, projectName }) {
 
   // Fetch photos from backend
   const loadPhotos = async () => {
-    if (!projectId) return;
-    try {
-      const data = await fetchProjectPhotos(projectId);
-      // data should be { photos: [...] } based on backend response
-      setPhotos(data.photos || []);
-    } catch (error) {
-      console.error("Failed to load project photos:", error);
-    }
-  };
+  if (!projectId) return;
+  try {
+    const data = await fetchProjectPhotos(projectId);
+    // console.log("Fetched photos from backend:", data); // <-- debug log
+    setPhotos(data.photos || []);
+  } catch (error) {
+    // console.error("Failed to load project photos:", error);
+  }
+};
+
 
   // Load photos on mount and whenever projectId changes
   useEffect(() => {
@@ -315,7 +316,36 @@ function ProjectsOverview({ projectId, projectName }) {
               + Add Photo
             </Button>
           </div>
+          <div className="grid grid-cols-3 gap-2">
+            {photos.length === 0
+              ? Array(3)
+                  .fill(0)
+                  .map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
+                    >
+                      No image
+                    </div>
+                  ))
+              : photos.map((p, idx) => {
+                  // console.log("Photo item at index", idx, ":", p); // <-- debug log
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
+                    >
+                      <img
+                        src={p}
+                        alt={`Project ${idx}`}
+                        className="h-full w-full object-cover rounded"
+                      />
+                    </div>
+                  );
+                })}
+          </div>
 
+          {/* 
           <div className="grid grid-cols-3 gap-2">
             {photos.length === 0
               ? Array(3)
@@ -334,13 +364,13 @@ function ProjectsOverview({ projectId, projectName }) {
                     className="bg-gray-100 h-24 flex items-center justify-center text-xs text-gray-500 rounded"
                   >
                     <img
-                      src={p.url} // <-- use p.url here
+                      src={p} // <-- use p.url here
                       alt={`Project ${idx}`}
                       className="h-full w-full object-cover rounded"
                     />
                   </div>
                 ))}
-          </div>
+          </div> */}
         </div>
       </div>
 

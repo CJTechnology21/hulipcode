@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import TwoDLayouts from "./TwoDLayouts";
 import ThreeDRenders from "./ThreeDRenders";
 
-function ProjectsDesign() {
+function ProjectsDesign({projectId}) {
   const [activeTab, setActiveTab] = useState("2d");
 
   return (
@@ -31,7 +31,7 @@ function ProjectsDesign() {
         </span>
       </div>
 
-      {activeTab === "2d" ? <TwoDLayouts /> : <ThreeDRenders />}
+      {activeTab === "2d" ? <TwoDLayouts projectId={projectId}/> : <ThreeDRenders />}
     </div>
   );
 }
