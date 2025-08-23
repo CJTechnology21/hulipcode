@@ -5,7 +5,7 @@ const User = require("../models/User");
 // Create
 const createTodo = async (req, res) => {
     try {
-        const { itemName, dueDate, assigned, projectId, type, status } = req.body;
+        const { itemName, dueDate, assigned, projectId, type, status, description } = req.body;
 
         if (!itemName || !dueDate || !projectId || !type) {
             return res.status(400).json({ message: "Please provide all required fields" });
@@ -30,9 +30,10 @@ const createTodo = async (req, res) => {
             dueDate,
             assigned,
             projectId,
-            project: projectExists.name, // store project name
+            project: projectExists.name,
             type,
             status,
+            description: description || "", // default to empty string if not provided
         });
 
         res.status(201).json(todo);
@@ -40,6 +41,7 @@ const createTodo = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
 
 // Read All (by projectId)
 const getTodosByProject = async (req, res) => {

@@ -36,6 +36,9 @@ const todoSchema = new mongoose.Schema(
             enum: ["Pending", "Completed"],
             default: "Pending",
         },
+        description:{
+            type:String,
+        }
     },
     { timestamps: true }
 );

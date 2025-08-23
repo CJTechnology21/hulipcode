@@ -11,10 +11,10 @@ const axiosInstance = axios.create({
 });
 
 // Fetch all projects
-export const fetchProjects = async () => {
-  const res = await axiosInstance.get("/api/projects");
-  return res.data;
-};
+  export const fetchProjects = async () => {
+    const res = await axiosInstance.get("/api/projects");
+    return res.data;
+  };
 
 // Create a new project
 export const createProject = async (projectData) => {

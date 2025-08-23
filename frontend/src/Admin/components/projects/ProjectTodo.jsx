@@ -1,21 +1,102 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FiPlus, FiFilter } from "react-icons/fi";
 import Button from "../../../components/Button";
 import SearchBar from "../../../components/SearchBar";
 import DropDown from "../../../components/DropDown";
-import TodoFilter from "./TodoFilter"; 
+import TodoFilter from "./TodoFilter";
 import AddNewTodoModal from "./AddNewTodoModal";
-function ProjectToDo({projectId}) {
+import { fetchTodosByProject, updateTodo, deleteTodo } from "../../../services/todoServices";
+import { formatDate } from "../../../utils/dateFormatter";
+import { toast } from "react-toastify";
+
+function ProjectToDo({ projectId }) {
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilter, setShowFilter] = useState(false);
-  // eslint-disable-next-line 
-  const [filteredItems, setFilteredItems] = useState([]); 
+  const [todos, setTodos] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionMenuId, setActionMenuId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
+
+  // Fetch todos
+  const getTodos = async () => {
+    try {
+      if (!projectId) return;
+      const data = await fetchTodosByProject(projectId);
+      setTodos(data);
+      setFilteredItems(data);
+    } catch (error) {
+      toast.error("Error fetching todos");
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    getTodos();
+    // eslint-disable-next-line
+  }, [projectId]);
+
+  // Filters
+  useEffect(() => {
+    let filtered = todos;
+    if (status) filtered = filtered.filter((todo) => todo.status === status);
+    if (type) filtered = filtered.filter((todo) => todo.type === type);
+    if (searchTerm)
+      filtered = filtered.filter((todo) =>
+        todo.itemName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    setFilteredItems(filtered);
+  }, [status, type, searchTerm, todos]);
+
+  // Edit / Save handlers
+  const handleEdit = (todo) => {
+    setEditingId(todo._id);
+    setEditData({ ...todo });
+    setActionMenuId(null);
+  };
+
+  const handleSave = async (todoId) => {
+    try {
+      // Prepare payload for backend
+      const updatedFields = {
+        itemName: editData.itemName,
+        dueDate: editData.dueDate,
+        assigned: editData.assigned.map((u) => u._id || u.name),
+        type: editData.type,
+        status: editData.status,
+        description: editData.description || "",
+        projectId: editData.projectId?._id || editData.projectId,
+      };
+
+      await updateTodo(todoId, updatedFields);
+      toast.success("Todo updated successfully");
+      setEditingId(null);
+      setEditData({});
+      getTodos();
+    } catch (error) {
+      toast.error("Failed to update todo");
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (todoId) => {
+    try {
+      await deleteTodo(todoId);
+      toast.success("Todo deleted successfully");
+      getTodos();
+      setActionMenuId(null);
+    } catch (error) {
+      toast.error("Failed to delete todo");
+    }
+  };
+
   return (
-    <div className="p-4 md:p-6 space-y-4 bg-white w-full">
+    <div className="p-8 m-4 md:p-6 space-y-4 bg-white w-full rounded-xl">
+      {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center flex-wrap gap-3 w-full md:w-auto">
           <div className="w-40">
@@ -26,7 +107,6 @@ function ProjectToDo({projectId}) {
               onChange={(e) => setStatus(e.target.value)}
             />
           </div>
-
           <div className="w-40">
             <DropDown
               name="type"
@@ -35,7 +115,6 @@ function ProjectToDo({projectId}) {
               onChange={(e) => setType(e.target.value)}
             />
           </div>
-
           <div className="w-60">
             <SearchBar
               value={searchTerm}
@@ -43,55 +122,180 @@ function ProjectToDo({projectId}) {
               placeholder="Search"
             />
           </div>
-
           <Button
             className="text-red-600 text-sm flex items-center gap-1 hover:bg-red-200 cursor-pointer bg-red-100"
             onClick={() => setShowFilter(true)}
           >
-            <FiFilter />
-            Filter
+            <FiFilter /> Filter
           </Button>
         </div>
-
-        <Button className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md flex items-center gap-2" 
-        onClick={()=>setIsModalOpen(true)}>
-          <FiPlus />
-          New To Do
+        <Button
+          className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md flex items-center gap-2"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <FiPlus /> New To Do
         </Button>
       </div>
 
+      {/* Table */}
       <div className="overflow-auto rounded-xl border border-gray-200">
         <table className="min-w-full text-sm text-gray-700">
           <thead className="bg-red-100 text-left">
             <tr>
+              <th className="px-4 py-2">S.No</th>
               <th className="px-4 py-2">Item Name</th>
               <th className="px-4 py-2">Due Date</th>
               <th className="px-4 py-2">Assigned</th>
               <th className="px-4 py-2">Project</th>
               <th className="px-4 py-2">Type</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Description</th>
               <th className="px-4 py-2">Action</th>
             </tr>
           </thead>
           <tbody>
-            {/* Example Row */}
-            <tr className="border-t">
-              <td className="px-4 py-3 flex items-center gap-2">
-                <span className="text-lg">↻</span>
-                <span>plumbing</span>
-              </td>
-              <td className="px-4 py-3 text-red-600 font-medium">29 Jul</td>
-              <td className="px-4 py-3">Alam Glass... +1</td>
-              <td className="px-4 py-3">Dr Manoj | 135 Naraina</td>
-              <td className="px-4 py-3 flex items-center gap-1">
-                <span>plumbing</span>
-                <span className="inline-block w-2 h-2 bg-red-500 rounded-full ml-1" />
-              </td>
-              <td className="px-4 py-3">
-                <button className="text-gray-500 hover:text-black">
-                  <BsThreeDotsVertical />
-                </button>
-              </td>
-            </tr>
+            {filteredItems.map((todo, index) => (
+              <tr key={todo._id} className="border-t">
+                <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
+
+                <td className="px-4 py-3 max-w-xs truncate">
+                  {editingId === todo._id ? (
+                    <input
+                      type="text"
+                      value={editData.itemName}
+                      onChange={(e) =>
+                        setEditData({ ...editData, itemName: e.target.value })
+                      }
+                      className="border rounded px-2 py-1 w-full"
+                    />
+                  ) : (
+                    <span className="block truncate">{todo.itemName}</span>
+                  )}
+                </td>
+
+                <td className="px-4 py-3 text-red-600 font-medium whitespace-nowrap">
+                  {editingId === todo._id ? (
+                    <input
+                      type="date"
+                      value={editData.dueDate?.split("T")[0]}
+                      onChange={(e) =>
+                        setEditData({ ...editData, dueDate: e.target.value })
+                      }
+                      className="border rounded px-2 py-1"
+                    />
+                  ) : (
+                    formatDate(todo.dueDate)
+                  )}
+                </td>
+
+                <td className="px-4 py-3 max-w-xs truncate">
+                  {editingId === todo._id ? (
+                    <input
+                      type="text"
+                      value={editData.assigned.map((u) => u.name).join(", ")}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          assigned: e.target.value
+                            .split(",")
+                            .map((name) => ({ name: name.trim() })),
+                        })
+                      }
+                      className="border rounded px-2 py-1 w-full"
+                    />
+                  ) : (
+                    todo.assigned.map((u) => u.name || "User").join(", ")
+                  )}
+                </td>
+
+                <td className="px-4 py-3 max-w-xs truncate">{todo.project}</td>
+
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {editingId === todo._id ? (
+                    <DropDown
+                      name="type"
+                      value={editData.type}
+                      options={["Plumbing", "Electrical"]}
+                      onChange={(e) =>
+                        setEditData({ ...editData, type: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <span>{todo.type}</span>
+                  )}
+                </td>
+
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {editingId === todo._id ? (
+                    <DropDown
+                      name="status"
+                      value={editData.status}
+                      options={["Pending", "Completed"]}
+                      onChange={(e) =>
+                        setEditData({ ...editData, status: e.target.value })
+                      }
+                    />
+                  ) : (
+                    todo.status
+                  )}
+                </td>
+
+                <td className="px-4 py-3 max-w-xs break-words">
+                  {editingId === todo._id ? (
+                    <input
+                      type="text"
+                      value={editData.description || ""}
+                      onChange={(e) =>
+                        setEditData({ ...editData, description: e.target.value })
+                      }
+                      className="border rounded px-2 py-1 w-full"
+                    />
+                  ) : (
+                    <span className="line-clamp-3">{todo.description || "No Description Added"}</span>
+                  )}
+                </td>
+
+                <td className="px-4 py-3 relative whitespace-nowrap">
+                  {editingId === todo._id ? (
+                    <button
+                      className="text-green-600 hover:text-green-800"
+                      onClick={() => handleSave(todo._id)}
+                    >
+                      Save
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="text-gray-500 hover:text-black"
+                        onClick={() =>
+                          setActionMenuId(
+                            actionMenuId === todo._id ? null : todo._id
+                          )
+                        }
+                      >
+                        <BsThreeDotsVertical />
+                      </button>
+                      {actionMenuId === todo._id && (
+                        <div className="absolute right-0 mt-2 w-32 bg-white border shadow-md rounded-md z-10">
+                          <button
+                            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                            onClick={() => handleEdit(todo)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                            onClick={() => handleDelete(todo._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -102,12 +306,15 @@ function ProjectToDo({projectId}) {
         onApply={(filters) => {
           setFilteredItems(filters);
           setShowFilter(false);
-          console.log("Applied Filters: ", filters);
         }}
       />
-      
-      
-       <AddNewTodoModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+
+      <AddNewTodoModal
+        isOpen={isModalOpen}
+        setIsOpen={setIsModalOpen}
+        onCreated={getTodos}
+        projectId={projectId}
+      />
     </div>
   );
 }
