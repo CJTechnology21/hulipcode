@@ -1,58 +1,10 @@
 
+
+
 import React, { useState } from "react";
 import { FiEdit2, FiPlus, FiSave } from "react-icons/fi";
 import { FaRegWindowClose } from "react-icons/fa";
-
-const mockData = [
-  {
-    id: 1,
-    name: "Living Room",
-    category: "Common",
-    length: "15ft",
-    breadth: "12ft",
-    height: "9ft",
-  },
-  {
-    id: 2,
-    name: "Powder",
-    category: "Common",
-    length: "15ft",
-    breadth: "12ft",
-    height: "9ft",
-  },
-  {
-    id: 3,
-    name: "Bedroom",
-    category: "Common",
-    length: "15ft",
-    breadth: "12ft",
-    height: "9ft",
-  },
-  {
-    id: 4,
-    name: "Master Bedroom Toilet",
-    category: "Toilet",
-    length: "12ft",
-    breadth: "6ft",
-    height: "9ft",
-  },
-  {
-    id: 5,
-    name: "Powder",
-    category: "Common",
-    length: "15ft",
-    breadth: "12ft",
-    height: "9ft",
-  },
-  {
-    id: 6,
-    name: "Bedroom",
-    category: "Common",
-    length: "15ft",
-    breadth: "12ft",
-    height: "9ft",
-  },
-];
+import { mockData } from "./mockData";
 
 const ProjectSiteMeasurements = () => {
   const [expandedRow, setExpandedRow] = useState(null);

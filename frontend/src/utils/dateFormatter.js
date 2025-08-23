@@ -1,22 +1,25 @@
 // utils/dateFormatter.js
-export const formatDateTime = (updateObj, createdAt) => {
-  if (!updateObj && !createdAt) return "N/A";
+export const formatDateTime = (dateInput) => {
+  if (!dateInput) return "N/A";
 
-  let dateStr = updateObj?.date || createdAt;
-  let timeStr = updateObj?.time || createdAt;
+  // Handle MongoDB date object like { $date: "..." }
+  const dateStr = typeof dateInput === "object" && dateInput.$date 
+    ? dateInput.$date 
+    : dateInput;
 
   const dateObj = new Date(dateStr);
-  const timeObj = new Date(timeStr);
+  if (isNaN(dateObj)) return "Invalid Date";
 
   const day = String(dateObj.getDate()).padStart(2, "0");
   const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const year = String(dateObj.getFullYear()).slice(-2);
+  const year = dateObj.getFullYear();
 
-  const hours = String(timeObj.getHours()).padStart(2, "0");
-  const minutes = String(timeObj.getMinutes()).padStart(2, "0");
+  const hours = String(dateObj.getHours()).padStart(2, "0");
+  const minutes = String(dateObj.getMinutes()).padStart(2, "0");
 
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
+
 export const formatDate = (dateStr) => {
   if (!dateStr) return "N/A";
 

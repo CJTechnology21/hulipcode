@@ -3,26 +3,30 @@ import { Fragment, useEffect, useState } from "react";
 import { FaMinusCircle, FaPlusCircle } from "react-icons/fa";
 import { FiDownload, FiMessageSquare, FiShare2, FiX } from "react-icons/fi";
 import Button from "../../../components/Button";
-import { useAuth } from "../../../context/AuthContext"; 
-import { fetchCommentsByProject, addComment } from "../../../services/twoDServices"; // ✅ import services
+import { useAuth } from "../../../context/AuthContext";
+import {
+  fetchCommentsByProject,
+  addComment,
+  updateLayout,
+} from "../../../services/twoDServices";
+import { formatDateTime } from "../../../utils/dateFormatter";
+import { toast } from "react-toastify";
 
 function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
-  // eslint-disable-next-line 
-  const { user, loading: authLoading } = useAuth(); 
+  const { user } = useAuth();
   const [selectedVersion, setSelectedVersion] = useState(null);
-  const [zoomLevels, setZoomLevels] = useState([1, 1]);
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     if (data?.versions?.length) {
       setSelectedVersion(data.versions[0]);
-      setZoomLevels([1, 1]);
-      setSelectedFileIndex(0);
+      setZoomLevel(1);
     }
   }, [data]);
 
@@ -31,7 +35,7 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
     if (showComments && projectId) {
       loadComments();
     }
-    // eslint-disable-next-line 
+    // eslint-disable-next-line
   }, [showComments, projectId]);
 
   const loadComments = async () => {
@@ -41,6 +45,7 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
       setComments(fetched);
     } catch (err) {
       console.error("Error fetching comments:", err);
+      toast.error("Failed to load comments");
     } finally {
       setLoadingComments(false);
     }
@@ -50,7 +55,7 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
     if (!newComment.trim()) return;
 
     if (!user) {
-      alert("You must be logged in to add a comment.");
+      toast.warning("You must be logged in to add a comment.");
       return;
     }
 
@@ -60,11 +65,27 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
       const created = await addComment(data._id, newComment);
       setComments((prev) => [created, ...prev]);
       setNewComment("");
+      toast.success("Comment added successfully!");
     } catch (err) {
       console.error("Error adding comment:", err);
-      alert("Failed to add comment.");
+      toast.error("Failed to add comment.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleStatusUpdate = async (status) => {
+    if (!data?._id) return;
+    try {
+      setUpdatingStatus(true);
+      const updated = await updateLayout(data._id, { status });
+      data.status = updated.status; // update local copy
+      toast.success(`Design ${status}`);
+    } catch (err) {
+      console.error("Error updating status:", err);
+      toast.error("Failed to update status.");
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -72,22 +93,17 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
 
   const isPDF = (url) => url?.toLowerCase().endsWith(".pdf");
 
-  const getFiles = () => {
-    if (!selectedVersion) return [];
-    const file = selectedVersion.file || selectedVersion.image;
-    return [file, data.versions.length === 1 ? file : selectedVersion.file || selectedVersion.image];
+  const getFile = () => {
+    if (!selectedVersion) return null;
+    return selectedVersion.file || selectedVersion.image;
   };
 
   const handleZoomIn = () => {
-    setZoomLevels((prev) =>
-      prev.map((z, i) => (i === selectedFileIndex ? Math.min(z + 0.2, 3) : z))
-    );
+    setZoomLevel((prev) => Math.min(prev + 0.2, 3));
   };
 
   const handleZoomOut = () => {
-    setZoomLevels((prev) =>
-      prev.map((z, i) => (i === selectedFileIndex ? Math.max(z - 0.2, 0.5) : z))
-    );
+    setZoomLevel((prev) => Math.max(prev - 0.2, 0.5));
   };
 
   const handleDownload = (url) => {
@@ -110,24 +126,54 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 border-b bg-gray-50 gap-2 sm:gap-0">
                 <div className="text-sm font-semibold">
-                  Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt; {data.name}
+                  Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt;{" "}
+                  {data.name}
+                  {data.status && (
+                    <span className="ml-2 px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-700">
+                      {data.status}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <FaPlusCircle className="cursor-pointer text-xl" onClick={handleZoomIn} />
-                  <FaMinusCircle className="cursor-pointer text-xl" onClick={handleZoomOut} />
-                  <Button className="bg-green-500 text-white text-sm px-3 py-1 rounded" variant="custom">
-                    Approve
+                  <FaPlusCircle
+                    className="cursor-pointer text-xl"
+                    onClick={handleZoomIn}
+                  />
+                  <FaMinusCircle
+                    className="cursor-pointer text-xl"
+                    onClick={handleZoomOut}
+                  />
+                  <Button
+                    className="bg-green-500 text-white text-sm px-3 py-1 rounded"
+                    variant="custom"
+                    disabled={updatingStatus || data.status === "Approved"} // ✅ disable if already approved
+                    onClick={() => handleStatusUpdate("Approved")}
+                  >
+                    {updatingStatus && data.status !== "Approved"
+                      ? "Updating..."
+                      : "Approve"}
                   </Button>
-                  <Button className="text-red-600 font-bold text-sm" variant="custom">
-                    Reject
+
+                  <Button
+                    className="text-red-600 font-bold text-sm"
+                    variant="custom"
+                    disabled={updatingStatus || data.status === "Rejected"} // ✅ disable if already rejected
+                    onClick={() => handleStatusUpdate("Rejected")}
+                  >
+                    {updatingStatus && data.status !== "Rejected"
+                      ? "Updating..."
+                      : "Reject"}
                   </Button>
+
                   <FiDownload
                     className="cursor-pointer text-lg"
                     title="Download"
-                    onClick={() => handleDownload(getFiles()[selectedFileIndex])}
+                    onClick={() => handleDownload(getFile())}
                   />
                   <FiMessageSquare
-                    className={`cursor-pointer text-lg ${showComments ? "text-red-500" : ""}`}
+                    className={`cursor-pointer text-lg ${
+                      showComments ? "text-red-500" : ""
+                    }`}
                     title="Comments"
                     onClick={() => setShowComments(!showComments)}
                   />
@@ -145,8 +191,7 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
                       key={i}
                       onClick={() => {
                         setSelectedVersion(v);
-                        setZoomLevels([1, 1]);
-                        setSelectedFileIndex(0);
+                        setZoomLevel(1);
                       }}
                       className={`text-xs font-bold px-2 py-1 rounded-md flex-shrink-0 ${
                         selectedVersion?.label === v.label
@@ -159,33 +204,31 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
                   ))}
                 </div>
 
-                {/* File Containers */}
-                <div className="flex-1 p-4 sm:p-6 bg-gray-100 flex flex-col sm:flex-row gap-4 justify-center items-center relative">
-                  {getFiles().map((fileSrc, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-full sm:w-1/2 h-[50vh] sm:h-[70vh] bg-white border rounded-lg shadow-sm p-2 flex items-center justify-center overflow-hidden cursor-pointer ${
-                        selectedFileIndex === idx ? "ring-2 ring-red-500" : ""
-                      }`}
-                      onClick={() => setSelectedFileIndex(idx)}
-                    >
-                      {fileSrc ? (
-                        isPDF(fileSrc) ? (
-                          <embed src={fileSrc} type="application/pdf" className="w-full h-full" />
-                        ) : (
-                          <img
-                            src={fileSrc}
-                            alt={`Version-${selectedVersion.label}-${idx}`}
-                            className="max-h-full max-w-full object-contain transition-transform duration-300"
-                            style={{ transform: `scale(${zoomLevels[idx]})` }}
-                            onError={(e) => (e.target.style.display = "none")}
-                          />
-                        )
+                {/* File Container */}
+                <div className="flex-1 p-4 sm:p-6 bg-gray-100 flex justify-center items-center relative">
+                  <div className="w-full sm:w-2/3 h-[60vh] sm:h-[70vh] bg-white border rounded-lg shadow-sm p-2 flex items-center justify-center overflow-hidden">
+                    {(() => {
+                      const fileSrc = getFile();
+                      if (!fileSrc)
+                        return <p className="text-gray-500 text-sm">No file</p>;
+
+                      return isPDF(fileSrc) ? (
+                        <embed
+                          src={fileSrc}
+                          type="application/pdf"
+                          className="w-full h-full"
+                        />
                       ) : (
-                        <p className="text-gray-500 text-sm">No file</p>
-                      )}
-                    </div>
-                  ))}
+                        <img
+                          src={fileSrc}
+                          alt={`Version-${selectedVersion.label}`}
+                          className="max-h-full max-w-full object-contain transition-transform duration-300"
+                          style={{ transform: `scale(${zoomLevel})` }}
+                          onError={(e) => (e.target.style.display = "none")}
+                        />
+                      );
+                    })()}
+                  </div>
 
                   {/* Comments Drawer */}
                   {showComments && (
@@ -202,12 +245,19 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
 
                       <div className="flex-1 overflow-y-auto p-3">
                         {loadingComments ? (
-                          <p className="text-gray-500 text-xs">Loading comments...</p>
+                          <p className="text-gray-500 text-xs">
+                            Loading comments...
+                          </p>
                         ) : comments.length === 0 ? (
-                          <p className="text-gray-500 text-xs">No comments yet.</p>
+                          <p className="text-gray-500 text-xs">
+                            No comments yet.
+                          </p>
                         ) : (
                           comments.map((comment, idx) => (
-                            <div key={idx} className="mb-4 flex items-start gap-3">
+                            <div
+                              key={idx}
+                              className="mb-4 flex items-start gap-3"
+                            >
                               <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold uppercase">
                                 {comment.author?.name
                                   ? comment.author.name
@@ -221,11 +271,13 @@ function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
                                   <span className="text-sm font-semibold">
                                     {comment.author?.name ?? "Unknown"}
                                   </span>
-                                  <span className="text-xs text-gray-400">
-                                    {new Date(comment.createdAt).toLocaleString()}
+                                  <span className="text-xs text-red-700">
+                                    {formatDateTime(comment.createdAt)}
                                   </span>
                                 </div>
-                                <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
+                                <p className="text-sm text-gray-700 mt-1">
+                                  {comment.text}
+                                </p>
                               </div>
                             </div>
                           ))
@@ -276,66 +328,84 @@ export default DesignPreviewModal;
 // import { FaMinusCircle, FaPlusCircle } from "react-icons/fa";
 // import { FiDownload, FiMessageSquare, FiShare2, FiX } from "react-icons/fi";
 // import Button from "../../../components/Button";
-// import { useAuth } from "../../../context/AuthContext"; 
-// function DesignPreviewModal({ isOpen, onClose, data, type = "2d" ,projectId }) {
-//   // eslint-disable-next-line
-//   const { user, loading: authLoading } = useAuth(); 
-//   const [selectedVersion, setSelectedVersion] = useState(null);
-//   const [zoomLevels, setZoomLevels] = useState([1, 1]);
-//   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+// import { useAuth } from "../../../context/AuthContext";
+// import { fetchCommentsByProject, addComment } from "../../../services/twoDServices";
+// import { formatDateTime } from "../../../utils/dateFormatter";
 
+// function DesignPreviewModal({ isOpen, onClose, data, type = "2d", projectId }) {
+//   const { user, loading: authLoading } = useAuth();
+//   const [selectedVersion, setSelectedVersion] = useState(null);
+//   const [zoomLevel, setZoomLevel] = useState(1);
 //   const [showComments, setShowComments] = useState(false);
 //   const [comments, setComments] = useState([]);
 //   const [newComment, setNewComment] = useState("");
+//   const [loadingComments, setLoadingComments] = useState(false);
+//   const [submitting, setSubmitting] = useState(false);
 
 //   useEffect(() => {
 //     if (data?.versions?.length) {
 //       setSelectedVersion(data.versions[0]);
-//       setZoomLevels([1, 1]);
-//       setSelectedFileIndex(0);
+//       setZoomLevel(1);
 //     }
 //   }, [data]);
 
-//   if (!data || !selectedVersion) return null;
+//   // Fetch comments when drawer opens
+//   useEffect(() => {
+//     if (showComments && projectId) {
+//       loadComments();
+//     }
+//     // eslint-disable-next-line
+//   }, [showComments, projectId]);
 
-//   // Helper to detect PDF
-//   const isPDF = (url) => url?.toLowerCase().endsWith(".pdf");
-
-//   // Get all files for current version
-//   const getFiles = () => {
-//     if (!selectedVersion) return [];
-//     const file = selectedVersion.file || selectedVersion.image;
-//     return [file, data.versions.length === 1 ? file : selectedVersion.file || selectedVersion.image];
+//   const loadComments = async () => {
+//     try {
+//       setLoadingComments(true);
+//       const fetched = await fetchCommentsByProject(projectId);
+//       setComments(fetched);
+//     } catch (err) {
+//       console.error("Error fetching comments:", err);
+//     } finally {
+//       setLoadingComments(false);
+//     }
 //   };
 
-//   const handleZoomIn = () => {
-//     setZoomLevels((prev) =>
-//       prev.map((z, i) => (i === selectedFileIndex ? Math.min(z + 0.2, 3) : z))
-//     );
-//   };
-
-//   const handleZoomOut = () => {
-//     setZoomLevels((prev) =>
-//       prev.map((z, i) => (i === selectedFileIndex ? Math.max(z - 0.2, 0.5) : z))
-//     );
-//   };
-
-//   const handleAddComment = () => {
+//   const handleAddComment = async () => {
 //     if (!newComment.trim()) return;
 
-//     // ✅ Only allow logged-in users to comment
 //     if (!user) {
 //       alert("You must be logged in to add a comment.");
 //       return;
 //     }
 
-//     const newEntry = {
-//       user,
-//       text: newComment,
-//       date: new Date().toLocaleString(),
-//     };
-//     setComments((prev) => [newEntry, ...prev]);
-//     setNewComment("");
+//     try {
+//       setSubmitting(true);
+//       // ✅ pass layoutId = data._id
+//       const created = await addComment(data._id, newComment);
+//       setComments((prev) => [created, ...prev]);
+//       setNewComment("");
+//     } catch (err) {
+//       console.error("Error adding comment:", err);
+//       alert("Failed to add comment.");
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   };
+
+//   if (!data || !selectedVersion) return null;
+
+//   const isPDF = (url) => url?.toLowerCase().endsWith(".pdf");
+
+//   const getFile = () => {
+//     if (!selectedVersion) return null;
+//     return selectedVersion.file || selectedVersion.image;
+//   };
+
+//   const handleZoomIn = () => {
+//     setZoomLevel((prev) => Math.min(prev + 0.2, 3));
+//   };
+
+//   const handleZoomOut = () => {
+//     setZoomLevel((prev) => Math.max(prev - 0.2, 0.5));
 //   };
 
 //   const handleDownload = (url) => {
@@ -361,14 +431,8 @@ export default DesignPreviewModal;
 //                   Design &gt; {type === "2d" ? "2D Layout" : "3D Render"} &gt; {data.name}
 //                 </div>
 //                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-//                   <FaPlusCircle
-//                     className="cursor-pointer text-xl"
-//                     onClick={handleZoomIn}
-//                   />
-//                   <FaMinusCircle
-//                     className="cursor-pointer text-xl"
-//                     onClick={handleZoomOut}
-//                   />
+//                   <FaPlusCircle className="cursor-pointer text-xl" onClick={handleZoomIn} />
+//                   <FaMinusCircle className="cursor-pointer text-xl" onClick={handleZoomOut} />
 //                   <Button className="bg-green-500 text-white text-sm px-3 py-1 rounded" variant="custom">
 //                     Approve
 //                   </Button>
@@ -378,7 +442,7 @@ export default DesignPreviewModal;
 //                   <FiDownload
 //                     className="cursor-pointer text-lg"
 //                     title="Download"
-//                     onClick={() => handleDownload(getFiles()[selectedFileIndex])}
+//                     onClick={() => handleDownload(getFile())}
 //                   />
 //                   <FiMessageSquare
 //                     className={`cursor-pointer text-lg ${showComments ? "text-red-500" : ""}`}
@@ -399,8 +463,7 @@ export default DesignPreviewModal;
 //                       key={i}
 //                       onClick={() => {
 //                         setSelectedVersion(v);
-//                         setZoomLevels([1, 1]);
-//                         setSelectedFileIndex(0);
+//                         setZoomLevel(1);
 //                       }}
 //                       className={`text-xs font-bold px-2 py-1 rounded-md flex-shrink-0 ${
 //                         selectedVersion?.label === v.label
@@ -413,37 +476,26 @@ export default DesignPreviewModal;
 //                   ))}
 //                 </div>
 
-//                 {/* File Containers */}
-//                 <div className="flex-1 p-4 sm:p-6 bg-gray-100 flex flex-col sm:flex-row gap-4 justify-center items-center relative">
-//                   {getFiles().map((fileSrc, idx) => (
-//                     <div
-//                       key={idx}
-//                       className={`w-full sm:w-1/2 h-[50vh] sm:h-[70vh] bg-white border rounded-lg shadow-sm p-2 flex items-center justify-center overflow-hidden cursor-pointer ${
-//                         selectedFileIndex === idx ? "ring-2 ring-red-500" : ""
-//                       }`}
-//                       onClick={() => setSelectedFileIndex(idx)}
-//                     >
-//                       {fileSrc ? (
-//                         isPDF(fileSrc) ? (
-//                           <embed
-//                             src={fileSrc}
-//                             type="application/pdf"
-//                             className="w-full h-full"
-//                           />
-//                         ) : (
-//                           <img
-//                             src={fileSrc}
-//                             alt={`Version-${selectedVersion.label}-${idx}`}
-//                             className="max-h-full max-w-full object-contain transition-transform duration-300"
-//                             style={{ transform: `scale(${zoomLevels[idx]})` }}
-//                             onError={(e) => (e.target.style.display = "none")}
-//                           />
-//                         )
+//                 {/* File Container */}
+//                 <div className="flex-1 p-4 sm:p-6 bg-gray-100 flex justify-center items-center relative">
+//                   <div className="w-full sm:w-2/3 h-[60vh] sm:h-[70vh] bg-white border rounded-lg shadow-sm p-2 flex items-center justify-center overflow-hidden">
+//                     {(() => {
+//                       const fileSrc = getFile();
+//                       if (!fileSrc) return <p className="text-gray-500 text-sm">No file</p>;
+
+//                       return isPDF(fileSrc) ? (
+//                         <embed src={fileSrc} type="application/pdf" className="w-full h-full" />
 //                       ) : (
-//                         <p className="text-gray-500 text-sm">No file</p>
-//                       )}
-//                     </div>
-//                   ))}
+//                         <img
+//                           src={fileSrc}
+//                           alt={`Version-${selectedVersion.label}`}
+//                           className="max-h-full max-w-full object-contain transition-transform duration-300"
+//                           style={{ transform: `scale(${zoomLevel})` }}
+//                           onError={(e) => (e.target.style.display = "none")}
+//                         />
+//                       );
+//                     })()}
+//                   </div>
 
 //                   {/* Comments Drawer */}
 //                   {showComments && (
@@ -459,14 +511,16 @@ export default DesignPreviewModal;
 //                       </div>
 
 //                       <div className="flex-1 overflow-y-auto p-3">
-//                         {comments.length === 0 ? (
+//                         {loadingComments ? (
+//                           <p className="text-gray-500 text-xs">Loading comments...</p>
+//                         ) : comments.length === 0 ? (
 //                           <p className="text-gray-500 text-xs">No comments yet.</p>
 //                         ) : (
 //                           comments.map((comment, idx) => (
 //                             <div key={idx} className="mb-4 flex items-start gap-3">
 //                               <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold uppercase">
-//                                 {comment.user?.name
-//                                   ? comment.user.name
+//                                 {comment.author?.name
+//                                   ? comment.author.name
 //                                       .split(" ")
 //                                       .map((n) => n[0])
 //                                       .join("")
@@ -475,9 +529,11 @@ export default DesignPreviewModal;
 //                               <div>
 //                                 <div className="flex items-center gap-2">
 //                                   <span className="text-sm font-semibold">
-//                                     {comment.user?.name ?? "Unknown"}
+//                                     {comment.author?.name ?? "Unknown"}
 //                                   </span>
-//                                   <span className="text-xs text-gray-400">{comment.date}</span>
+//                                   <span className="text-xs text-red-700">
+//                                     {formatDateTime(comment.createdAt)}
+//                                   </span>
 //                                 </div>
 //                                 <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
 //                               </div>
@@ -498,10 +554,11 @@ export default DesignPreviewModal;
 //                             />
 //                             <Button
 //                               onClick={handleAddComment}
+//                               disabled={submitting}
 //                               className="w-full mt-2 bg-red-500 text-white hover:bg-red-600 cursor-pointer text-xs py-1"
 //                               variant="custom"
 //                             >
-//                               Submit
+//                               {submitting ? "Submitting..." : "Submit"}
 //                             </Button>
 //                           </>
 //                         ) : (

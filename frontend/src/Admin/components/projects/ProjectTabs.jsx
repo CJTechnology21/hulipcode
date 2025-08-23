@@ -92,39 +92,7 @@ export default function ProjectTabs() {
     }
   };
 
-  // const renderContent = () => {
-  //   switch (activeTab) {
-  //     case "Overview":
-  //       return <ProjectsOverview projectId ={projectId} projectName={projectName}/>;
-  //     case "Dashboard":
-  //       return <ProjectsDashboard projectId= {projectId}/>;
-  //     case "Site Measurements":
-  //       return <ProjectSiteMeasurements />;
-  //     case "Design":
-  //       return <ProjectsDesign projectId= {projectId} />;
-  //     case "Quotation":
-  //       return <ProjectEstimate />;
-  //     case "Party":
-  //       return <ProjectParty />;
-  //     case "Transaction":
-  //       return <ProjectTransaction />;
-  //     case "Task":
-  //       return <ProjectTodo />;
-  //     case "Attendance":
-  //       return <ProjectAttendance />;
-  //     case "Material":
-  //       return <ProjectMaterials projectName={projectName} />;
-  //     case "Subcon":
-  //       return <ProjectSubcon />;
-  //     case "Files":
-  //       return <ProjectFiles />;
-  //     case "Equipment":
-  //       return <ProjectEquipment />;
-  //     default:
-  //       return <div className="p-6">{activeTab} content goes here...</div>;
-  //   }
-  // };
-
+  
   return (
     <Layout title={projectName}>
       <div className="min-h-screen bg-gray-100">

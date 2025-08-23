@@ -1,28 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import DashboardCard from "./DashboardCard";
+import { fetchProjectById, updateProject } from "../../../../services/projectServices";
 
-function ProjectDetails() {
+function ProjectDetails({ projectId }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [details, setDetails] = useState({
-    projectName: "Amartya’s Appartment",
-    clientName: "Brijesh Kohli",
-    clientContact: "+91-9810422343",
-    address: "34d rishtedar colony, Ashok Nagar\nDelhi - 110019",
-    category: "Residential",
-    scope: "Turnkey Project",
-  });
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch project details
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const projectData = await fetchProjectById(projectId);
+
+        setDetails({
+          projectName: projectData?.name || "-",
+          clientName: projectData?.client || "-", // client is string
+          clientContact: projectData?.clientContact || "-",
+          address: projectData?.location || "-",
+          category: projectData?.category || "-",
+          scope: projectData?.scope || "-",
+        });
+      } catch (err) {
+        console.error("Error loading project:", err);
+        setDetails(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [projectId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setDetails({ ...details, [name]: value });
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Optionally trigger API save here
-    console.log("Saved details:", details);
+  const handleSave = async () => {
+    try {
+      await updateProject(projectId, details);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating project:", err);
+    }
   };
+
+  if (loading) return <DashboardCard title="Project Details">Loading...</DashboardCard>;
+  if (!details) return <DashboardCard title="Project Details">No project found</DashboardCard>;
 
   return (
     <DashboardCard
@@ -44,82 +73,95 @@ function ProjectDetails() {
         </div>
       }
     >
-      {Object.entries({
-        "Project Name": isEditing ? (
-          <input
-            type="text"
-            name="projectName"
-            value={details.projectName}
-            onChange={handleChange}
-            className="border rounded p-1 w-full text-sm sm:text-base"
-          />
-        ) : (
-          <p className="font-bold text-black break-words">{details.projectName}</p>
-        ),
-        "Client Name & Contact Details": isEditing ? (
-          <div className="flex flex-col sm:flex-row gap-2">
+      {/* Project Fields - Side by Side */}
+      <div className="space-y-3">
+        {Object.entries({
+          "Project Name": isEditing ? (
+            <input
+              type="text"
+              name="projectName"
+              value={details.projectName}
+              onChange={handleChange}
+              className="border rounded p-1 w-full text-sm sm:text-base"
+            />
+          ) : (
+            details.projectName
+          ),
+          "Client Name": isEditing ? (
             <input
               type="text"
               name="clientName"
               value={details.clientName}
               onChange={handleChange}
-              className="border rounded p-1 flex-1 text-sm sm:text-base"
+              className="border rounded p-1 w-full text-sm sm:text-base"
             />
+          ) : (
+            details.clientName
+          ),
+          "Client Contact": isEditing ? (
             <input
               type="text"
               name="clientContact"
               value={details.clientContact}
               onChange={handleChange}
-              className="border rounded p-1 flex-1 text-sm sm:text-base"
+              className="border rounded p-1 w-full text-sm sm:text-base"
             />
+          ) : (
+            details.clientContact
+          ),
+          Address: isEditing ? (
+            <textarea
+              name="address"
+              value={details.address}
+              onChange={handleChange}
+              className="border rounded p-1 w-full text-sm sm:text-base"
+              rows={2}
+            />
+          ) : (
+            details.address
+          ),
+          "Project Category": isEditing ? (
+            <input
+              type="text"
+              name="category"
+              value={details.category}
+              onChange={handleChange}
+              className="border rounded p-1 w-full text-sm sm:text-base"
+            />
+          ) : (
+            details.category
+          ),
+          "Project Scope": isEditing ? (
+            <input
+              type="text"
+              name="scope"
+              value={details.scope}
+              onChange={handleChange}
+              className="border rounded p-1 w-full text-sm sm:text-base"
+            />
+          ) : (
+            details.scope
+          ),
+        }).map(([label, field], idx) => (
+          <div
+            key={idx}
+            className="flex flex-col sm:flex-row sm:items-start sm:gap-4"
+          >
+            {/* Label */}
+            <p className="text-red-600 font-semibold text-xs sm:text-sm min-w-[120px] sm:min-w-[160px]">
+              {label}:
+            </p>
+
+            {/* Value / Input */}
+            <div className="flex-1 font-bold text-black break-words whitespace-pre-line">
+              {field}
+            </div>
           </div>
-        ) : (
-          <p className="font-bold text-black break-words">
-            {details.clientName}{" "}
-            <span className="block sm:inline sm:ml-4">{details.clientContact}</span>
-          </p>
-        ),
-        Address: isEditing ? (
-          <textarea
-            name="address"
-            value={details.address}
-            onChange={handleChange}
-            className="border rounded p-1 w-full text-sm sm:text-base"
-            rows={2}
-          />
-        ) : (
-          <p className="font-bold text-black whitespace-pre-line break-words">{details.address}</p>
-        ),
-        "Project Category": isEditing ? (
-          <input
-            type="text"
-            name="category"
-            value={details.category}
-            onChange={handleChange}
-            className="border rounded p-1 w-full text-sm sm:text-base"
-          />
-        ) : (
-          <p className="font-bold text-black break-words">{details.category}</p>
-        ),
-        "Project Scope": isEditing ? (
-          <input
-            type="text"
-            name="scope"
-            value={details.scope}
-            onChange={handleChange}
-            className="border rounded p-1 w-full text-sm sm:text-base"
-          />
-        ) : (
-          <p className="font-bold text-black break-words">{details.scope}</p>
-        ),
-      }).map(([label, field], idx) => (
-        <div key={idx} className="mb-2">
-          <p className="text-red-600 font-semibold text-xs sm:text-sm">{label}</p>
-          {field}
-        </div>
-      ))}
+        ))}
+      </div>
     </DashboardCard>
   );
 }
 
 export default ProjectDetails;
+
