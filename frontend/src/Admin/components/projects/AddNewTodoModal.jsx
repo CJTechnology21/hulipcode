@@ -3,8 +3,8 @@ import { MdClose } from "react-icons/md";
 import { FaCalendarAlt } from "react-icons/fa";
 import { BsGlobe } from "react-icons/bs";
 import Button from "../../../components/Button";
-import Input from "../../../components/Input"; // your custom Input
-import DropDown from "../../../components/DropDown"; // your custom DropDown
+import Input from "../../../components/Input"; 
+import DropDown from "../../../components/DropDown"; 
 
 function AddNewTodoModal({ isOpen, setIsOpen }) {
   const [showMessage, setShowMessage] = useState(false);

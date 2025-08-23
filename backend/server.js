@@ -27,6 +27,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes')
 const photoRoutes = require("./routes/photoRoutes")
 const twoDRoutes = require("./routes/twoDRoutes")
 const partyRoutes = require("./routes/partyRoutes")
+const todoRoutes = require('./routes/todoRoutes')
 // Load environment variables
 dotenv.config();
 
@@ -81,6 +82,7 @@ app.use('/api/attendance',attendanceRoutes);
 app.use('/api/photo',photoRoutes)
 app.use("/api/2dlayout",twoDRoutes)
 app.use("/api/party",partyRoutes)
+app.use("/api/todo",todoRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

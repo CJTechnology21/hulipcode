@@ -4,13 +4,14 @@ import { FiPlus, FiFilter } from "react-icons/fi";
 import Button from "../../../components/Button";
 import SearchBar from "../../../components/SearchBar";
 import DropDown from "../../../components/DropDown";
-import TodoFilter from "./TodoFilter"; // import your new modal
+import TodoFilter from "./TodoFilter"; 
 import AddNewTodoModal from "./AddNewTodoModal";
-function ProjectToDo() {
+function ProjectToDo({projectId}) {
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  // eslint-disable-next-line 
   const [filteredItems, setFilteredItems] = useState([]); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   return (
