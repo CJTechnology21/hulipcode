@@ -1,4 +1,4 @@
-// src/services/partyServices.js
+// src/services/todoServices.js
 import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -8,36 +8,36 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// ✅ Fetch all party for a project
-export const fetchPartyByProject = async (projectId) => {
-  const res = await axiosInstance.get(`/api/party?projectId=${projectId}`); // plural & query
+// ✅ Fetch all todos for a project
+export const fetchTodosByProject = async (projectId) => {
+  const res = await axiosInstance.get(`/api/todo?projectId=${projectId}`);
   return res.data;
 };
 
-// ✅ Fetch single party by ID
-export const fetchPartyById = async (partyId) => {
-  const res = await axiosInstance.get(`/api/party/${partyId}`);
+// ✅ Fetch single todo by ID
+export const fetchTodoById = async (todoId) => {
+  const res = await axiosInstance.get(`/api/todo/${todoId}`);
   return res.data;
 };
 
-// ✅ Create new party
-export const createParty = async (partyData) => {
-  const res = await axiosInstance.post("/api/party", partyData, {
+// ✅ Create new todo
+export const createTodo = async (todoData) => {
+  const res = await axiosInstance.post("/api/todo", todoData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
 };
 
-// ✅ Update party (PATCH - partial update)
-export const updateParty = async (partyId, partyData) => {
-  const res = await axiosInstance.put(`/api/party/${partyId}`, partyData, {
+// ✅ Update todo (PUT - full update)
+export const updateTodo = async (todoId, todoData) => {
+  const res = await axiosInstance.put(`/api/todo/${todoId}`, todoData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
 };
 
-// ✅ Delete party
-export const deleteParty = async (partyId) => {
-  const res = await axiosInstance.delete(`/api/party/${partyId}`);
+// ✅ Delete todo
+export const deleteTodo = async (todoId) => {
+  const res = await axiosInstance.delete(`/api/todo/${todoId}`);
   return res.data;
 };
