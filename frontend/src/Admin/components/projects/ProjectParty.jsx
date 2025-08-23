@@ -1,23 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { FiDownload } from "react-icons/fi";
 import { FaFilter } from "react-icons/fa";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import { Dialog } from "@headlessui/react";
 import Button from "../../../components/Button";
 import DropDown from "../../../components/DropDown";
 import {
   fetchPartyByProject,
   createParty,
+  updateParty,
+  deleteParty,
 } from "../../../services/partyServices";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function ProjectParty({ projectId }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [menuOpenIndex, setMenuOpenIndex] = useState(null);
   const [newParty, setNewParty] = useState({
     name: "",
     type: "",
     amount: "",
+    paymentType: "",
   });
+  const [editPartyId, setEditPartyId] = useState(null);
 
   // ✅ Load parties on mount
   useEffect(() => {
@@ -27,6 +36,7 @@ function ProjectParty({ projectId }) {
         const data = await fetchPartyByProject(projectId);
         setParties(data);
       } catch (error) {
+        toast.error("Failed to fetch parties");
         console.error("Failed to fetch parties:", error);
       } finally {
         setLoading(false);
@@ -42,16 +52,62 @@ function ProjectParty({ projectId }) {
 
   const closeModal = () => {
     setIsOpen(false);
-    setNewParty({ name: "", type: "", amount: "" });
+    setIsEditMode(false);
+    setEditPartyId(null);
+    setNewParty({ name: "", type: "", amount: "", paymentType: "" });
   };
 
   const handleAddParty = async () => {
     try {
-      const created = await createParty({ ...newParty, projectId });
-      setParties((prev) => [...prev, created]); // ✅ Update list instantly
+      if (!newParty.name || !newParty.type || !newParty.amount || !newParty.paymentType) {
+        toast.warn("Please fill all fields");
+        return;
+      }
+
+      if (isEditMode && editPartyId) {
+        // ✅ Update existing party
+        const updated = await updateParty(editPartyId, newParty);
+        setParties((prev) =>
+          prev.map((party) =>
+            party._id === editPartyId ? { ...party, ...updated } : party
+          )
+        );
+        toast.success("Party updated successfully");
+      } else {
+        // ✅ Create new party
+        const created = await createParty({ ...newParty, projectId });
+        setParties((prev) => [...prev, created]);
+        toast.success("Party added successfully");
+      }
       closeModal();
     } catch (error) {
-      console.error("Error creating party:", error);
+      toast.error("Error saving party");
+      console.error("Error saving party:", error);
+    }
+  };
+
+  const handleEdit = (party) => {
+    setIsEditMode(true);
+    setEditPartyId(party._id);
+    setNewParty({
+      name: party.name,
+      type: party.type,
+      amount: party.amount,
+      paymentType: party.paymentType,
+    });
+    setIsOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this party?")) {
+      try {
+        await deleteParty(id);
+        setParties((prev) => prev.filter((party) => party._id !== id));
+        toast.success("Party deleted successfully");
+      } catch (error) {
+        toast.error("Error deleting party");
+        console.error("Error deleting party:", error);
+      }
     }
   };
 
@@ -103,18 +159,20 @@ function ProjectParty({ projectId }) {
               <th className="text-left px-4 py-2">Party Name</th>
               <th className="text-left px-4 py-2">Type</th>
               <th className="text-left px-4 py-2">Amount</th>
+              <th className="text-left px-4 py-2">Payment Type</th>
+              <th className="text-left px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="4" className="text-center py-6 text-gray-500">
+                <td colSpan="6" className="text-center py-6 text-gray-500">
                   Loading...
                 </td>
               </tr>
             ) : parties.length === 0 ? (
               <tr>
-                <td colSpan="4" className="text-center text-gray-400 py-8">
+                <td colSpan="6" className="text-center text-gray-400 py-8">
                   No parties added yet
                 </td>
               </tr>
@@ -125,6 +183,36 @@ function ProjectParty({ projectId }) {
                   <td className="px-4 py-2">{party.name}</td>
                   <td className="px-4 py-2">{party.type}</td>
                   <td className="px-4 py-2">₹ {party.amount}</td>
+                  <td className="px-4 py-2 capitalize">{party.paymentType}</td>
+                  <td className="px-4 py-2 relative">
+                    <button
+                      onClick={() =>
+                        setMenuOpenIndex(menuOpenIndex === index ? null : index)
+                      }
+                      className="p-2 rounded-full hover:bg-gray-100"
+                    >
+                      <BsThreeDotsVertical className="text-gray-600" />
+                    </button>
+                    {menuOpenIndex === index && (
+                      <div className="absolute right-4 mt-2 bg-white border shadow rounded-md w-28 z-10">
+                        <button
+                          onClick={() => {
+                            handleEdit(party);
+                            setMenuOpenIndex(null);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(party._id)}
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -149,7 +237,9 @@ function ProjectParty({ projectId }) {
         <div className="fixed inset-0 bg-black/20" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="w-full max-w-md space-y-4 bg-white p-6 rounded-xl shadow-lg">
-            <Dialog.Title className="text-lg font-bold">Add Party</Dialog.Title>
+            <Dialog.Title className="text-lg font-bold">
+              {isEditMode ? "Edit Party" : "Add Party"}
+            </Dialog.Title>
 
             <input
               type="text"
@@ -167,7 +257,13 @@ function ProjectParty({ projectId }) {
               onChange={handleChange}
               options={["Vendor", "Client", "Contractor", "Misc"]}
             />
-
+            <DropDown
+              name="paymentType"
+              value={newParty.paymentType}
+              label="Payment Type"
+              onChange={handleChange}
+              options={["AdvancePaid", "ToPay"]}
+            />
             <input
               type="number"
               name="amount"
@@ -176,7 +272,6 @@ function ProjectParty({ projectId }) {
               onChange={handleChange}
               className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
             />
-
             <div className="flex flex-row justify-end gap-2 pt-2">
               <Button onClick={closeModal} variant="outlined" color="gray">
                 Cancel
@@ -186,7 +281,7 @@ function ProjectParty({ projectId }) {
                 variant="custom"
                 className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
               >
-                Save
+                {isEditMode ? "Update" : "Save"}
               </Button>
             </div>
           </Dialog.Panel>
@@ -198,20 +293,49 @@ function ProjectParty({ projectId }) {
 
 export default ProjectParty;
 
-// import React, { useState } from "react";
+
+
+
+
+
+
+// import React, { useState, useEffect } from "react";
 // import { FiDownload } from "react-icons/fi";
 // import { FaFilter } from "react-icons/fa";
 // import { Dialog } from "@headlessui/react";
 // import Button from "../../../components/Button";
 // import DropDown from "../../../components/DropDown";
+// import {
+//   fetchPartyByProject,
+//   createParty,
+// } from "../../../services/partyServices";
 
 // function ProjectParty({ projectId }) {
 //   const [isOpen, setIsOpen] = useState(false);
+//   const [parties, setParties] = useState([]);
+//   const [loading, setLoading] = useState(false);
 //   const [newParty, setNewParty] = useState({
 //     name: "",
 //     type: "",
 //     amount: "",
+//     paymentType: "",
 //   });
+
+//   // ✅ Load parties on mount
+//   useEffect(() => {
+//     const loadParties = async () => {
+//       setLoading(true);
+//       try {
+//         const data = await fetchPartyByProject(projectId);
+//         setParties(data);
+//       } catch (error) {
+//         console.error("Failed to fetch parties:", error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     if (projectId) loadParties();
+//   }, [projectId]);
 
 //   const handleChange = (e) => {
 //     const { name, value } = e.target;
@@ -220,12 +344,17 @@ export default ProjectParty;
 
 //   const closeModal = () => {
 //     setIsOpen(false);
-//     setNewParty({ name: "", type: "", amount: "" });
+//     setNewParty({ name: "", type: "", amount: "", paymentType: "" });
 //   };
 
-//   const handleAddParty = () => {
-//     console.log("Added party:", newParty);
-//     closeModal();
+//   const handleAddParty = async () => {
+//     try {
+//       const created = await createParty({ ...newParty, projectId });
+//       setParties((prev) => [...prev, created]); 
+//       closeModal();
+//     } catch (error) {
+//       console.error("Error creating party:", error);
+//     }
 //   };
 
 //   return (
@@ -276,14 +405,33 @@ export default ProjectParty;
 //               <th className="text-left px-4 py-2">Party Name</th>
 //               <th className="text-left px-4 py-2">Type</th>
 //               <th className="text-left px-4 py-2">Amount</th>
+//               <th className="text-left px-4 py-2">Payment Type</th>
 //             </tr>
 //           </thead>
 //           <tbody>
-//             <tr>
-//               <td colSpan="4" className="text-center text-gray-400 py-8">
-//                 No parties added yet
-//               </td>
-//             </tr>
+//             {loading ? (
+//               <tr>
+//                 <td colSpan="5" className="text-center py-6 text-gray-500">
+//                   Loading...
+//                 </td>
+//               </tr>
+//             ) : parties.length === 0 ? (
+//               <tr>
+//                 <td colSpan="5" className="text-center text-gray-400 py-8">
+//                   No parties added yet
+//                 </td>
+//               </tr>
+//             ) : (
+//               parties.map((party, index) => (
+//                 <tr key={party._id} className="border-b">
+//                   <td className="px-4 py-2">{index + 1}</td>
+//                   <td className="px-4 py-2">{party.name}</td>
+//                   <td className="px-4 py-2">{party.type}</td>
+//                   <td className="px-4 py-2">₹ {party.amount}</td>
+//                   <td className="px-4 py-2 capitalize">{party.paymentType}</td>
+//                 </tr>
+//               ))
+//             )}
 //           </tbody>
 //         </table>
 //       </div>
@@ -321,9 +469,15 @@ export default ProjectParty;
 //               value={newParty.type}
 //               label="Type"
 //               onChange={handleChange}
-//               options={["Vendor", "Client", "Contractor","Miss"]}
+//               options={["Vendor", "Client", "Contractor", "Misc"]}
 //             />
-
+//             <DropDown
+//               name="paymentType"
+//               value={newParty.paymentType}
+//               label="Payment Type"
+//               onChange={handleChange}
+//               options={["AdvancePaid", "ToPay"]}
+//             />
 //             <input
 //               type="number"
 //               name="amount"
@@ -332,7 +486,6 @@ export default ProjectParty;
 //               onChange={handleChange}
 //               className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
 //             />
-
 //             <div className="flex flex-row justify-end gap-2 pt-2">
 //               <Button onClick={closeModal} variant="outlined" color="gray">
 //                 Cancel

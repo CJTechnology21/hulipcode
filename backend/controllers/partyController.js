@@ -1,17 +1,17 @@
 const ProjectParty = require("../models/Party");
 
-// ✅ Create
+//  Create
 const createParty = async (req, res) => {
     try {
-        const { projectId, name, type, amount } = req.body;
-        const party = await ProjectParty.create({ projectId, name, type, amount });
+        const { projectId, name, type, amount, paymentType } = req.body;
+        const party = await ProjectParty.create({ projectId, name, type, amount, paymentType });
         res.status(201).json(party);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 };
 
-// ✅ Read All (by projectId)
+//  Read All (by projectId)
 const getPartiesByProject = async (req, res) => {
     try {
         const { projectId } = req.query;
@@ -22,7 +22,7 @@ const getPartiesByProject = async (req, res) => {
     }
 };
 
-// ✅ Read One
+//  Read One
 const getPartyById = async (req, res) => {
     try {
         const party = await ProjectParty.findById(req.params.id);
@@ -33,7 +33,7 @@ const getPartyById = async (req, res) => {
     }
 };
 
-// ✅ Update (PATCH)
+//  Update (PATCH)
 const updateParty = async (req, res) => {
     try {
         const { id } = req.params;
@@ -48,7 +48,7 @@ const updateParty = async (req, res) => {
     }
 };
 
-// ✅ Delete
+// Delete
 const deleteParty = async (req, res) => {
     try {
         const { id } = req.params;
