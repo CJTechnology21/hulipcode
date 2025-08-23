@@ -5,7 +5,7 @@ import { Dialog } from "@headlessui/react";
 import Button from "../../../components/Button";
 import DropDown from "../../../components/DropDown";
 import {
-  fetchpartyByProject,
+  fetchPartyByProject,
   createParty,
 } from "../../../services/partyServices";
 
@@ -24,7 +24,7 @@ function ProjectParty({ projectId }) {
     const loadParties = async () => {
       setLoading(true);
       try {
-        const data = await fetchpartyByProject(projectId);
+        const data = await fetchPartyByProject(projectId);
         setParties(data);
       } catch (error) {
         console.error("Failed to fetch parties:", error);

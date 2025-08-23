@@ -14,7 +14,7 @@ const createParty = async (req, res) => {
 // ✅ Read All (by projectId)
 const getPartiesByProject = async (req, res) => {
     try {
-        const { projectId } = req.params;
+        const { projectId } = req.query;
         const parties = await ProjectParty.find({ projectId });
         res.json(parties);
     } catch (error) {

@@ -9,8 +9,8 @@ const axiosInstance = axios.create({
 });
 
 // ✅ Fetch all party for a project
-export const fetchpartyByProject = async (projectId) => {
-  const res = await axiosInstance.get(`/api/party/project/${projectId}`);
+export const fetchPartyByProject = async (projectId) => {
+  const res = await axiosInstance.get(`/api/party?projectId=${projectId}`); // plural & query
   return res.data;
 };
 
