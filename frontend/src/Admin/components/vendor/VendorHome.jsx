@@ -14,7 +14,7 @@ import AddPOModal from "./AddPOModal";
 import ReturnItemsModal from "./ReturnedItemsModal";
 
 // Services
-import { fetchVendorOrders } from "../services/vendorOrderServices";
+import { fetchVendorOrders } from "../../../services/vendorOrderServices";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
