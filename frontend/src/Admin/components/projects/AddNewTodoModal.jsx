@@ -233,8 +233,16 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
             name="assignedTo"
             value={formData.assignedTo}
             onChange={handleChange("assignedTo")}
-            options={architects.map((a) => ({ value: a.id, label: a.name }))}
+            options={architects.map((a) => ({ value: a._id, label: a.name }))} // ✅ use _id
           />
+
+          {/* <DropDown
+            label="ASSIGNED TO"
+            name="assignedTo"
+            value={formData.assignedTo}
+            onChange={handleChange("assignedTo")}
+            options={architects.map((a) => ({ value: a.id, label: a.name }))}
+          /> */}
           {/* Project Selection (only if no projectId passed) */}
 
           <DropDown

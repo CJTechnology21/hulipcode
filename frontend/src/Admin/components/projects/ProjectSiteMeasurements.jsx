@@ -1,6 +1,3 @@
-
-
-
 import React, { useState } from "react";
 import { FiEdit2, FiPlus, FiSave } from "react-icons/fi";
 import { FaRegWindowClose } from "react-icons/fa";
@@ -18,6 +15,18 @@ const ProjectSiteMeasurements = () => {
 
   return (
     <div className="w-full px-0 md:px-4 bg-white p-4 md:p-8 rounded-md shadow overflow-x-auto md:m-2">
+      {/* 🔴 Top Bar with Add Room Button */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold text-gray-800 justify-center">
+          Site Measurements
+        </h2>
+        <button
+          onClick={() => {}}
+          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-semibold"
+        >
+          <FiPlus /> Add New Room
+        </button>
+      </div>
       <table className="w-full border-collapse table-auto">
         <thead>
           <tr className="bg-gray-100 text-left text-sm font-semibold">
@@ -37,12 +46,7 @@ const ProjectSiteMeasurements = () => {
         <tbody>
           {mockData.map((space, index) => (
             <React.Fragment key={space.id}>
-              <tr
-                className="cursor-pointer hover:bg-gray-50 border-b"
-                onClick={() =>
-                  setExpandedRow(expandedRow === index ? null : index)
-                }
-              >
+              <tr className="hover:bg-gray-50 border-b">
                 <td className="p-2">{space.id}</td>
                 <td className="p-2">{space.name}</td>
                 <td className="p-2">{space.category}</td>
@@ -54,7 +58,12 @@ const ProjectSiteMeasurements = () => {
                 <td className="p-2">180 sqft</td>
                 <td className="p-2">470 sqft</td>
                 <td className="p-2">
-                  <FiEdit2 className="inline-block" />
+                  <FiEdit2
+                    className="inline-block cursor-pointer text-red-600"
+                    onClick={() =>
+                      setExpandedRow(expandedRow === index ? null : index)
+                    }
+                  />
                 </td>
               </tr>
 
