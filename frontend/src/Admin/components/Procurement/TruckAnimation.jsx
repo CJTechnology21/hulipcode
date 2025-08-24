@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import truck from "../../images/truck.jpg";
 
-export default function MovingTruck() {
+export default function TruckAnimation() {
   return (
     <div className="w-full min-h-screen flex items-center justify-center bg-white">
       <motion.img
