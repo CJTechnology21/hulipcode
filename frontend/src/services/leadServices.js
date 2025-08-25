@@ -52,5 +52,11 @@ export const fetchArchitects = async () => {
 
 //Fetch Vendors
 export const fetchVendors = async ()=>{
-  const res = await axiosInstance.get("/api/user/vendors")
+  const res = await axiosInstance.get("/api/user/vendors");
+  return res.data;
+}
+//Fetch Architects and Clients
+export const fetchArchandClients = async ()=>{
+  const res = await axiosInstance.get("/api/user/architects-clients");
+  return res.data;
 }

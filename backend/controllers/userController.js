@@ -75,16 +75,29 @@ const getArchitects = async (req, res) => {
 
 const getVendors = async (req, res) => {
   try {
-    const vendors = await User.find({ role: "vendor" }).select("_id email phoneNumber");
+    const vendors = await User.find({ role: "vendor" }).select("_id email phoneNumber name");
     res.json(vendors);
   } catch (error) {
     console.log("Erros in fetching vendors:", err)
     res.status(500).json({ message: "Server Error" })
   }
 }
+
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({ role: { $in: ["architect", "client"] } })
+      .select("_id email phoneNumber name role"); // optional select fields
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 module.exports = {
   getUserProfile,
   redeemPoints,
   getArchitects,
   getVendors,
+  getUsers,
 };
