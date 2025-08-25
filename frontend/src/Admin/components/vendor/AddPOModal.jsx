@@ -7,7 +7,7 @@ import Input from "../../../components/Input";
 import DropDown from "../../../components/DropDown";
 import Button from "../../../components/Button";
 
-// ✅ Import services instead of defining here
+//  Import services instead of defining here
 import { fetchVendors, fetchArchandClients } from "../../../services/leadServices";
 import { fetchProjects } from "../../../services/projectServices";
 
@@ -91,7 +91,7 @@ export default function AddPOModal({ isOpen, onClose, onAddPO }) {
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full space-y-4">
+        <Dialog.Panel className="bg-white rounded-xl shadow-lg p-6 m-4 max-w-lg w-full space-y-4">
           <Dialog.Title className="text-xl font-semibold">
             Add Purchase Order
           </Dialog.Title>
