@@ -49,3 +49,8 @@ export const fetchArchitects = async () => {
   const res = await axiosInstance.get("/api/user/architects");
   return res.data;
 };
+
+//Fetch Vendors
+export const fetchVendors = async ()=>{
+  const res = await axiosInstance.get("/api/user/vendors")
+}

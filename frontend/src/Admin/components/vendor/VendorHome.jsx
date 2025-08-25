@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
+
+import React, { useState, useMemo } from "react";
 import { Tab } from "@headlessui/react";
 import Layout from "../Layout";
 import { FiClipboard, FiPlus, FiCalendar } from "react-icons/fi";
@@ -12,9 +13,6 @@ import CalendarModal from "./CalendarModal";
 import DetailListModal from "./DetailListModal";
 import AddPOModal from "./AddPOModal";
 import ReturnItemsModal from "./ReturnedItemsModal";
-
-// Services
-import { fetchVendorOrders } from "../../../services/vendorOrderServices";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -35,32 +33,43 @@ export default function VendorHome() {
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("Pending");
 
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState([
+    {
+      id: 1,
+      project: "Sunshine Residency",
+      orderedBy: "John Doe",
+      vendor: "ABC Cement",
+      amount: 25000,
+      date: "2025-08-01",
+      status: "Pending",
+      paymentTerms: "Net 30",
+      deliveryDate: "2025-08-08",
+      notes: "Urgent delivery required",
+      items: [
+        { name: "Cement Bags", qty: 50, price: 500 },
+        { name: "White Cement", qty: 20, price: 700 },
+      ],
+      returns: [],
+    },
+    {
+      id: 2,
+      project: "Metro Mall Expansion",
+      orderedBy: "Sarah Lee",
+      vendor: "XYZ Steel",
+      amount: 40000,
+      date: "2025-07-20",
+      status: "Paid",
+      paymentTerms: "Net 15",
+      deliveryDate: "2025-08-09",
+      notes: "Deliver during morning hours",
+      items: [
+        { name: "TMT Bars", qty: 100, price: 400 },
+        { name: "Binding Wire", qty: 30, price: 200 },
+      ],
+      returns: [],
+    },
+  ]);
 
-  // ==============================
-  // Fetch orders from backend
-  // ==============================
-  const loadVendorOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchVendorOrders();
-      // Assuming response.orders is the array from backend
-      setPurchaseOrders(response.orders || []);
-    } catch (err) {
-      console.error("Error fetching vendor orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadVendorOrders();
-  }, []);
-
-  // ==============================
-  // Summary Cards
-  // ==============================
   const summary = useMemo(() => {
     const totalPO = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
     const paymentsDone = purchaseOrders
@@ -72,16 +81,36 @@ export default function VendorHome() {
     return { totalPO, paymentsDone, paymentsPending, totalVendors, pendingCount };
   }, [purchaseOrders]);
 
-  // ==============================
-  // Add Vendor / Add PO (local for now)
-  // ==============================
-  const handleAddVendor = (newPO) => {
+  const handleAddVendor = () => {
+    if (!vendorName || !amount) return;
+    const newPO = {
+      id: purchaseOrders.length + 1,
+      project: "New Project",
+      orderedBy: "Project Manager",
+      vendor: vendorName,
+      amount: parseFloat(amount),
+      date: new Date().toISOString().split("T")[0],
+      status,
+      paymentTerms: "Net 30",
+      deliveryDate: "TBD",
+      notes: "",
+      items: [],
+      returns: [],
+    };
     setPurchaseOrders((prev) => [...prev, newPO]);
     setIsAddVendorOpen(false);
+    setVendorName("");
+    setAmount("");
+    setStatus("Pending");
   };
 
   const handleAddPO = (poData) => {
-    setPurchaseOrders((prev) => [...prev, poData]);
+    const newPO = {
+      id: purchaseOrders.length + 1,
+      ...poData,
+      returns: [],
+    };
+    setPurchaseOrders((prev) => [...prev, newPO]);
   };
 
   const handleStatusUpdate = (id, newStatus) => {
@@ -173,7 +202,6 @@ export default function VendorHome() {
                   setSelectedPO(po);
                   setIsPODetailsOpen(true);
                 }}
-                loading={loading}
               />
             </Tab.Panel>
 
@@ -227,7 +255,7 @@ export default function VendorHome() {
           isOpen={isPODetailsOpen}
           onClose={() => setIsPODetailsOpen(false)}
           selectedPO={selectedPO}
-          onManageReturns={handleManageReturns}
+          onManageReturns={handleManageReturns} // ✅ Fixed
         />
 
         <AddVendorModal
@@ -272,7 +300,7 @@ export default function VendorHome() {
   );
 }
 
-// import React, { useState, useMemo } from "react";
+// import React, { useState, useMemo, useEffect } from "react";
 // import { Tab } from "@headlessui/react";
 // import Layout from "../Layout";
 // import { FiClipboard, FiPlus, FiCalendar } from "react-icons/fi";
@@ -286,6 +314,9 @@ export default function VendorHome() {
 // import DetailListModal from "./DetailListModal";
 // import AddPOModal from "./AddPOModal";
 // import ReturnItemsModal from "./ReturnedItemsModal";
+
+// // Services
+// import { fetchVendorOrders } from "../../../services/vendorOrderServices";
 
 // function classNames(...classes) {
 //   return classes.filter(Boolean).join(" ");
@@ -306,43 +337,32 @@ export default function VendorHome() {
 //   const [amount, setAmount] = useState("");
 //   const [status, setStatus] = useState("Pending");
 
-//   const [purchaseOrders, setPurchaseOrders] = useState([
-//     {
-//       id: 1,
-//       project: "Sunshine Residency",
-//       orderedBy: "John Doe",
-//       vendor: "ABC Cement",
-//       amount: 25000,
-//       date: "2025-08-01",
-//       status: "Pending",
-//       paymentTerms: "Net 30",
-//       deliveryDate: "2025-08-08",
-//       notes: "Urgent delivery required",
-//       items: [
-//         { name: "Cement Bags", qty: 50, price: 500 },
-//         { name: "White Cement", qty: 20, price: 700 },
-//       ],
-//       returns: [],
-//     },
-//     {
-//       id: 2,
-//       project: "Metro Mall Expansion",
-//       orderedBy: "Sarah Lee",
-//       vendor: "XYZ Steel",
-//       amount: 40000,
-//       date: "2025-07-20",
-//       status: "Paid",
-//       paymentTerms: "Net 15",
-//       deliveryDate: "2025-08-09",
-//       notes: "Deliver during morning hours",
-//       items: [
-//         { name: "TMT Bars", qty: 100, price: 400 },
-//         { name: "Binding Wire", qty: 30, price: 200 },
-//       ],
-//       returns: [],
-//     },
-//   ]);
+//   const [purchaseOrders, setPurchaseOrders] = useState([]);
+//   const [loading, setLoading] = useState(false);
 
+//   // ==============================
+//   // Fetch orders from backend
+//   // ==============================
+//   const loadVendorOrders = async () => {
+//     try {
+//       setLoading(true);
+//       const response = await fetchVendorOrders();
+//       // Assuming response.orders is the array from backend
+//       setPurchaseOrders(response.orders || []);
+//     } catch (err) {
+//       console.error("Error fetching vendor orders:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     loadVendorOrders();
+//   }, []);
+
+//   // ==============================
+//   // Summary Cards
+//   // ==============================
 //   const summary = useMemo(() => {
 //     const totalPO = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
 //     const paymentsDone = purchaseOrders
@@ -354,36 +374,16 @@ export default function VendorHome() {
 //     return { totalPO, paymentsDone, paymentsPending, totalVendors, pendingCount };
 //   }, [purchaseOrders]);
 
-//   const handleAddVendor = () => {
-//     if (!vendorName || !amount) return;
-//     const newPO = {
-//       id: purchaseOrders.length + 1,
-//       project: "New Project",
-//       orderedBy: "Project Manager",
-//       vendor: vendorName,
-//       amount: parseFloat(amount),
-//       date: new Date().toISOString().split("T")[0],
-//       status,
-//       paymentTerms: "Net 30",
-//       deliveryDate: "TBD",
-//       notes: "",
-//       items: [],
-//       returns: [],
-//     };
+//   // ==============================
+//   // Add Vendor / Add PO (local for now)
+//   // ==============================
+//   const handleAddVendor = (newPO) => {
 //     setPurchaseOrders((prev) => [...prev, newPO]);
 //     setIsAddVendorOpen(false);
-//     setVendorName("");
-//     setAmount("");
-//     setStatus("Pending");
 //   };
 
 //   const handleAddPO = (poData) => {
-//     const newPO = {
-//       id: purchaseOrders.length + 1,
-//       ...poData,
-//       returns: [],
-//     };
-//     setPurchaseOrders((prev) => [...prev, newPO]);
+//     setPurchaseOrders((prev) => [...prev, poData]);
 //   };
 
 //   const handleStatusUpdate = (id, newStatus) => {
@@ -475,6 +475,7 @@ export default function VendorHome() {
 //                   setSelectedPO(po);
 //                   setIsPODetailsOpen(true);
 //                 }}
+//                 loading={loading}
 //               />
 //             </Tab.Panel>
 
@@ -528,7 +529,7 @@ export default function VendorHome() {
 //           isOpen={isPODetailsOpen}
 //           onClose={() => setIsPODetailsOpen(false)}
 //           selectedPO={selectedPO}
-//           onManageReturns={handleManageReturns} // ✅ Fixed
+//           onManageReturns={handleManageReturns}
 //         />
 
 //         <AddVendorModal

@@ -8,8 +8,11 @@ export default function POTable({ purchaseOrders, onRowClick }) {
           <tr>
             <th className="p-2">Vendor</th>
             <th className="p-2">Project</th>
+            <th className="p-2">Ordered By</th>
+            <th className="p-2">Payment Terms</th>
             <th className="p-2">Amount</th>
             <th className="p-2">Date</th>
+            <th className="p-2">Description</th>
             <th className="p-2">Status</th>
           </tr>
         </thead>
@@ -29,8 +32,11 @@ export default function POTable({ purchaseOrders, onRowClick }) {
             >
               <td className="p-2">{po.vendor}</td>
               <td className="p-2">{po.project}</td>
+              <td className="p-2">{po.orderedBy}</td>
+              <td className="p-2">{po.paymentTerms}</td>
               <td className="p-2">₹{po.amount.toLocaleString()}</td>
               <td className="p-2">{po.date}</td>
+              <td className="p-2">{po.notes}</td>
               <td className="p-2">
                 <span
                   className={`px-2 py-1 rounded text-xs ${
