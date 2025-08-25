@@ -22,7 +22,7 @@ const getUserProfile = async (req, res) => {
       email: user.email,
       phoneNumber: user.phoneNumber || 'N/A',
       rewardPoints: user.rewardPoints || 0,
-      role:user.role,
+      role: user.role,
     });
   } catch (err) {
     console.error('Error fetching user:', err);
@@ -72,8 +72,19 @@ const getArchitects = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+const getVendors = async (req, res) => {
+  try {
+    const vendors = await User.find({ role: "vendor" }).select("_id email phoneNumber");
+    res.json(vendors);
+  } catch (error) {
+    console.log("Erros in fetching vendors:", err)
+    res.status(500).json({ message: "Server Error" })
+  }
+}
 module.exports = {
   getUserProfile,
   redeemPoints,
   getArchitects,
+  getVendors,
 };
