@@ -19,6 +19,7 @@ const VendorOrderSchema = new mongoose.Schema(
         project: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
         orderedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Architect/Client/Admin
         vendor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Vendor User
+        architect: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, },
         amount: { type: Number, required: true },
         date: { type: Date, default: Date.now },
         status: { type: String, enum: ["Pending", "Paid"], default: "Pending" },

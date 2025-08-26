@@ -15,9 +15,12 @@ export default function PODetailsDrawer({
   isOpen,
   onClose,
   selectedPO,
-  onManageReturns, // optional
+  onManageReturns,
 }) {
-  if (!selectedPO) return null;
+  if (!isOpen || !selectedPO) return null;
+
+  const items = selectedPO.items || [];
+  const returnedItems = selectedPO.returnedItems || [];
 
   const statusColors = {
     Paid: "bg-green-100 text-green-700",
@@ -25,8 +28,8 @@ export default function PODetailsDrawer({
     Overdue: "bg-red-100 text-red-700",
   };
 
-  const totalAmount = selectedPO.items.reduce(
-    (sum, item) => sum + item.qty * item.price,
+  const totalAmount = items.reduce(
+    (sum, item) => sum + (item.qty || 0) * (item.price || 0),
     0
   );
 
@@ -48,7 +51,7 @@ export default function PODetailsDrawer({
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b-2 border-red-500 bg-gray-50">
                   <Dialog.Title className="text-lg font-bold">
-                    PO - {selectedPO.vendor}
+                    PO - {selectedPO.vendor || "-"}
                   </Dialog.Title>
                   <Button
                     variant="custom"
@@ -62,33 +65,33 @@ export default function PODetailsDrawer({
                 {/* Scrollable Content */}
                 <div className="p-4 flex-1 overflow-y-auto space-y-4">
                   {/* General Info */}
-                  <div className="bg-white rounded-lg border p-4 shadow-sm">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                  <div className="bg-white rounded-lg border p-4 shadow-sm space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
                       <FiPackage />
                       <span className="font-medium">Project:</span>
-                      {selectedPO.project}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                      <FiUser />
-                      <span className="font-medium">Ordered By:</span>
-                      {selectedPO.orderedBy}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                      <FiCalendar />
-                      <span className="font-medium">Date:</span>
-                      {selectedPO.date}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                      <FiFileText />
-                      <span className="font-medium">Payment Terms:</span>
-                      {selectedPO.paymentTerms}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                      <FiTruck />
-                      <span className="font-medium">Delivery Date:</span>
-                      {selectedPO.deliveryDate}
+                      {selectedPO.project || "-"}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <FiUser />
+                      <span className="font-medium">Ordered By:</span>
+                      {selectedPO.orderedBy || "-"}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <FiCalendar />
+                      <span className="font-medium">Date:</span>
+                      {selectedPO.date || "-"}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <FiFileText />
+                      <span className="font-medium">Payment Terms:</span>
+                      {selectedPO.paymentTerms || "-"}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <FiTruck />
+                      <span className="font-medium">Delivery Date:</span>
+                      {selectedPO.deliveryDate || "-"}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">Status:</span>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -96,21 +99,19 @@ export default function PODetailsDrawer({
                           "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {selectedPO.status}
+                        {selectedPO.status || "-"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Amount */}
+                  {/* Financials */}
                   <div className="bg-white rounded-lg border p-4 shadow-sm">
                     <h3 className="text-sm font-semibold mb-2">Financials</h3>
                     <p className="text-lg font-bold text-gray-800">
-                      ₹{selectedPO.amount.toLocaleString()}
+                      ₹{(selectedPO.amount || 0).toLocaleString()}
                     </p>
                     {selectedPO.notes && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        {selectedPO.notes}
-                      </p>
+                      <p className="text-sm text-gray-600 mt-2">{selectedPO.notes}</p>
                     )}
                   </div>
 
@@ -120,7 +121,7 @@ export default function PODetailsDrawer({
                       Items Ordered
                     </h3>
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 border-b-2 ">
+                      <thead className="bg-gray-50 border-b-2">
                         <tr>
                           <th className="p-2 text-left">Item</th>
                           <th className="p-2 text-center">Qty</th>
@@ -128,25 +129,22 @@ export default function PODetailsDrawer({
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedPO.items.map((item, idx) => (
+                        {items.map((item, idx) => (
                           <tr
                             key={idx}
                             className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                           >
-                            <td className="p-2">{item.name}</td>
-                            <td className="p-2 text-center">{item.qty}</td>
+                            <td className="p-2">{item.name || "-"}</td>
+                            <td className="p-2 text-center">{item.qty || 0}</td>
                             <td className="p-2 text-right">
-                              ₹{item.price.toLocaleString()}
+                              ₹{(item.price || 0).toLocaleString()}
                             </td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100 font-bold border-t border-gray-300">
                           <td className="p-2 text-left">Total</td>
                           <td className="p-2 text-center">
-                            {selectedPO.items.reduce(
-                              (sum, item) => sum + item.qty,
-                              0
-                            )}
+                            {items.reduce((sum, item) => sum + (item.qty || 0), 0)}
                           </td>
                           <td className="p-2 text-right text-red-600">
                             ₹{totalAmount.toLocaleString()}
@@ -156,33 +154,32 @@ export default function PODetailsDrawer({
                     </table>
                   </div>
 
-                  {/* Returned Items Section */}
-                  {selectedPO.returnedItems &&
-                    selectedPO.returnedItems.length > 0 && (
-                      <div className="bg-white rounded-lg border shadow-sm p-4">
-                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-red-600">
-                          <FiAlertTriangle /> Returned Items
-                        </h3>
-                        <ul className="divide-y text-sm">
-                          {selectedPO.returnedItems.map((ret, idx) => (
-                            <li key={idx} className="py-2 flex justify-between">
-                              <div>
-                                <span className="font-medium">
-                                  {ret.itemName}
-                                </span>{" "}
-                                - {ret.qty} pcs
-                                <div className="text-gray-500 text-xs">
-                                  {ret.reason}
-                                </div>
+                  {/* Returned Items */}
+                  {returnedItems.length > 0 && (
+                    <div className="bg-white rounded-lg border shadow-sm p-4">
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-red-600">
+                        <FiAlertTriangle /> Returned Items
+                      </h3>
+                      <ul className="divide-y text-sm">
+                        {returnedItems.map((ret, idx) => (
+                          <li key={idx} className="py-2 flex justify-between">
+                            <div>
+                              <span className="font-medium">
+                                {ret.itemName || "-"}
+                              </span>{" "}
+                              - {ret.qty || 0} pcs
+                              <div className="text-gray-500 text-xs">
+                                {ret.reason || "-"}
                               </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
-                {/* Sticky Footer */}
+                {/* Footer */}
                 <div className="p-4 border-t bg-gray-50 flex justify-between">
                   <Button
                     variant="custom"
@@ -227,7 +224,7 @@ export default function PODetailsDrawer({
 //   isOpen,
 //   onClose,
 //   selectedPO,
-//   onManageReturns,
+//   onManageReturns, // optional
 // }) {
 //   if (!selectedPO) return null;
 
@@ -237,7 +234,6 @@ export default function PODetailsDrawer({
 //     Overdue: "bg-red-100 text-red-700",
 //   };
 
-//   // Calculate total amount from items
 //   const totalAmount = selectedPO.items.reduce(
 //     (sum, item) => sum + item.qty * item.price,
 //     0
@@ -277,27 +273,28 @@ export default function PODetailsDrawer({
 //                   {/* General Info */}
 //                   <div className="bg-white rounded-lg border p-4 shadow-sm">
 //                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-//                       <FiPackage />{" "}
-//                       <span className="font-medium">Project:</span>{" "}
+//                       <FiPackage />
+//                       <span className="font-medium">Project:</span>
 //                       {selectedPO.project}
 //                     </div>
 //                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-//                       <FiUser />{" "}
-//                       <span className="font-medium">Ordered By:</span>{" "}
+//                       <FiUser />
+//                       <span className="font-medium">Ordered By:</span>
 //                       {selectedPO.orderedBy}
 //                     </div>
 //                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-//                       <FiCalendar /> <span className="font-medium">Date:</span>{" "}
+//                       <FiCalendar />
+//                       <span className="font-medium">Date:</span>
 //                       {selectedPO.date}
 //                     </div>
 //                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-//                       <FiFileText />{" "}
-//                       <span className="font-medium">Payment Terms:</span>{" "}
+//                       <FiFileText />
+//                       <span className="font-medium">Payment Terms:</span>
 //                       {selectedPO.paymentTerms}
 //                     </div>
 //                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-//                       <FiTruck />{" "}
-//                       <span className="font-medium">Delivery Date:</span>{" "}
+//                       <FiTruck />
+//                       <span className="font-medium">Delivery Date:</span>
 //                       {selectedPO.deliveryDate}
 //                     </div>
 //                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -343,9 +340,7 @@ export default function PODetailsDrawer({
 //                         {selectedPO.items.map((item, idx) => (
 //                           <tr
 //                             key={idx}
-//                             className={
-//                               idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-//                             }
+//                             className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
 //                           >
 //                             <td className="p-2">{item.name}</td>
 //                             <td className="p-2 text-center">{item.qty}</td>
@@ -354,7 +349,6 @@ export default function PODetailsDrawer({
 //                             </td>
 //                           </tr>
 //                         ))}
-//                         {/* Total Row */}
 //                         <tr className="bg-gray-100 font-bold border-t border-gray-300">
 //                           <td className="p-2 text-left">Total</td>
 //                           <td className="p-2 text-center">
@@ -401,7 +395,9 @@ export default function PODetailsDrawer({
 //                 <div className="p-4 border-t bg-gray-50 flex justify-between">
 //                   <Button
 //                     variant="custom"
-//                     onClick={() => onManageReturns(selectedPO)}
+//                     onClick={() =>
+//                       onManageReturns && onManageReturns(selectedPO)
+//                     }
 //                     className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
 //                   >
 //                     Manage Returned Items

@@ -1,61 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { Dialog } from "@headlessui/react";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import { useForm, Controller } from "react-hook-form";
 import Input from "../../../components/Input";
-import DropDown from "../../../components/DropDown";
 import Button from "../../../components/Button";
+import Select from "react-select";
 
-//  Import services instead of defining here
-import { fetchVendors, fetchArchandClients } from "../../../services/leadServices";
+import {
+  fetchVendors,
+  fetchArchandClients,
+} from "../../../services/leadServices";
 import { fetchProjects } from "../../../services/projectServices";
-
-// --- VALIDATION SCHEMA ---
-const schema = yup.object().shape({
-  project: yup.string().required("Project is required"),
-  orderedBy: yup.string().required("Ordered By is required"),
-  vendor: yup.string().required("Vendor is required"),
-  amount: yup
-    .number()
-    .typeError("Amount must be a number")
-    .positive("Amount must be greater than 0")
-    .required("Amount is required"),
-  date: yup.date().nullable(),
-  status: yup.string().oneOf(["Pending", "Paid"]).default("Pending"),
-  paymentTerms: yup.string(),
-  deliveryDate: yup.date().nullable(),
-  notes: yup.string(),
-});
-
-export default function AddPOModal({ isOpen, onClose, onAddPO }) {
+import { createVendorOrder,updateVendorOrder } from "../../../services/vendorOrderServices";
+function AddPOModal({
+  isOpen,
+  onClose,
+  onAddPO,
+  onUpdatePO,
+  mode = "add", // "add" | "edit"
+  initialData = null,
+}) {
   const [vendors, setVendors] = useState([]);
   const [projects, setProjects] = useState([]);
   const [archClients, setArchClients] = useState([]);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
+  const { register, handleSubmit, reset, control } = useForm({
     defaultValues: {
-      project: "",
-      orderedBy: "",
-      vendor: "",
+      project: null,
+      orderedBy: null,
+      vendor: null,
       amount: "",
-      date: "",
       status: "Pending",
       paymentTerms: "",
       deliveryDate: "",
       notes: "",
-      items: [],
     },
   });
 
-  // Fetch dropdown data on modal open
+  // Load dropdowns when modal opens
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -65,10 +46,10 @@ export default function AddPOModal({ isOpen, onClose, onAddPO }) {
           fetchArchandClients(),
         ]);
 
-        setVendors(vData?.map(v => ({ label: v.name, value: v.id })) || []);
-        setProjects(pData?.map(p => ({ label: p.name, value: p.id })) || []);
+        setVendors(vData?.map((v) => ({ label: v.name, value: v._id })) || []);
+        setProjects(pData?.map((p) => ({ label: p.name, value: p._id })) || []);
         setArchClients(
-          acData?.map(ac => ({ label: ac.name, value: ac.id })) || []
+          acData?.map((ac) => ({ label: ac.name, value: ac._id })) || []
         );
       } catch (err) {
         console.error("Failed to fetch dropdown data:", err);
@@ -78,101 +59,208 @@ export default function AddPOModal({ isOpen, onClose, onAddPO }) {
     if (isOpen) loadData();
   }, [isOpen]);
 
+  // // Prefill form in edit mode AFTER options load
+  // inside useEffect where we reset for edit mode
+  useEffect(() => {
+    if (
+      mode === "edit" &&
+      initialData &&
+      vendors.length &&
+      projects.length &&
+      archClients.length
+    ) {
+      const prefillData = {
+        project: initialData.project?._id || initialData.project || null,
+        orderedBy: initialData.orderedBy?._id || initialData.orderedBy || null,
+        vendor: initialData.vendor?._id || initialData.vendor || null,
+        amount: initialData.amount || "",
+        status: initialData.status || "Pending",
+        paymentTerms: initialData.paymentTerms || "",
+        deliveryDate: initialData.deliveryDate
+          ? initialData.deliveryDate.slice(0, 10)
+          : "",
+        notes: initialData.notes || "",
+      };
+
+      // console.log("🔄 Prefilling form with:", prefillData); // ✅ debug
+      reset(prefillData);
+    }
+
+    if (mode === "add") {
+      const emptyData = {
+        project: null,
+        orderedBy: null,
+        vendor: null,
+        amount: "",
+        status: "Pending",
+        paymentTerms: "",
+        deliveryDate: "",
+        notes: "",
+      };
+      // console.log("🆕 Resetting form for add:", emptyData); // ✅ debug
+      reset(emptyData);
+    }
+  }, [mode, initialData, vendors, projects, archClients, reset]);
+
+  // inside onSubmit
   const onSubmit = (data) => {
-    onAddPO({
+    const payload = {
       ...data,
-      amount: parseFloat(data.amount),
-    });
+      amount: parseFloat(data.amount) || 0,
+    };
+
+    if (mode === "edit") {
+      const updatedPO = { ...payload, _id: initialData._id }; // ✅ always keep _id
+      // console.log("✏️ Submitting EDIT payload:", updatedPO); // ✅ debug
+      onUpdatePO(updatedPO);
+    } else {
+      // console.log("➕ Submitting ADD payload:", payload); // ✅ debug
+      onAddPO(payload);
+    }
+
     onClose();
     reset();
   };
+  const statusOptions = [
+    { label: "Pending", value: "Pending" },
+    { label: "Paid", value: "Paid" },
+  ];
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="bg-white rounded-xl shadow-lg p-6 m-4 max-w-lg w-full space-y-4">
-          <Dialog.Title className="text-xl font-semibold">
-            Add Purchase Order
+      <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+        <Dialog.Panel className="bg-white rounded-xl shadow-lg p-6 m-4 w-full max-w-lg md:max-w-xl lg:max-w-2xl">
+          <Dialog.Title className="text-xl font-semibold mb-2">
+            {mode === "edit" ? "Edit Purchase Order" : "Add Purchase Order"}
           </Dialog.Title>
 
           {/* Project */}
-          <DropDown
-            label="Project"
-            name="project"
-            value=""
-            options={projects}
-            onChange={(e) => setValue("project", e.target.value)}
-          />
-          {errors.project && (
-            <p className="text-red-500 text-sm">{errors.project.message}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Project</label>
+            <Controller
+              name="project"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={projects}
+                  value={projects.find((p) => p.value === field.value) || null}
+                  onChange={(selected) =>
+                    field.onChange(selected?.value || null)
+                  }
+                  placeholder="Select Project"
+                />
+              )}
+            />
+          </div>
 
           {/* Ordered By */}
-          <DropDown
-            label="Ordered By"
-            name="orderedBy"
-            value=""
-            options={archClients}
-            onChange={(e) => setValue("orderedBy", e.target.value)}
-          />
-          {errors.orderedBy && (
-            <p className="text-red-500 text-sm">{errors.orderedBy.message}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Ordered By</label>
+            <Controller
+              name="orderedBy"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={archClients}
+                  value={
+                    archClients.find((ac) => ac.value === field.value) || null
+                  }
+                  onChange={(selected) =>
+                    field.onChange(selected?.value || null)
+                  }
+                  placeholder="Select Ordered By"
+                />
+              )}
+            />
+          </div>
 
           {/* Vendor */}
-          <DropDown
-            label="Vendor"
-            name="vendor"
-            value=""
-            options={vendors}
-            onChange={(e) => setValue("vendor", e.target.value)}
-          />
-          {errors.vendor && (
-            <p className="text-red-500 text-sm">{errors.vendor.message}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Vendor</label>
+            <Controller
+              name="vendor"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={vendors}
+                  value={vendors.find((v) => v.value === field.value) || null}
+                  onChange={(selected) =>
+                    field.onChange(selected?.value || null)
+                  }
+                  placeholder="Select Vendor"
+                />
+              )}
+            />
+          </div>
 
           {/* Amount */}
-          <Input
-            name="amount"
-            type="number"
-            placeholder="Amount"
-            {...register("amount")}
-          />
-          {errors.amount && (
-            <p className="text-red-500 text-sm">{errors.amount.message}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Amount</label>
+            <Input
+              name="amount"
+              type="number"
+              placeholder="Enter amount"
+              {...register("amount")}
+            />
+          </div>
 
           {/* Status */}
-          <DropDown
-            label="Status"
-            name="status"
-            options={["Pending", "Paid"]}
-            onChange={(e) => setValue("status", e.target.value)}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">Status</label>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  options={statusOptions}
+                  value={
+                    statusOptions.find((s) => s.value === field.value) || null
+                  }
+                  onChange={(selected) =>
+                    field.onChange(selected?.value || null)
+                  }
+                  placeholder="Select Status"
+                />
+              )}
+            />
+          </div>
 
           {/* Payment Terms */}
-          <Input
-            name="paymentTerms"
-            placeholder="Payment Terms"
-            {...register("paymentTerms")}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Payment Terms
+            </label>
+            <Input
+              name="paymentTerms"
+              placeholder="Enter payment terms"
+              {...register("paymentTerms")}
+            />
+          </div>
 
           {/* Delivery Date */}
-          <Input
-            name="deliveryDate"
-            type="date"
-            placeholder="Delivery Date"
-            {...register("deliveryDate")}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Delivery Date
+            </label>
+            <Input
+              name="deliveryDate"
+              type="date"
+              {...register("deliveryDate")}
+            />
+          </div>
 
           {/* Notes */}
-          <Input
-            name="notes"
-            placeholder="Notes"
-            {...register("notes")}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1">Notes</label>
+            <Input
+              name="notes"
+              placeholder="Additional notes"
+              {...register("notes")}
+            />
+          </div>
 
+          {/* Buttons */}
           <div className="flex justify-end gap-3 mt-4">
             <Button color="gray" variant="outlined" onClick={onClose}>
               Cancel
@@ -183,7 +271,7 @@ export default function AddPOModal({ isOpen, onClose, onAddPO }) {
               className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
               onClick={handleSubmit(onSubmit)}
             >
-              Add PO
+              {mode === "edit" ? "Update PO" : "Add PO"}
             </Button>
           </div>
         </Dialog.Panel>
@@ -191,128 +279,4 @@ export default function AddPOModal({ isOpen, onClose, onAddPO }) {
     </Dialog>
   );
 }
-
-// import React, { useState } from "react";
-// import { Dialog } from "@headlessui/react";
-// import Input from "../../../components/Input";
-// import DropDown from "../../../components/DropDown";
-// import Button from "../../../components/Button";
-
-// export default function AddPOModal({ isOpen, onClose, onAddPO }) {
-//   const [form, setForm] = useState({
-//     project: "",
-//     orderedBy: "",
-//     vendor: "",
-//     amount: "",
-//     date: "",
-//     status: "Pending",
-//     paymentTerms: "",
-//     deliveryDate: "",
-//     notes: "",
-//     items: [],
-//   });
-
-//   const handleChange = (field, value) => {
-//     setForm((prev) => ({ ...prev, [field]: value }));
-//   };
-
-//   const handleSubmit = () => {
-//     if (!form.vendor || !form.amount) return;
-//     onAddPO({
-//       ...form,
-//       amount: parseFloat(form.amount),
-//     });
-//     onClose();
-//     setForm({
-//       project: "",
-//       orderedBy: "",
-//       vendor: "",
-//       amount: "",
-//       date: "",
-//       status: "Pending",
-//       paymentTerms: "",
-//       deliveryDate: "",
-//       notes: "",
-//       items: [],
-//     });
-//   };
-
-//   return (
-//     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-//       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-//       <div className="fixed inset-0 flex items-center justify-center p-4">
-//         <Dialog.Panel className="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full space-y-4">
-//           <Dialog.Title className="text-xl font-semibold">
-//             Add Purchase Order
-//           </Dialog.Title>
-
-//           <Input
-//             name="project"
-//             placeholder="Project Name"
-//             value={form.project}
-//             onChange={(e) => handleChange("project", e.target.value)}
-//           />
-//           <Input
-//             name="orderedBy"
-//             placeholder="Ordered By"
-//             value={form.orderedBy}
-//             onChange={(e) => handleChange("orderedBy", e.target.value)}
-//           />
-//           <Input
-//             name="vendor"
-//             placeholder="Vendor Name"
-//             value={form.vendor}
-//             onChange={(e) => handleChange("vendor", e.target.value)}
-//           />
-//           <Input
-//             name="amount"
-//             type="number"
-//             placeholder="Amount"
-//             value={form.amount}
-//             onChange={(e) => handleChange("amount", e.target.value)}
-//           />
-//           <DropDown
-//             label="Status"
-//             name="status"
-//             value={form.status}
-//             onChange={(e) => handleChange("status", e.target.value)}
-//             options={["Pending", "Paid"]}
-//           />
-//           <Input
-//             name="paymentTerms"
-//             placeholder="Payment Terms"
-//             value={form.paymentTerms}
-//             onChange={(e) => handleChange("paymentTerms", e.target.value)}
-//           />
-//           <Input
-//             name="deliveryDate"
-//             type="date"
-//             placeholder="Delivery Date"
-//             value={form.deliveryDate}
-//             onChange={(e) => handleChange("deliveryDate", e.target.value)}
-//           />
-//           <Input
-//             name="notes"
-//             placeholder="Notes"
-//             value={form.notes}
-//             onChange={(e) => handleChange("notes", e.target.value)}
-//           />
-
-//           <div className="flex justify-end gap-3 mt-4">
-//             <Button color="gray" variant="outlined" onClick={onClose}>
-//               Cancel
-//             </Button>
-//             <Button
-//               color="green"
-//               variant="custom"
-//               className="bg-red-500 hover:bg-red-600 text-white cursor-pointer"
-//               onClick={handleSubmit}
-//             >
-//               Add PO
-//             </Button>
-//           </div>
-//         </Dialog.Panel>
-//       </div>
-//     </Dialog>
-//   );
-// }
+export default AddPOModal;

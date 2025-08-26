@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Tab } from "@headlessui/react";
 import Layout from "../Layout";
 import { FiClipboard, FiPlus, FiCalendar } from "react-icons/fi";
@@ -13,6 +12,10 @@ import CalendarModal from "./CalendarModal";
 import DetailListModal from "./DetailListModal";
 import AddPOModal from "./AddPOModal";
 import ReturnItemsModal from "./ReturnedItemsModal";
+
+// Services
+import { fetchVendors, fetchArchandClients } from "../../../services/leadServices";
+import { fetchProjects } from "../../../services/projectServices";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -33,60 +36,52 @@ export default function VendorHome() {
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("Pending");
 
-  const [purchaseOrders, setPurchaseOrders] = useState([
-    {
-      id: 1,
-      project: "Sunshine Residency",
-      orderedBy: "John Doe",
-      vendor: "ABC Cement",
-      amount: 25000,
-      date: "2025-08-01",
-      status: "Pending",
-      paymentTerms: "Net 30",
-      deliveryDate: "2025-08-08",
-      notes: "Urgent delivery required",
-      items: [
-        { name: "Cement Bags", qty: 50, price: 500 },
-        { name: "White Cement", qty: 20, price: 700 },
-      ],
-      returns: [],
-    },
-    {
-      id: 2,
-      project: "Metro Mall Expansion",
-      orderedBy: "Sarah Lee",
-      vendor: "XYZ Steel",
-      amount: 40000,
-      date: "2025-07-20",
-      status: "Paid",
-      paymentTerms: "Net 15",
-      deliveryDate: "2025-08-09",
-      notes: "Deliver during morning hours",
-      items: [
-        { name: "TMT Bars", qty: 100, price: 400 },
-        { name: "Binding Wire", qty: 30, price: 200 },
-      ],
-      returns: [],
-    },
-  ]);
+  const [vendors, setVendors] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [archClients, setArchClients] = useState([]);
 
+  const [purchaseOrders, setPurchaseOrders] = useState([]); 
+  const [activeTab, setActiveTab] = useState("All POs");
+
+  // Fetch dropdown data once
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [vData, pData, acData] = await Promise.all([
+          fetchVendors(),
+          fetchProjects(),
+          fetchArchandClients(),
+        ]);
+
+        setVendors(vData?.map((v) => ({ label: v.name, value: v._id })) || []);
+        setProjects(pData?.map((p) => ({ label: p.name, value: p._id })) || []);
+        setArchClients(acData?.map((ac) => ({ label: ac.name, value: ac._id })) || []);
+      } catch (err) {
+        console.error("Failed to fetch dropdown data:", err);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Summary cards calculations
   const summary = useMemo(() => {
-    const totalPO = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
+    const totalPO = purchaseOrders.reduce((sum, po) => sum + (po.amount || 0), 0);
     const paymentsDone = purchaseOrders
       .filter((po) => po.status === "Paid")
-      .reduce((sum, po) => sum + po.amount, 0);
+      .reduce((sum, po) => sum + (po.amount || 0), 0);
     const paymentsPending = totalPO - paymentsDone;
     const totalVendors = new Set(purchaseOrders.map((po) => po.vendor)).size;
     const pendingCount = purchaseOrders.filter((po) => po.status === "Pending").length;
     return { totalPO, paymentsDone, paymentsPending, totalVendors, pendingCount };
   }, [purchaseOrders]);
 
+  // Add Vendor PO
   const handleAddVendor = () => {
     if (!vendorName || !amount) return;
     const newPO = {
-      id: purchaseOrders.length + 1,
-      project: "New Project",
-      orderedBy: "Project Manager",
+      _id: Date.now().toString(), // temp unique id
+      project: null,
+      orderedBy: null,
       vendor: vendorName,
       amount: parseFloat(amount),
       date: new Date().toISOString().split("T")[0],
@@ -104,19 +99,32 @@ export default function VendorHome() {
     setStatus("Pending");
   };
 
+  // Add new PO
   const handleAddPO = (poData) => {
     const newPO = {
-      id: purchaseOrders.length + 1,
+      _id: Date.now().toString(), // temp id until backend assigns one
       ...poData,
       returns: [],
     };
     setPurchaseOrders((prev) => [...prev, newPO]);
   };
 
-  const handleStatusUpdate = (id, newStatus) => {
+  // Update PO status from dropdown
+  const handleStatusUpdate = (_id, newStatus) => {
     setPurchaseOrders((prev) =>
-      prev.map((po) => (po.id === id ? { ...po, status: newStatus } : po))
+      prev.map((po) => (po._id === _id ? { ...po, status: newStatus } : po))
     );
+  };
+
+  // Handle Edit PO
+  const handleEditPO = (po) => {
+    setSelectedPO(po);
+    setIsAddPOOpen(true);
+  };
+
+  // Handle Delete PO
+  const handleDeletePO = (_id) => {
+    setPurchaseOrders((prev) => prev.filter((po) => po._id !== _id));
   };
 
   const handleCardClick = (title, filterFn) => {
@@ -129,7 +137,7 @@ export default function VendorHome() {
 
   const handleUpdatePO = (updatedPO) => {
     setPurchaseOrders((prev) =>
-      prev.map((po) => (po.id === updatedPO.id ? updatedPO : po))
+      prev.map((po) => (po._id === updatedPO._id ? updatedPO : po))
     );
     setSelectedPO(updatedPO);
   };
@@ -140,26 +148,40 @@ export default function VendorHome() {
     setTimeout(() => setIsReturnModalOpen(true), 200);
   };
 
+  // Tab filters
+  const tabFilters = {
+    "All POs": (po) => true,
+    "Payments Done": (po) => po.status === "Paid",
+    "Payments Pending": (po) => po.status === "Pending",
+    "Orders to Delivery": (po) => po.status === "Pending",
+  };
+
+  // Filtered POs for table
+  const filteredPOs =
+    activeTab in tabFilters
+      ? purchaseOrders.filter(tabFilters[activeTab])
+      : purchaseOrders;
+
   return (
     <Layout>
-      <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="p-4 sm:p-6 bg-gray-100 min-h-screen">
         {/* Top Bar */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
             <FiClipboard className="text-red-500" /> Vendor Management
           </h1>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setIsCalendarOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow transition"
+              className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow transition text-sm sm:text-base"
             >
-              <FiCalendar className="w-5 h-5" /> Deliveries
+              <FiCalendar className="w-4 h-4 sm:w-5 sm:h-5" /> Deliveries
             </button>
             <button
               onClick={() => setIsAddVendorOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow transition"
+              className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow transition text-sm sm:text-base"
             >
-              <FiPlus className="w-5 h-5" /> Add Vendor
+              <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" /> Add Vendor
             </button>
           </div>
         </div>
@@ -168,14 +190,18 @@ export default function VendorHome() {
         <SummaryCards summary={summary} onCardClick={handleCardClick} />
 
         {/* Tabs */}
-        <Tab.Group>
-          <Tab.List className="flex space-x-2 bg-white p-1 rounded-xl shadow mb-4">
-            {["All POs", "Payments Done", "Payments Pending", "Pending Orders"].map((tab) => (
+        <Tab.Group
+          onChange={(index) =>
+            setActiveTab(Object.keys(tabFilters)[index] || "Pending Orders")
+          }
+        >
+          <Tab.List className="flex flex-wrap sm:flex-nowrap space-x-0 sm:space-x-2 bg-white p-1 rounded-xl shadow mb-4">
+            {Object.keys(tabFilters).map((tab) => (
               <Tab
                 key={tab}
                 className={({ selected }) =>
                   classNames(
-                    "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+                    "flex-1 rounded-lg py-2 text-xs sm:text-sm font-medium",
                     selected ? "bg-red-500 text-white shadow" : "text-black hover:bg-red-100"
                   )
                 }
@@ -186,67 +212,33 @@ export default function VendorHome() {
           </Tab.List>
 
           <Tab.Panels>
-            {/* All POs */}
-            <Tab.Panel>
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={() => setIsAddPOOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow transition"
-                >
-                  <FiPlus className="w-5 h-5" /> Add PO
-                </button>
-              </div>
-              <POTable
-                purchaseOrders={purchaseOrders}
-                onRowClick={(po) => {
-                  setSelectedPO(po);
-                  setIsPODetailsOpen(true);
-                }}
-              />
-            </Tab.Panel>
-
-            {/* Payments Done */}
-            <Tab.Panel>
-              <POTable
-                purchaseOrders={purchaseOrders.filter((po) => po.status === "Paid")}
-                onRowClick={(po) => {
-                  setSelectedPO(po);
-                  setIsPODetailsOpen(true);
-                }}
-              />
-            </Tab.Panel>
-
-            {/* Payments Pending */}
-            <Tab.Panel>
-              <POTable
-                purchaseOrders={purchaseOrders.filter((po) => po.status === "Pending")}
-                onRowClick={(po) => {
-                  setSelectedPO(po);
-                  setIsPODetailsOpen(true);
-                }}
-              />
-            </Tab.Panel>
-
-            {/* Pending Orders Editable */}
-            <Tab.Panel className="bg-white p-4 rounded-xl shadow">
-              {purchaseOrders
-                .filter((po) => po.status === "Pending")
-                .map((po) => (
-                  <div key={po.id} className="flex justify-between items-center border-b py-2">
-                    <span>
-                      {po.vendor} - ₹{po.amount.toLocaleString()}
-                    </span>
-                    <select
-                      value={po.status}
-                      onChange={(e) => handleStatusUpdate(po.id, e.target.value)}
-                      className="border rounded p-1"
+            {Object.keys(tabFilters).map((tab) => (
+              <Tab.Panel key={tab}>
+                {tab === "All POs" && (
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => {
+                        setSelectedPO(null); // ensure fresh add
+                        setIsAddPOOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow transition text-sm sm:text-base"
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="Paid">Paid</option>
-                    </select>
+                      <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" /> Add PO
+                    </button>
                   </div>
-                ))}
-            </Tab.Panel>
+                )}
+                <POTable
+                  purchaseOrders={filteredPOs || []}
+                  projects={projects || []}
+                  vendors={vendors || []}
+                  archClients={archClients || []}
+                  onRowClick={handleEditPO}
+                  onEdit={handleEditPO}
+                  onDelete={handleDeletePO}
+                  onstatusUpdate={handleStatusUpdate}
+                />
+              </Tab.Panel>
+            ))}
           </Tab.Panels>
         </Tab.Group>
 
@@ -255,7 +247,7 @@ export default function VendorHome() {
           isOpen={isPODetailsOpen}
           onClose={() => setIsPODetailsOpen(false)}
           selectedPO={selectedPO}
-          onManageReturns={handleManageReturns} // ✅ Fixed
+          onManageReturns={handleManageReturns}
         />
 
         <AddVendorModal
@@ -285,8 +277,14 @@ export default function VendorHome() {
 
         <AddPOModal
           isOpen={isAddPOOpen}
-          onClose={() => setIsAddPOOpen(false)}
+          onClose={() => {
+            setIsAddPOOpen(false);
+            setSelectedPO(null);
+          }}
           onAddPO={handleAddPO}
+          onUpdatePO={handleUpdatePO}
+          mode={selectedPO ? "edit" : "add"}
+          initialData={selectedPO}
         />
 
         <ReturnItemsModal
@@ -316,7 +314,8 @@ export default function VendorHome() {
 // import ReturnItemsModal from "./ReturnedItemsModal";
 
 // // Services
-// import { fetchVendorOrders } from "../../../services/vendorOrderServices";
+// import { fetchVendors, fetchArchandClients } from "../../../services/leadServices";
+// import { fetchProjects } from "../../../services/projectServices";
 
 // function classNames(...classes) {
 //   return classes.filter(Boolean).join(" ");
@@ -337,32 +336,34 @@ export default function VendorHome() {
 //   const [amount, setAmount] = useState("");
 //   const [status, setStatus] = useState("Pending");
 
-//   const [purchaseOrders, setPurchaseOrders] = useState([]);
-//   const [loading, setLoading] = useState(false);
+//   const [vendors, setVendors] = useState([]);
+//   const [projects, setProjects] = useState([]);
+//   const [archClients, setArchClients] = useState([]);
 
-//   // ==============================
-//   // Fetch orders from backend
-//   // ==============================
-//   const loadVendorOrders = async () => {
-//     try {
-//       setLoading(true);
-//       const response = await fetchVendorOrders();
-//       // Assuming response.orders is the array from backend
-//       setPurchaseOrders(response.orders || []);
-//     } catch (err) {
-//       console.error("Error fetching vendor orders:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+//   const [purchaseOrders, setPurchaseOrders] = useState([]); 
+//   const [activeTab, setActiveTab] = useState("All POs");
 
+//   // Fetch dropdown data once
 //   useEffect(() => {
-//     loadVendorOrders();
+//     const loadData = async () => {
+//       try {
+//         const [vData, pData, acData] = await Promise.all([
+//           fetchVendors(),
+//           fetchProjects(),
+//           fetchArchandClients(),
+//         ]);
+
+//         setVendors(vData?.map((v) => ({ label: v.name, value: v._id })) || []);
+//         setProjects(pData?.map((p) => ({ label: p.name, value: p._id })) || []);
+//         setArchClients(acData?.map((ac) => ({ label: ac.name, value: ac._id })) || []);
+//       } catch (err) {
+//         console.error("Failed to fetch dropdown data:", err);
+//       }
+//     };
+//     loadData();
 //   }, []);
 
-//   // ==============================
-//   // Summary Cards
-//   // ==============================
+//   // Summary cards calculations
 //   const summary = useMemo(() => {
 //     const totalPO = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
 //     const paymentsDone = purchaseOrders
@@ -374,22 +375,56 @@ export default function VendorHome() {
 //     return { totalPO, paymentsDone, paymentsPending, totalVendors, pendingCount };
 //   }, [purchaseOrders]);
 
-//   // ==============================
-//   // Add Vendor / Add PO (local for now)
-//   // ==============================
-//   const handleAddVendor = (newPO) => {
+//   // Add Vendor PO
+//   const handleAddVendor = () => {
+//     if (!vendorName || !amount) return;
+//     const newPO = {
+//       id: purchaseOrders.length + 1,
+//       project: null,
+//       orderedBy: null,
+//       vendor: vendorName,
+//       amount: parseFloat(amount),
+//       date: new Date().toISOString().split("T")[0],
+//       status,
+//       paymentTerms: "Net 30",
+//       deliveryDate: "TBD",
+//       notes: "",
+//       items: [],
+//       returns: [],
+//     };
 //     setPurchaseOrders((prev) => [...prev, newPO]);
 //     setIsAddVendorOpen(false);
+//     setVendorName("");
+//     setAmount("");
+//     setStatus("Pending");
 //   };
 
+//   // Add new PO
 //   const handleAddPO = (poData) => {
-//     setPurchaseOrders((prev) => [...prev, poData]);
+//     const newPO = {
+//       id: purchaseOrders.length + 1,
+//       ...poData,
+//       returns: [],
+//     };
+//     setPurchaseOrders((prev) => [...prev, newPO]);
 //   };
 
+//   // Update PO status from dropdown
 //   const handleStatusUpdate = (id, newStatus) => {
 //     setPurchaseOrders((prev) =>
 //       prev.map((po) => (po.id === id ? { ...po, status: newStatus } : po))
 //     );
+//   };
+
+//   // Handle Edit PO
+//   const handleEditPO = (po) => {
+//     setSelectedPO(po);
+//     setIsAddPOOpen(true);
+//   };
+
+//   // Handle Delete PO
+//   const handleDeletePO = (id) => {
+//     setPurchaseOrders((prev) => prev.filter((po) => po.id !== id));
 //   };
 
 //   const handleCardClick = (title, filterFn) => {
@@ -413,26 +448,40 @@ export default function VendorHome() {
 //     setTimeout(() => setIsReturnModalOpen(true), 200);
 //   };
 
+//   // Tab filters
+//   const tabFilters = {
+//     "All POs": (po) => true,
+//     "Payments Done": (po) => po.status === "Paid",
+//     "Payments Pending": (po) => po.status === "Pending",
+//     "Orders to Delivery":(po) => po.status === "Pending",
+//   };
+
+//   // Filtered POs for table
+//   const filteredPOs =
+//     activeTab in tabFilters
+//       ? purchaseOrders.filter(tabFilters[activeTab])
+//       : purchaseOrders;
+
 //   return (
 //     <Layout>
-//       <div className="p-6 bg-gray-100 min-h-screen">
+//       <div className="p-4 sm:p-6 bg-gray-100 min-h-screen">
 //         {/* Top Bar */}
-//         <div className="flex justify-between items-center mb-6">
-//           <h1 className="text-3xl font-bold flex items-center gap-2">
+//         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+//           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
 //             <FiClipboard className="text-red-500" /> Vendor Management
 //           </h1>
-//           <div className="flex gap-3">
+//           <div className="flex flex-wrap gap-2">
 //             <button
 //               onClick={() => setIsCalendarOpen(true)}
-//               className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow transition"
+//               className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow transition text-sm sm:text-base"
 //             >
-//               <FiCalendar className="w-5 h-5" /> Deliveries
+//               <FiCalendar className="w-4 h-4 sm:w-5 sm:h-5" /> Deliveries
 //             </button>
 //             <button
 //               onClick={() => setIsAddVendorOpen(true)}
-//               className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow transition"
+//               className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow transition text-sm sm:text-base"
 //             >
-//               <FiPlus className="w-5 h-5" /> Add Vendor
+//               <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" /> Add Vendor
 //             </button>
 //           </div>
 //         </div>
@@ -441,14 +490,18 @@ export default function VendorHome() {
 //         <SummaryCards summary={summary} onCardClick={handleCardClick} />
 
 //         {/* Tabs */}
-//         <Tab.Group>
-//           <Tab.List className="flex space-x-2 bg-white p-1 rounded-xl shadow mb-4">
-//             {["All POs", "Payments Done", "Payments Pending", "Pending Orders"].map((tab) => (
+//         <Tab.Group
+//           onChange={(index) =>
+//             setActiveTab(Object.keys(tabFilters)[index] || "Pending Orders")
+//           }
+//         >
+//           <Tab.List className="flex flex-wrap sm:flex-nowrap space-x-0 sm:space-x-2 bg-white p-1 rounded-xl shadow mb-4">
+//             {Object.keys(tabFilters).map((tab) => (
 //               <Tab
 //                 key={tab}
 //                 className={({ selected }) =>
 //                   classNames(
-//                     "w-full rounded-lg py-2.5 text-sm font-medium leading-5",
+//                     "flex-1 rounded-lg py-2 text-xs sm:text-sm font-medium",
 //                     selected ? "bg-red-500 text-white shadow" : "text-black hover:bg-red-100"
 //                   )
 //                 }
@@ -459,68 +512,30 @@ export default function VendorHome() {
 //           </Tab.List>
 
 //           <Tab.Panels>
-//             {/* All POs */}
-//             <Tab.Panel>
-//               <div className="flex justify-end mb-4">
-//                 <button
-//                   onClick={() => setIsAddPOOpen(true)}
-//                   className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow transition"
-//                 >
-//                   <FiPlus className="w-5 h-5" /> Add PO
-//                 </button>
-//               </div>
-//               <POTable
-//                 purchaseOrders={purchaseOrders}
-//                 onRowClick={(po) => {
-//                   setSelectedPO(po);
-//                   setIsPODetailsOpen(true);
-//                 }}
-//                 loading={loading}
-//               />
-//             </Tab.Panel>
-
-//             {/* Payments Done */}
-//             <Tab.Panel>
-//               <POTable
-//                 purchaseOrders={purchaseOrders.filter((po) => po.status === "Paid")}
-//                 onRowClick={(po) => {
-//                   setSelectedPO(po);
-//                   setIsPODetailsOpen(true);
-//                 }}
-//               />
-//             </Tab.Panel>
-
-//             {/* Payments Pending */}
-//             <Tab.Panel>
-//               <POTable
-//                 purchaseOrders={purchaseOrders.filter((po) => po.status === "Pending")}
-//                 onRowClick={(po) => {
-//                   setSelectedPO(po);
-//                   setIsPODetailsOpen(true);
-//                 }}
-//               />
-//             </Tab.Panel>
-
-//             {/* Pending Orders Editable */}
-//             <Tab.Panel className="bg-white p-4 rounded-xl shadow">
-//               {purchaseOrders
-//                 .filter((po) => po.status === "Pending")
-//                 .map((po) => (
-//                   <div key={po.id} className="flex justify-between items-center border-b py-2">
-//                     <span>
-//                       {po.vendor} - ₹{po.amount.toLocaleString()}
-//                     </span>
-//                     <select
-//                       value={po.status}
-//                       onChange={(e) => handleStatusUpdate(po.id, e.target.value)}
-//                       className="border rounded p-1"
+//             {Object.keys(tabFilters).map((tab) => (
+//               <Tab.Panel key={tab}>
+//                 {tab === "All POs" && (
+//                   <div className="flex justify-end mb-4">
+//                     <button
+//                       onClick={() => setIsAddPOOpen(true)}
+//                       className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow transition text-sm sm:text-base"
 //                     >
-//                       <option value="Pending">Pending</option>
-//                       <option value="Paid">Paid</option>
-//                     </select>
+//                       <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" /> Add PO
+//                     </button>
 //                   </div>
-//                 ))}
-//             </Tab.Panel>
+//                 )}
+//                 <POTable
+//                   purchaseOrders={filteredPOs ||[]}
+//                   projects={projects|| []}
+//                   vendors={vendors || []}
+//                   archClients={archClients|| []}
+//                   onRowClick={(po) => handleEditPO(po)}
+//                   onEdit={(po) => handleEditPO(po)}
+//                   onDelete={(id) => handleDeletePO(id)}
+//                   onstatusUpdate = {handleStatusUpdate}
+//                 />
+//               </Tab.Panel>
+//             ))}
 //           </Tab.Panels>
 //         </Tab.Group>
 
@@ -561,6 +576,7 @@ export default function VendorHome() {
 //           isOpen={isAddPOOpen}
 //           onClose={() => setIsAddPOOpen(false)}
 //           onAddPO={handleAddPO}
+//           onUpdatePO={handleUpdatePO}
 //         />
 
 //         <ReturnItemsModal

@@ -6,15 +6,16 @@ const {
   updateVendorOrder,
   patchVendorOrder,
   deleteVendorOrder,
+  getVendorOrdersByArchitect,
 } = require("../controllers/vendorOrderController");
-
+const { protect } = require("../middleware/authMiddleware")
 const router = express.Router();
-
-router.post("/", createVendorOrder);
+router.get("/", getVendorOrdersByArchitect)
+router.post("/", protect, createVendorOrder);
 router.get("/", getVendorOrders);
 router.get("/:id", getVendorOrderById);
-router.put("/:id", updateVendorOrder);
-router.patch("/:id", patchVendorOrder);
-router.delete("/:id", deleteVendorOrder);
+router.put("/:id", protect, updateVendorOrder);
+router.patch("/:id", protect, patchVendorOrder);
+router.delete("/:id", protect, deleteVendorOrder);
 
 module.exports = router;
