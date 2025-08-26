@@ -26,7 +26,7 @@ export const fetchVendorOrderById = async (orderId) => {
 
 //get vendororders by architectId
 export const fetchVendorOrderByArchitect = async (architectId) => {
-  const res = await axiosInstance.get(`/api/vendorOrders/${architectId}`)
+  const res = await axiosInstance.get(`/api/vendorOrders?architectId=${architectId}`)
   return res.data;
 }
 

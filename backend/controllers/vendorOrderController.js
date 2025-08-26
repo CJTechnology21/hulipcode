@@ -58,7 +58,7 @@ const getVendorOrders = async (req, res) => {
 // ==============================
 const getVendorOrdersByArchitect = async (req, res) => {
   try {
-    const { architectId } = req.params;
+    const { architectId } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(architectId)) {
       return res.status(400).json({ message: "Invalid architectId" });
