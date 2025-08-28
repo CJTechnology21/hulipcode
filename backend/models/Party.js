@@ -24,7 +24,7 @@ const PartySchema = new mongoose.Schema(
     },
     paymentType: {
       type: String,
-      enum: ["AdvancePaid", "ToPay"], // restrict values to these two
+      enum: ["AdvancePaid", "ToPay"], 
       required: true,
     },
   },

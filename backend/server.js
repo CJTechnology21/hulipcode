@@ -30,6 +30,7 @@ const partyRoutes = require("./routes/partyRoutes")
 const todoRoutes = require('./routes/todoRoutes')
 const quoteRoutes = require('./routes/quoteRoutes')
 const vendorOrderRoutes = require('./routes/vendorOrdersRoutes')
+const transactionRoutes = require('./routes/transactionRoutes')
 // Load environment variables
 dotenv.config();
 
@@ -74,19 +75,20 @@ app.use('/api/config', configRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/location', locationRoutes);
 app.use("/api/vendor", vendorTokenRoutes);
-app.use("/api/leads",leadRoutes);
-app.use('/api/projects',projectRoutes)
-app.use('/api/s3',s3Routes)
+app.use("/api/leads", leadRoutes);
+app.use('/api/projects', projectRoutes)
+app.use('/api/s3', s3Routes)
 app.use("/api/upload", uploadRoutes);
-app.use("/api/tasks",taskRoutes)
-app.use('/api/invoice',invoiceRoutes)
-app.use('/api/attendance',attendanceRoutes);
-app.use('/api/photo',photoRoutes) 
-app.use("/api/2dlayout",twoDRoutes)
-app.use("/api/party",partyRoutes)
-app.use("/api/todo",todoRoutes)
-app.use("/api/quote",quoteRoutes)
-app.use("/api/vendorOrders",vendorOrderRoutes)
+app.use("/api/tasks", taskRoutes)
+app.use('/api/invoice', invoiceRoutes)
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/photo', photoRoutes)
+app.use("/api/2dlayout", twoDRoutes)
+app.use("/api/party", partyRoutes)
+app.use("/api/todo", todoRoutes)
+app.use("/api/quote", quoteRoutes)
+app.use("/api/vendorOrders", vendorOrderRoutes)
+app.use("/api/transaction", transactionRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

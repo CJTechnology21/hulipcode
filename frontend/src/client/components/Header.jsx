@@ -23,8 +23,8 @@ import MobileFilters from "./FilterComponents/MobileFilters";
 function Header() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { logout } = useAuth(); // ✅ use logout from context
-
+  const { logout } = useAuth(); 
+  
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [liked, setLiked] = useState(false);

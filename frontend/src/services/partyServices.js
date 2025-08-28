@@ -8,19 +8,19 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// ✅ Fetch all party for a project
+// Fetch all party for a project
 export const fetchPartyByProject = async (projectId) => {
   const res = await axiosInstance.get(`/api/party?projectId=${projectId}`); // plural & query
   return res.data;
 };
 
-// ✅ Fetch single party by ID
+//  Fetch single party by ID
 export const fetchPartyById = async (partyId) => {
   const res = await axiosInstance.get(`/api/party/${partyId}`);
   return res.data;
 };
 
-// ✅ Create new party
+//  Create new party
 export const createParty = async (partyData) => {
   const res = await axiosInstance.post("/api/party", partyData, {
     headers: { "Content-Type": "application/json" },
@@ -28,7 +28,7 @@ export const createParty = async (partyData) => {
   return res.data;
 };
 
-// ✅ Update party (PATCH - partial update)
+//  Update party (PATCH - partial update)
 export const updateParty = async (partyId, partyData) => {
   const res = await axiosInstance.put(`/api/party/${partyId}`, partyData, {
     headers: { "Content-Type": "application/json" },
@@ -36,7 +36,7 @@ export const updateParty = async (partyId, partyData) => {
   return res.data;
 };
 
-// ✅ Delete party
+//  Delete party
 export const deleteParty = async (partyId) => {
   const res = await axiosInstance.delete(`/api/party/${partyId}`);
   return res.data;
