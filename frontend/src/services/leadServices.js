@@ -60,3 +60,11 @@ export const fetchArchandClients = async ()=>{
   const res = await axiosInstance.get("/api/user/architects-clients");
   return res.data;
 }
+
+// Create a new user
+export const createUser = async (userData) => {
+  const res = await axiosInstance.post("/api/user", userData, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
+};

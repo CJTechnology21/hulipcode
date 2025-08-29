@@ -89,33 +89,33 @@ export const deleteInvoice = async (invoiceId) => {
 
 /* ---------------- ATTENDANCE SERVICES ---------------- */
 
-// Fetch all attendance (optional filter by projectId)
-export const fetchAttendance = async (projectId) => {
-  const res = await axiosInstance.get(`/api/attendance?projectId=${projectId}`);
-  return res.data;
-};
+  // Fetch all attendance (optional filter by projectId)
+  export const fetchAttendance = async (projectId) => {
+    const res = await axiosInstance.get(`/api/attendance?projectId=${projectId}`);
+    return res.data;
+  };
 
-// Create new attendance record
-export const createAttendance = async (attendanceData) => {
-  const res = await axiosInstance.post("/api/attendance", attendanceData);
-  return res.data;
-};
+  // Create new attendance record
+  export const createAttendance = async (attendanceData) => {
+    const res = await axiosInstance.post("/api/attendance", attendanceData);
+    return res.data;
+  };
 
-// Update attendance (PUT - full update)
-export const updateAttendance = async (attendanceId, attendanceData) => {
-  const res = await axiosInstance.put(
-    `/api/attendance/${attendanceId}`,
-    attendanceData,
-    { headers: { "Content-Type": "application/json" } }
-  );
-  return res.data;
-};
+  // Update attendance (PUT - full update)
+  export const updateAttendance = async (attendanceId, attendanceData) => {
+    const res = await axiosInstance.put(
+      `/api/attendance/${attendanceId}`,
+      attendanceData,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return res.data;
+  };
 
-// Delete attendance
-export const deleteAttendance = async (attendanceId) => {
-  const res = await axiosInstance.delete(`/api/attendance/${attendanceId}`);
-  return res.data;
-};
+  // Delete attendance
+  export const deleteAttendance = async (attendanceId) => {
+    const res = await axiosInstance.delete(`/api/attendance/${attendanceId}`);
+    return res.data;
+  };
 
 /* ---------------- PHOTO / S3 SERVICES ---------------- */
 

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    match: /^[0-9]{10,15}$/, 
+    match: /^[0-9]{10,15}$/,
     unique: true,
   },
   email: {
@@ -25,14 +25,14 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['architect', 'vendor', 'client', 'admin'],
+    enum: ['architect', 'vendor', 'client', 'admin', 'Site Staff', 'Labour Contractor', 'Subcon'],
     default: 'client',
   },
   isSuperAdmin: {
     type: Boolean,
-    default: false, 
+    default: false,
   },
-   rewardPoints: {
+  rewardPoints: {
     type: Number,
     default: 0,
   },

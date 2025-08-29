@@ -94,10 +94,35 @@ const getUsers = async (req, res) => {
   }
 };
 
+
+ const createUser = async (req, res) => {
+  try {
+    const { name, type } = req.body;
+
+    // Validate input
+    if (!name || !type) {
+      return res.status(400).json({ message: "Name and type are required" });
+    }
+
+    // Create the user
+    const newUser = await User.create({ name, type });
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: newUser,
+    });
+  } catch (error) {
+    console.error("Error in creating user:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
 module.exports = {
   getUserProfile,
   redeemPoints,
   getArchitects,
   getVendors,
   getUsers,
+  createUser,
 };

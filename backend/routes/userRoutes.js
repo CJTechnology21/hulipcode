@@ -8,12 +8,14 @@ const {
   getArchitects,
   getVendors,
   getUsers,
+  createUser,
 } = require("../controllers/userController");
 
 router.get("/me", protect, getUserProfile);
 router.put("/redeem", protect, redeemPoints);
 router.get('/architects', protect, getArchitects);
 router.get('/vendors', protect, getVendors)
-router.get("/architects-clients",protect, getUsers)
+router.get("/architects-clients",protect, getUsers);
+router.post("/",protect, createUser);
 
 module.exports = router;
