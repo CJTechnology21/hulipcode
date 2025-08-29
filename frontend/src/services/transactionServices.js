@@ -12,19 +12,19 @@ const axiosInstance = axios.create({
 export const fetchTransactions = async (filters = {}) => {
   // filters can include projectId and architectId
   const query = new URLSearchParams(filters).toString();
-  const res = await axiosInstance.get(`/api/transactions?${query}`);
+  const res = await axiosInstance.get(`/api/transaction?${query}`);
   return res.data;
 };
 
 // Get single transaction by ID
 export const fetchTransactionById = async (transactionId) => {
-  const res = await axiosInstance.get(`/api/transactions/${transactionId}`);
+  const res = await axiosInstance.get(`/api/transaction/${transactionId}`);
   return res.data;
 };
 
 // Create a new transaction
 export const createTransaction = async (transactionData) => {
-  const res = await axiosInstance.post("/api/transactions", transactionData, {
+  const res = await axiosInstance.post("/api/transaction", transactionData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
@@ -33,7 +33,7 @@ export const createTransaction = async (transactionData) => {
 // Full update (PUT) an existing transaction
 export const updateTransaction = async (transactionId, transactionData) => {
   const res = await axiosInstance.put(
-    `/api/transactions/${transactionId}`,
+    `/api/transaction/${transactionId}`,
     transactionData,
     { headers: { "Content-Type": "application/json" } }
   );
@@ -43,7 +43,7 @@ export const updateTransaction = async (transactionId, transactionData) => {
 // Partial update (PATCH) a transaction
 export const patchTransaction = async (transactionId, transactionData) => {
   const res = await axiosInstance.patch(
-    `/api/transactions/${transactionId}`,
+    `/api/transaction/${transactionId}`,
     transactionData,
     { headers: { "Content-Type": "application/json" } }
   );
@@ -52,6 +52,6 @@ export const patchTransaction = async (transactionId, transactionData) => {
 
 // Delete a transaction
 export const deleteTransaction = async (transactionId) => {
-  const res = await axiosInstance.delete(`/api/transactions/${transactionId}`);
+  const res = await axiosInstance.delete(`/api/transaction/${transactionId}`);
   return res.data;
 };

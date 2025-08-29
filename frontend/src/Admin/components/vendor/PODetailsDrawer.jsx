@@ -38,7 +38,7 @@ export default function PODetailsDrawer({
   );
 
   /**
-   * ✅ Universal label resolver for IDs and objects
+   *  Universal label resolver for IDs and objects
    */
   const getLabel = (arr, idOrObj) => {
     if (!arr || arr.length === 0 || !idOrObj) return "-";
@@ -64,7 +64,7 @@ export default function PODetailsDrawer({
     return match?.name || match?.label || "-";
   };
 
-  // ✅ Resolve names
+  //  Resolve names
   const vendorName = getLabel(vendors, selectedPO.vendor);
   const projectName = getLabel(projects, selectedPO.project);
   const orderedByName = getLabel(archClients, selectedPO.orderedBy);

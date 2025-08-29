@@ -7,75 +7,11 @@ import { toast } from "react-toastify";
 import {
   createTransaction,
   updateTransaction,
-  deleteTransaction,
 } from "../../../../services/transactionServices"; // your axios API calls
 import { fetchVendors } from "../../../../services/leadServices";
 import { fetchPartyByProject } from "../../../../services/partyServices";
-
+import{typeColorMap,typeCategoryMap,fieldConfig} from './allConfigs'
 // ----------------- constants ----------------- //
-
-// field configuration
-const fieldConfig = {
-  "Payment In": ["amount", "mode", "date", "party", "proof", "notes"],
-  "Payment Out": ["amount", "mode", "date", "party", "proof", "notes"],
-  "Debit Note": ["party", "amount", "date", "mode", "notes"],
-  "Credit Note": ["party", "amount", "date", "mode", "notes"],
-  "Party to Party Payment": [
-    "fromParty",
-    "toParty",
-    "amount",
-    "mode",
-    "date",
-    "proof",
-    "notes",
-  ],
-  "Sales Invoice": ["party", "amount", "date", "dueDate", "mode", "proof", "notes"],
-  "Material Sales": ["party", "material", "quantity", "amount", "date", "mode", "notes"],
-  "Material Purchase": ["vendor", "material", "quantity", "amount", "date", "mode", "proof", "notes"],
-  "Material Return": ["vendor", "material", "quantity", "amount", "date", "mode", "notes"],
-  "Material Transfer": ["fromLocation", "toLocation", "material", "quantity", "date", "mode", "notes"],
-  "Sub Con Bill": ["vendor", "amount", "date", "mode", "proof", "notes"],
-  "Other Expense": ["category", "amount", "mode", "date", "notes"],
-  "I Paid": ["amount", "mode", "date", "notes"],
-  "I Received": ["amount", "mode", "date", "notes"],
-};
-
-// map transaction type → category
-const typeCategoryMap = {
-  "Payment In": "Invoice",
-  "Sales Invoice": "Invoice",
-  "Material Sales": "Invoice",
-  "I Received": "Invoice",
-  "Payment Out": "Expense",
-  "Material Purchase": "Expense",
-  "Material Return": "Expense",
-  "Material Transfer": "Expense",
-  "Sub Con Bill": "Expense",
-  "Other Expense": "Expense",
-  "I Paid": "Expense",
-  "Debit Note": "Adjustment",
-  "Credit Note": "Adjustment",
-  "Party to Party Payment": "Transfer",
-};
-
-// map type → button color
-const typeColorMap = {
-  "Payment In": "green",
-  "I Received": "green",
-  "Sales Invoice": "blue",
-  "Material Sales": "blue",
-  "Payment Out": "red",
-  "I Paid": "red",
-  "Material Purchase": "red",
-  "Material Return": "red",
-  "Material Transfer": "red",
-  "Sub Con Bill": "red",
-  "Other Expense": "red",
-  "Debit Note": "blue",
-  "Credit Note": "blue",
-  "Party to Party Payment": "blue",
-};
-
 // render field function
 const renderField = (field, value, onChange, vendors, parties) => {
   switch (field) {
@@ -312,335 +248,109 @@ function TransactionModal({ isOpen, onClose, type, onSubmit, editData, projectId
 
 export default TransactionModal;
 
+
 // import { Fragment, useState, useEffect } from "react";
 // import { Dialog, Transition } from "@headlessui/react";
 // import { XMarkIcon } from "@heroicons/react/24/outline";
 // import Button from "../../../../components/Button";
 // import DropDown from "../../../../components/DropDown";
 // import { toast } from "react-toastify";
-
-// // import API services
+// import {
+//   createTransaction,
+//   updateTransaction,
+// } from "../../../../services/transactionServices";
 // import { fetchVendors } from "../../../../services/leadServices";
 // import { fetchPartyByProject } from "../../../../services/partyServices";
-
-// // field configuration
-// const fieldConfig = {
-//   "Payment In": ["amount", "mode", "date", "party", "proof", "notes"],
-//   "Payment Out": ["amount", "mode", "date", "party", "proof", "notes"],
-//   "Debit Note": ["party", "amount", "date", "mode", "notes"],
-//   "Credit Note": ["party", "amount", "date", "mode", "notes"],
-//   "Party to Party Payment": [
-//     "fromParty",
-//     "toParty",
-//     "amount",
-//     "mode",
-//     "date",
-//     "proof",
-//     "notes",
-//   ],
-
-//   // Sales
-//   "Sales Invoice": [
-//     "party",
-//     "amount",
-//     "date",     // ✅ added
-//     "dueDate",  // ✅ keep due date
-//     "mode",
-//     "proof",
-//     "notes",
-//   ],
-//   "Material Sales": [
-//     "party",
-//     "material",
-//     "quantity",
-//     "amount",
-//     "date",
-//     "mode",
-//     "notes",
-//   ],
-
-//   // Expense
-//   "Material Purchase": [
-//     "vendor",
-//     "material",
-//     "quantity",
-//     "amount",
-//     "date",
-//     "mode",
-//     "proof",
-//     "notes",
-//   ],
-//   "Material Return": [
-//     "vendor",
-//     "material",
-//     "quantity",
-//     "amount",
-//     "date",
-//     "mode",
-//     "notes",
-//   ],
-//   "Material Transfer": [
-//     "fromLocation",
-//     "toLocation",
-//     "material",
-//     "quantity",
-//     "date",
-//     "mode",
-//     "notes",
-//   ],
-//   "Sub Con Bill": ["vendor", "amount", "date", "mode", "proof", "notes"],
-//   "Other Expense": ["category", "amount", "mode", "date", "notes"],
-
-//   // My Account
-//   "I Paid": ["amount", "mode", "date", "notes"],
-//   "I Received": ["amount", "mode", "date", "notes"],
-// };
-
-// // map transaction type → category
-// const typeCategoryMap = {
-//   "Payment In": "Invoice",
-//   "Sales Invoice": "Invoice",
-//   "Material Sales": "Invoice",
-//   "I Received": "Invoice",
-
-//   "Payment Out": "Expense",
-//   "Material Purchase": "Expense",
-//   "Material Return": "Expense",
-//   "Material Transfer": "Expense",
-//   "Sub Con Bill": "Expense",
-//   "Other Expense": "Expense",
-//   "I Paid": "Expense",
-
-//   "Debit Note": "Adjustment",
-//   "Credit Note": "Adjustment",
-//   "Party to Party Payment": "Transfer",
-// };
-
-// // map type → button color
-// const typeColorMap = {
-//   "Payment In": "green",
-//   "I Received": "green",
-//   "Sales Invoice": "blue",
-//   "Material Sales": "blue",
-
-//   "Payment Out": "red",
-//   "I Paid": "red",
-//   "Material Purchase": "red",
-//   "Material Return": "red",
-//   "Material Transfer": "red",
-//   "Sub Con Bill": "red",
-//   "Other Expense": "red",
-
-//   "Debit Note": "blue",
-//   "Credit Note": "blue",
-//   "Party to Party Payment": "blue",
-// };
-
-// // render field
-// const renderField = (field, value, onChange, vendors, parties) => {
-//   switch (field) {
-//     case "amount":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Amount</label>
-//           <input
-//             type="number"
-//             placeholder="Enter amount"
-//             value={value}
-//             onChange={(e) => onChange("amount", e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "mode":
-//       return (
-//         <DropDown
-//           label="Mode"
-//           name="mode"
-//           value={value}
-//           onChange={(e) => onChange("mode", e.target.value)}
-//           options={[
-//             { value: "cash", label: "Cash" },
-//             { value: "bank", label: "Bank" },
-//             { value: "upi", label: "UPI" },
-//           ]}
-//         />
-//       );
-
-//     case "date":
-//     case "dueDate":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">
-//             {field === "dueDate" ? "Due Date" : "Date"}
-//           </label>
-//           <input
-//             type="date"
-//             value={value}
-//             onChange={(e) => onChange(field, e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "party":
-//       return (
-//         <DropDown
-//           label="Party"
-//           name="party"
-//           value={value}
-//           onChange={(e) => onChange("party", e.target.value)}
-//           options={parties.map((p) => ({ value: p.id, label: p.name }))}
-//         />
-//       );
-
-//     case "vendor":
-//       return (
-//         <DropDown
-//           label="Vendor"
-//           name="vendor"
-//           value={value}
-//           onChange={(e) => onChange("vendor", e.target.value)}
-//           options={vendors.map((v) => ({ value: v.id, label: v.name }))}
-//         />
-//       );
-
-//     case "category":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Category</label>
-//           <input
-//             type="text"
-//             placeholder="Enter category"
-//             value={value}
-//             onChange={(e) => onChange("category", e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "material":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Material</label>
-//           <input
-//             type="text"
-//             placeholder="Enter material"
-//             value={value}
-//             onChange={(e) => onChange("material", e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "quantity":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Quantity</label>
-//           <input
-//             type="number"
-//             placeholder="Enter quantity"
-//             value={value}
-//             onChange={(e) => onChange("quantity", e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "fromParty":
-//     case "toParty":
-//     case "fromLocation":
-//     case "toLocation":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">
-//             {field.replace(/([A-Z])/g, " $1")}
-//           </label>
-//           <input
-//             type="text"
-//             placeholder={field.replace(/([A-Z])/g, " $1")}
-//             value={value}
-//             onChange={(e) => onChange(field, e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "proof":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Proof</label>
-//           <input
-//             type="file"
-//             accept="image/*,application/pdf"
-//             onChange={(e) => onChange("proof", e.target.files[0])}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     case "notes":
-//       return (
-//         <div>
-//           <label className="block text-sm font-medium mb-1">Notes</label>
-//           <textarea
-//             placeholder="Enter notes"
-//             value={value}
-//             onChange={(e) => onChange("notes", e.target.value)}
-//             className="w-full border rounded-md px-3 py-2"
-//           />
-//         </div>
-//       );
-
-//     default:
-//       return null;
-//   }
-// };
+// import { useAuth } from "../../../../context/AuthContext";
+// import { typeColorMap, typeTransactionMap, fieldConfig } from "./allConfigs";
 
 // function TransactionModal({ isOpen, onClose, type, onSubmit, editData, projectId }) {
-//   const fields = fieldConfig[type] || [];
+//   const [fields, setFields] = useState([]);
 //   const [formData, setFormData] = useState({});
 //   const [vendors, setVendors] = useState([]);
 //   const [parties, setParties] = useState([]);
+//   const { user } = useAuth();
 
+//   /** Set fields dynamically */
 //   useEffect(() => {
-//     if (editData) setFormData(editData);
-//     else setFormData({});
+//     const configFields = fieldConfig[type] || [];
+//     setFields(configFields);
+//   }, [type]);
+
+//   /** Prefill data in edit mode */
+//   useEffect(() => {
+//     if (editData) {
+//       setFormData({
+//         ...editData,
+//         party: editData.party?._id || editData.party || "",
+//         vendor: editData.vendor?._id || editData.vendor || "",
+//         proof: editData.proofs?.[0]?.fileUrl || "",
+//       });
+//     } else {
+//       setFormData({});
+//     }
 //   }, [editData, type]);
 
+//   /**  Fetch vendors & parties */
 //   useEffect(() => {
-//     fetchVendors().then(setVendors).catch(() => setVendors([]));
+//     fetchVendors()
+//       .then((data) => setVendors(data || []))
+//       .catch(() => setVendors([]));
+
 //     if (projectId) {
 //       fetchPartyByProject(projectId)
-//         .then(setParties)
+//         .then((data) => setParties(data || []))
 //         .catch(() => setParties([]));
 //     }
 //   }, [projectId]);
 
+//   /**  Handle input changes */
 //   const handleChange = (field, value) => {
 //     setFormData((prev) => ({ ...prev, [field]: value }));
 //   };
 
-//   const handleSave = () => {
-//     const category = typeCategoryMap[type];
-//     const transaction = {
-//       ...formData,
-//       transactionType: category || "Other",
-//       type,
-//       id: editData?.id || Date.now(),
-//     };
+//   /**  Save transaction */
+//   const handleSave = async () => {
+//     try {
+//       if (!user || user.role !== "architect") {
+//         toast.error("You are not authorized to perform this action!");
+//         return;
+//       }
 
-//     onSubmit(transaction, !!editData);
-//     toast.success(
-//       editData
-//         ? `${type} transaction updated successfully!`
-//         : `${type} transaction created successfully!`
-//     );
-//     onClose();
+//       const { transactionType, category } = typeTransactionMap[type] || {
+//         transactionType: type,
+//         category: "Other",
+//       };
+
+//       const transaction = {
+//         ...formData,
+//         projectId,
+//         architectId: user._id,
+//         category,
+//         transactionType,
+//       };
+
+//       //  Keep this debug
+//       console.log(" Saving transaction payload:", transaction);
+
+//       let res;
+//       if (editData?._id) {
+//         res = await updateTransaction(editData._id, transaction);
+//         toast.success(`${type} transaction updated successfully!`);
+//       } else {
+//         res = await createTransaction(transaction);
+//         toast.success(`${type} transaction created successfully!`);
+//       }
+
+//       onSubmit(res, !!editData);
+//       onClose();
+//     } catch (err) {
+//       console.error(" Transaction error:", err.response?.data || err);
+//       toast.error(err.response?.data?.message || "Something went wrong!");
+//     }
 //   };
 
-//   // validate: all required except proof & notes
+//   /**  Validation for required fields */
 //   const isValid = fields.every((f) => {
 //     if (f === "proof" || f === "notes") return true;
 //     if (f === "amount" || f === "quantity") return formData[f] && Number(formData[f]) > 0;
@@ -652,13 +362,14 @@ export default TransactionModal;
 //   return (
 //     <Transition show={isOpen} as={Fragment}>
 //       <Dialog as="div" className="relative z-50" onClose={onClose}>
+//         {/* Overlay */}
 //         <div className="fixed inset-0 bg-black/40" />
 //         <div className="fixed inset-0 flex items-center justify-center p-4">
 //           <Dialog.Panel className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 overflow-y-auto max-h-[90vh]">
 //             {/* Header */}
 //             <div className="flex items-center justify-between mb-4">
 //               <Dialog.Title className="text-lg font-semibold text-gray-900">
-//                 {editData ? `Edit ${type}` : type}
+//                 {editData ? `Edit ${type}` : `Add ${type}`}
 //               </Dialog.Title>
 //               <button
 //                 onClick={onClose}
@@ -668,8 +379,11 @@ export default TransactionModal;
 //               </button>
 //             </div>
 
-//             {/* Dynamic Form */}
+//             {/* Dynamic Form Fields */}
 //             <div className="space-y-4">
+//               {fields.length === 0 && (
+//                 <p className="text-sm text-red-500">⚠️ No fields found for type "{type}"</p>
+//               )}
 //               {fields.map((field) => (
 //                 <div key={field}>
 //                   {renderField(field, formData[field] || "", handleChange, vendors, parties)}
@@ -705,6 +419,97 @@ export default TransactionModal;
 //       </Dialog>
 //     </Transition>
 //   );
+// }
+
+// /**  Dynamic Field Renderer */
+// function renderField(field, value, onChange, vendors, parties) {
+//   switch (field) {
+//     case "amount":
+//     case "quantity":
+//       return (
+//         <div>
+//           <label className="block text-sm font-medium mb-1 capitalize">{field}</label>
+//           <input
+//             type="number"
+//             value={value}
+//             onChange={(e) => onChange(field, e.target.value)}
+//             className="w-full border rounded p-2"
+//           />
+//         </div>
+//       );
+
+//     case "vendor":
+//       return (
+//         <DropDown
+//           label="Vendor"
+//           options={vendors.map((v) => ({ value: v._id, label: v.name }))}
+//           value={value}
+//           onChange={(val) => onChange(field, val)}
+//         />
+//       );
+
+//     case "party":
+//       return (
+//         <DropDown
+//           label="Party"
+//           options={parties.map((p) => ({ value: p._id, label: p.name }))}
+//           value={value}
+//           onChange={(val) => onChange(field, val)}
+//         />
+//       );
+
+//     case "date":
+//       return (
+//         <div>
+//           <label className="block text-sm font-medium mb-1">Date</label>
+//           <input
+//             type="date"
+//             value={value}
+//             onChange={(e) => onChange(field, e.target.value)}
+//             className="w-full border rounded p-2"
+//           />
+//         </div>
+//       );
+
+//     case "proof":
+//       return (
+//         <div>
+//           <label className="block text-sm font-medium mb-1">Proof</label>
+//           <input
+//             type="text"
+//             placeholder="Enter proof URL"
+//             value={value}
+//             onChange={(e) => onChange(field, e.target.value)}
+//             className="w-full border rounded p-2"
+//           />
+//         </div>
+//       );
+
+//     case "notes":
+//       return (
+//         <div>
+//           <label className="block text-sm font-medium mb-1">Notes</label>
+//           <textarea
+//             value={value}
+//             onChange={(e) => onChange(field, e.target.value)}
+//             className="w-full border rounded p-2"
+//           />
+//         </div>
+//       );
+
+//     default:
+//       return (
+//         <div>
+//           <label className="block text-sm font-medium mb-1 capitalize">{field}</label>
+//           <input
+//             type="text"
+//             value={value}
+//             onChange={(e) => onChange(field, e.target.value)}
+//             className="w-full border rounded p-2"
+//           />
+//         </div>
+//       );
+//   }
 // }
 
 // export default TransactionModal;
