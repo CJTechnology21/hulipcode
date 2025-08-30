@@ -61,10 +61,3 @@ export const fetchArchandClients = async ()=>{
   return res.data;
 }
 
-// Create a new user
-export const createUser = async (userData) => {
-  const res = await axiosInstance.post("/api/user", userData, {
-    headers: { "Content-Type": "application/json" },
-  });
-  return res.data;
-};

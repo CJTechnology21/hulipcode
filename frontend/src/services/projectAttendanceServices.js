@@ -44,3 +44,12 @@ export const deleteProjectAttendance = async (attendanceId) => {
   const res = await axiosInstance.delete(`/api/proattendance/${attendanceId}`);
   return res.data;
 };
+
+
+// Create a new user
+export const createUser = async (userData) => {
+  const res = await axiosInstance.post("/api/staff", userData, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
+};
