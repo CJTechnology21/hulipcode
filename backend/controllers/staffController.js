@@ -42,31 +42,6 @@ const getStaffByProject = async (req, res) => {
     res.status(500).json({ message: "Server error while fetching staff" });
   }
 };
-
-// const getStaffByProject = async (req, res) => {
-//   try {
-//     const { projectId } = req.query;
-
-//     // Validate projectId
-//     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-//       return res.status(400).json({ message: "Invalid or missing projectId" });
-//     }
-
-//     // Fetch staff for the project
-//     const staff = await Staff.find({ projectId }).sort({ createdAt: -1 });
-
-//     if (!staff || staff.length === 0) {
-//       return res.status(404).json({ message: "No staff found for this project" });
-//     }
-
-//     res.status(200).json({ staff });
-//   } catch (err) {
-//     console.error("Get Staff Error:", err);
-//     res.status(500).json({ message: "Server error while fetching staff" });
-//   }
-// };
-
-
 // Update staff
 const updateStaff = async (req, res) => {
   try {
@@ -91,4 +66,37 @@ const deleteStaff = async (req, res) => {
   }
 };
 
-module.exports = { createStaff, getStaffByProject, updateStaff, deleteStaff };
+// Mark attendance for staff
+const markAttendance = async (req, res) => {
+  try {
+    const { id } = req.params; // staffId
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Attendance status is required" });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const staff = await Staff.findByIdAndUpdate(
+      id,
+      {
+        attendance: { date: today, status },
+        $push: { attendanceHistory: { date: today, status } }
+      },
+      { new: true }
+    );
+
+    if (!staff) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    res.json({ message: "Attendance updated", staff });
+  } catch (error) {
+    console.error("Error marking attendance:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+module.exports = { createStaff, getStaffByProject, updateStaff, deleteStaff,markAttendance };
