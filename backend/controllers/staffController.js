@@ -24,12 +24,12 @@ const getStaffByProject = async (req, res) => {
   try {
     const { projectId } = req.query;
 
-    // Validate projectId
-    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({ message: "Invalid or missing projectId" });
+    // Just check presence, not ObjectId format
+    if (!projectId) {
+      return res.status(400).json({ message: "Missing projectId" });
     }
 
-    // Fetch staff for the project
+    // Query directly by string projectId
     const staff = await Staff.find({ projectId }).sort({ createdAt: -1 });
 
     if (!staff || staff.length === 0) {
@@ -38,10 +38,33 @@ const getStaffByProject = async (req, res) => {
 
     res.status(200).json({ staff });
   } catch (err) {
-    console.error("Get Staff Error:", err);
+    console.error("Get Staff Error:", err.message || err);
     res.status(500).json({ message: "Server error while fetching staff" });
   }
 };
+
+// const getStaffByProject = async (req, res) => {
+//   try {
+//     const { projectId } = req.query;
+
+//     // Validate projectId
+//     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ message: "Invalid or missing projectId" });
+//     }
+
+//     // Fetch staff for the project
+//     const staff = await Staff.find({ projectId }).sort({ createdAt: -1 });
+
+//     if (!staff || staff.length === 0) {
+//       return res.status(404).json({ message: "No staff found for this project" });
+//     }
+
+//     res.status(200).json({ staff });
+//   } catch (err) {
+//     console.error("Get Staff Error:", err);
+//     res.status(500).json({ message: "Server error while fetching staff" });
+//   }
+// };
 
 
 // Update staff
