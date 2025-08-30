@@ -79,20 +79,42 @@ const markAttendance = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const staff = await Staff.findByIdAndUpdate(
-      id,
-      {
-        attendance: { date: today, status },
-        $push: { attendanceHistory: { date: today, status } }
-      },
-      { new: true }
-    );
+    const month = today.toISOString().slice(0, 7); // e.g., "2025-08"
 
+    // Find staff
+    const staff = await Staff.findById(id);
     if (!staff) {
       return res.status(404).json({ message: "Staff not found" });
     }
 
-    res.json({ message: "Attendance updated", staff });
+    // ✅ Update current attendance
+    staff.attendance = { date: today, status };
+
+    // ✅ Check if month exists in attendanceHistory
+    let monthRecord = staff.attendanceHistory.find((m) => m.month === month);
+
+    if (!monthRecord) {
+      // If no record for this month, create it
+      monthRecord = { month, records: [{ date: today, status }] };
+      staff.attendanceHistory.push(monthRecord);
+    } else {
+      // ✅ Check if today's record exists inside this month
+      const dayRecord = monthRecord.records.find(
+        (r) => r.date.getTime() === today.getTime()
+      );
+
+      if (dayRecord) {
+        // Update existing record for the day
+        dayRecord.status = status;
+      } else {
+        // Add new record for the day
+        monthRecord.records.push({ date: today, status });
+      }
+    }
+
+    await staff.save();
+
+    res.json({ message: "Attendance marked successfully", staff });
   } catch (error) {
     console.error("Error marking attendance:", error);
     res.status(500).json({ message: "Server Error" });
