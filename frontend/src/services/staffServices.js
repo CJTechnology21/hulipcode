@@ -9,6 +9,10 @@ const axiosInstance = axios.create({
 });
 
 // Fetch all staff for a project
+export const fetchStaffByProject = async (projectId) => {
+  const res = await axiosInstance.get(`/api/staff?projectId=${projectId}`);
+  return res.data.staff || [];
+};
 
 // Fetch single staff by ID
   export const fetchStaffById = async (staffId) => {
