@@ -22,14 +22,27 @@ const createStaff = async (req, res) => {
 // Get all staff by project
 const getStaffByProject = async (req, res) => {
   try {
-    const { projectId } = req.params;
-    const staff = await Staff.find({ projectId });
-    res.json(staff);
-  } catch (error) {
-    console.error("Error fetching staff:", error);
-    res.status(500).json({ message: "Server Error" });
+    const { projectId } = req.query;
+
+    // Validate projectId
+    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid or missing projectId" });
+    }
+
+    // Fetch staff for the project
+    const staff = await Staff.find({ projectId }).sort({ createdAt: -1 });
+
+    if (!staff || staff.length === 0) {
+      return res.status(404).json({ message: "No staff found for this project" });
+    }
+
+    res.status(200).json({ staff });
+  } catch (err) {
+    console.error("Get Staff Error:", err);
+    res.status(500).json({ message: "Server error while fetching staff" });
   }
 };
+
 
 // Update staff
 const updateStaff = async (req, res) => {

@@ -1,16 +1,25 @@
 const express = require("express");
+const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 const {
   createStaff,
   getStaffByProject,
   updateStaff,
   deleteStaff,
 } = require("../controllers/staffController");
-const {protect} = require('../middleware/authMiddleware')
-const router = express.Router();
 
+// Create new staff
 router.post("/", protect, createStaff);
-router.get("/:projectId", getStaffByProject);
+
+// Get all staff for a project (use ?projectId=xxx)
+router.get("/", getStaffByProject);
+
+
+
+// Full update (PUT)
 router.put("/:id", protect, updateStaff);
+
+// Delete staff
 router.delete("/:id", protect, deleteStaff);
 
 module.exports = router;
