@@ -43,7 +43,6 @@ const getStaffByProject = async (req, res) => {
   }
 };
 // Update staff
-// controllers/staffController.js
 const updateStaff = async (req, res) => {
   try {
     const { id } = req.params;
@@ -54,42 +53,24 @@ const updateStaff = async (req, res) => {
       return res.status(404).json({ message: "Staff not found" });
     }
 
-    // Update basic fields
     if (name) staff.name = name;
     if (personType) staff.personType = personType;
 
-    // Handle attendance update if provided
+    // If attendance is provided
     if (attendance && attendance.date && attendance.status) {
-      const date = new Date(attendance.date);
-      const monthYear = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-      const day = date.getDate();
-
-      // Find existing month record or create new
-      let monthRecord = staff.attendanceHistory.find(
-        (record) => record.month === monthYear
-      );
-      if (!monthRecord) {
-        monthRecord = { month: monthYear, dates: [] };
-        staff.attendanceHistory.push(monthRecord);
+      if (!Array.isArray(staff.attendance)) {
+        staff.attendance = [];
       }
 
-      // Update or add attendance for that day
-      const existingDateIndex = monthRecord.dates.findIndex(
-        (d) => d.date === day
+      const idx = staff.attendance.findIndex(
+        (a) => new Date(a.date).toDateString() === new Date(attendance.date).toDateString()
       );
-      if (existingDateIndex >= 0) {
-        monthRecord.dates[existingDateIndex].status = attendance.status;
+
+      if (idx >= 0) {
+        staff.attendance[idx].status = attendance.status;
       } else {
-        monthRecord.dates.push({ date: day, status: attendance.status });
+        staff.attendance.push(attendance);
       }
-
-      // Update latest attendance
-      staff.attendance = {
-        date,
-        status: attendance.status,
-      };
     }
 
     const updatedStaff = await staff.save();
@@ -99,6 +80,7 @@ const updateStaff = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 // const updateStaff = async (req, res) => {
 //   try {
