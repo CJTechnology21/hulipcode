@@ -14,29 +14,30 @@ const transactionSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Payment", "Sales", "Expense", "MyAccount","Invoice"],
+      enum: ["Payment", "Sales", "Expense", "MyAccount", "Invoice"],
       required: true,
     },
     transactionType: {
       type: String,
       enum: [
-        "Payment In",
-        "Payment Out",
-        "Debit Note",
-        "Credit Note",
-        "Party To PartyPayment",
-        "Sales Invoice",
-        "Material Sales",
-        "Material Purchase",
-        "Material Return",
-        "Material Transfer",
-        "Sub ConBill",
-        "Other Expense",
-        "I Paid",
-        "I Received",
+        "PaymentIn",
+        "PaymentOut",
+        "DebitNote",
+        "CreditNote",
+        "PartyToPartyPayment",
+        "SalesInvoice",
+        "MaterialSales",
+        "MaterialPurchase",
+        "MaterialReturn",
+        "MaterialTransfer",
+        "SubConBill",
+        "OtherExpense",
+        "IPaid",
+        "IReceived",
       ],
       required: true,
     },
+
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "INR" },
     mode: {
@@ -45,7 +46,7 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
 
-    
+
     party: { type: mongoose.Schema.Types.ObjectId, ref: "Party" },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
 
