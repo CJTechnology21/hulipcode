@@ -1,11 +1,13 @@
 const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
 
-// Create Transaction
+// // Create Transaction
+
 const createTransaction = async (req, res) => {
   try {
-    const { projectId, architectId, ...rest } = req.body;
+    const { projectId, architectId, category, transactionType, party, vendor, ...rest } = req.body;
 
+    // Validate projectId and architectId
     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ message: "Valid projectId is required" });
     }
@@ -14,10 +16,63 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ message: "Valid architectId is required" });
     }
 
+    // ✅ Validate and convert party & vendor IDs if provided
+    let partyId = null;
+    if (party) {
+      if (!mongoose.Types.ObjectId.isValid(party)) {
+        return res.status(400).json({ message: "Invalid Party ID" });
+      }
+      partyId = party;
+    }
+
+    let vendorId = null;
+    if (vendor) {
+      if (!mongoose.Types.ObjectId.isValid(vendor)) {
+        return res.status(400).json({ message: "Invalid Vendor ID" });
+      }
+      vendorId = vendor;
+    }
+
+    // ✅ Enum mapping for category and transactionType
+    const validCategories = ["Payment", "Sales", "Expense", "MyAccount"];
+    const validTransactionTypes = [
+      "PaymentIn",
+      "PaymentOut",
+      "DebitNote",
+      "CreditNote",
+      "PartyToPartyPayment",
+      "SalesInvoice",
+      "MaterialSales",
+      "MaterialPurchase",
+      "MaterialReturn",
+      "MaterialTransfer",
+      "SubConBill",
+      "OtherExpense",
+      "IPaid",
+      "IReceived"
+    ];
+
+    // Convert UI labels to enum-friendly values if needed
+    const formattedCategory = category?.replace(/\s+/g, ""); // "Invoice" → "Invoice" (if allowed)
+    const formattedTransactionType = transactionType?.replace(/\s+/g, ""); // "Sales Invoice" → "SalesInvoice"
+
+    if (!validCategories.includes(formattedCategory)) {
+      return res.status(400).json({ message: `Invalid category. Allowed: ${validCategories.join(", ")}` });
+    }
+
+    if (!validTransactionTypes.includes(formattedTransactionType)) {
+      return res.status(400).json({ message: `Invalid transactionType. Allowed: ${validTransactionTypes.join(", ")}` });
+    }
+
+    // ✅ Create transaction
     const transaction = await Transaction.create({
       projectId,
       architectId,
-      ...rest, // any other optional fields
+      category: formattedCategory,
+      transactionType: formattedTransactionType,
+      party: partyId,
+      vendor: vendorId,
+      ...rest
     });
 
     res.status(201).json({ transaction });
@@ -26,6 +81,30 @@ const createTransaction = async (req, res) => {
     res.status(500).json({ message: "Server error while creating transaction" });
   }
 };
+// const createTransaction = async (req, res) => {
+//   try {
+//     const { projectId, architectId, ...rest } = req.body;
+
+//     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+//       return res.status(400).json({ message: "Valid projectId is required" });
+//     }
+
+//     if (!architectId || !mongoose.Types.ObjectId.isValid(architectId)) {
+//       return res.status(400).json({ message: "Valid architectId is required" });
+//     }
+
+//     const transaction = await Transaction.create({
+//       projectId,
+//       architectId,
+//       ...rest, // any other optional fields
+//     });
+
+//     res.status(201).json({ transaction });
+//   } catch (err) {
+//     console.error("Create Transaction Error:", err);
+//     res.status(500).json({ message: "Server error while creating transaction" });
+//   }
+// };
 
 
 // Get all transactions with optional filters (projectId, architectId)
