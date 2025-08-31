@@ -43,11 +43,57 @@ const getStaffByProject = async (req, res) => {
   }
 };
 // Update staff
+// controllers/staffController.js
 const updateStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const staff = await Staff.findByIdAndUpdate(id, req.body, { new: true });
-    res.json(staff);
+    const { name, personType, attendance } = req.body;
+
+    const staff = await Staff.findById(id);
+    if (!staff) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    // Update basic fields
+    if (name) staff.name = name;
+    if (personType) staff.personType = personType;
+
+    // Handle attendance update if provided
+    if (attendance && attendance.date && attendance.status) {
+      const date = new Date(attendance.date);
+      const monthYear = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+      const day = date.getDate();
+
+      // Find existing month record or create new
+      let monthRecord = staff.attendanceHistory.find(
+        (record) => record.month === monthYear
+      );
+      if (!monthRecord) {
+        monthRecord = { month: monthYear, dates: [] };
+        staff.attendanceHistory.push(monthRecord);
+      }
+
+      // Update or add attendance for that day
+      const existingDateIndex = monthRecord.dates.findIndex(
+        (d) => d.date === day
+      );
+      if (existingDateIndex >= 0) {
+        monthRecord.dates[existingDateIndex].status = attendance.status;
+      } else {
+        monthRecord.dates.push({ date: day, status: attendance.status });
+      }
+
+      // Update latest attendance
+      staff.attendance = {
+        date,
+        status: attendance.status,
+      };
+    }
+
+    const updatedStaff = await staff.save();
+    res.json(updatedStaff);
   } catch (error) {
     console.error("Error updating staff:", error);
     res.status(500).json({ message: "Server Error" });
@@ -64,6 +110,7 @@ const updateStaff = async (req, res) => {
 //     res.status(500).json({ message: "Server Error" });
 //   }
 // };
+
 
 // Delete staff
 const deleteStaff = async (req, res) => {

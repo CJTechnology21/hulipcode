@@ -11,7 +11,7 @@ import ProjectAttendance from "./ProjectAttendance";
 import ProjectMaterials from "./ProjectMaterials";
 import ProjectSubcon from "./ProjectSubcon";
 import ProjectFiles from "./ProjectFiles";
-import ProjectEquipment from "./ProjectEquipment";
+// import ProjectEquipment from "./ProjectEquipment";
 import ProjectSiteMeasurements from "./ProjectSiteMeasurements";
 import ProjectsDesign from "./ProjectsDesign";
 import ProjectsDashboard from "./ProjectsDashboard";
@@ -28,7 +28,7 @@ const tabs = [
   "Attendance",
   "Material",
   "Subcon",
-  "Equipment",
+  // "Equipment",
   "Files",
 ];
 
@@ -85,8 +85,8 @@ export default function ProjectTabs() {
         return <ProjectSubcon {...commonProps} />;
       case "Files":
         return <ProjectFiles {...commonProps} />;
-      case "Equipment":
-        return <ProjectEquipment {...commonProps} />;
+      // case "Equipment":
+      //   return <ProjectEquipment {...commonProps} />;
       default:
         return <div className="p-6">{activeTab} content goes here...</div>;
     }

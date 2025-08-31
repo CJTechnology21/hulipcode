@@ -34,7 +34,7 @@ const ProjectAttendance = ({ projectId }) => {
 
   const selectedDateKey = selectedDate.toISOString().slice(0, 10);
 
-  // ✅ Fetch staff & attendance history
+  //  Fetch staff & attendance history
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -51,7 +51,7 @@ const ProjectAttendance = ({ projectId }) => {
     loadData();
   }, [projectId]);
 
-  // ✅ Helper: Get attendance for a specific date from history
+  //  Helper: Get attendance for a specific date from history
   const getAttendanceForDate = (staffMember, date) => {
     const dateKey = date.toISOString().slice(0, 10);
     for (const monthRecord of staffMember.attendanceHistory || []) {
@@ -65,7 +65,7 @@ const ProjectAttendance = ({ projectId }) => {
     return null;
   };
 
-  // ✅ Filter staff
+  //  Filter staff
   const filteredStaff = useMemo(() => {
     return staff.filter((s) => {
       if (activeTab !== "All" && s.personType !== activeTab) return false;
@@ -79,7 +79,7 @@ const ProjectAttendance = ({ projectId }) => {
     });
   }, [staff, activeTab, statusFilter, searchTerm]);
 
-  // ✅ Summary for selected date
+  //  Summary for selected date
   const summary = useMemo(() => {
     let present = 0,
       absent = 0,
@@ -111,52 +111,104 @@ const ProjectAttendance = ({ projectId }) => {
     setSelectedDate(new Date(year, month - 1, 1));
   };
 
-  // ✅ Add / Edit Staff
+  // //  Add / Edit Staff
+  // const handleAddStaff = async (e) => {
+  //   e.preventDefault();
+  //   const formData = new FormData(e.target);
+  //   const staffData = {
+  //     name: formData.get("name"),
+  //     personType: formData.get("personType"),
+  //     projectId,
+  //   };
+
+  //   const attendanceStatus = formData.get("attendanceStatus");
+
+  //   try {
+  //     if (editingStaff) {
+  //       const updatedData = { ...staffData };
+
+  //       if (attendanceStatus) {
+  //         updatedData.attendance = {
+  //           date: new Date(),
+  //           status: attendanceStatus,
+  //         };
+  //       }
+
+  //       setStaff((prev) =>
+  //         prev.map((s) =>
+  //           s._id === editingStaff._id ? { ...s, ...updatedData } : s
+  //         )
+  //       );
+
+  //       await updateStaff(editingStaff._id, updatedData);
+  //       toast.success("Staff updated successfully");
+  //     } else {
+  //       const saved = await createStaff(staffData);
+  //       setStaff((prev) => [...prev, saved]);
+  //       toast.success("Staff added successfully");
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast.error("Failed to save staff");
+  //   } finally {
+  //     setIsModalOpen(false);
+  //     setEditingStaff(null);
+  //   }
+  // };
   const handleAddStaff = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const staffData = {
-      name: formData.get("name"),
-      personType: formData.get("personType"),
-      projectId,
-    };
-
-    const attendanceStatus = formData.get("attendanceStatus");
-
-    try {
-      if (editingStaff) {
-        const updatedData = { ...staffData };
-
-        if (attendanceStatus) {
-          updatedData.attendance = {
-            date: new Date(),
-            status: attendanceStatus,
-          };
-        }
-
-        setStaff((prev) =>
-          prev.map((s) =>
-            s._id === editingStaff._id ? { ...s, ...updatedData } : s
-          )
-        );
-
-        await updateStaff(editingStaff._id, updatedData);
-        toast.success("Staff updated successfully");
-      } else {
-        const saved = await createStaff(staffData);
-        setStaff((prev) => [...prev, saved]);
-        toast.success("Staff added successfully");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to save staff");
-    } finally {
-      setIsModalOpen(false);
-      setEditingStaff(null);
-    }
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const staffData = {
+    name: formData.get("name"),
+    personType: formData.get("personType"),
+    projectId,
   };
 
-  // ✅ Mark Attendance
+  const attendanceStatus = formData.get("attendanceStatus");
+
+  try {
+    if (editingStaff) {
+      const updatedData = { ...staffData };
+
+      if (attendanceStatus) {
+        updatedData.attendance = {
+          date: new Date().toISOString(), // Send ISO format
+          status: attendanceStatus,
+        };
+      }
+
+      // Optimistic UI update
+      setStaff((prev) =>
+        prev.map((s) =>
+          s._id === editingStaff._id ? { ...s, ...updatedData } : s
+        )
+      );
+
+      // Call API
+      const updatedStaff = await updateStaff(editingStaff._id, updatedData);
+
+      // Replace with actual updated data from server
+      setStaff((prev) =>
+        prev.map((s) => (s._id === updatedStaff._id ? updatedStaff : s))
+      );
+
+      toast.success("Staff updated successfully");
+    } else {
+      const saved = await createStaff(staffData);
+      setStaff((prev) => [...prev, saved]);
+      toast.success("Staff added successfully");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to save staff");
+  } finally {
+    setIsModalOpen(false);
+    setEditingStaff(null);
+  }
+};
+
+
+  //  Mark Attendance
   const handleAttendanceChange = async (staffId, value) => {
     try {
       const record = {
@@ -167,7 +219,7 @@ const ProjectAttendance = ({ projectId }) => {
 
       await markStaffAttendance(staffId, record);
 
-      // ✅ Update local state
+      //  Update local state
       setStaff((prev) =>
         prev.map((s) => {
           if (s._id === staffId) {
