@@ -8,7 +8,8 @@ import {
   updateStaff,
   fetchStaffByProject,
   markStaffAttendance,
-} from "../../../services/staffServices"; // API services
+  deleteStaff,
+} from "../../../services/staffServices";
 import { toast } from "react-toastify";
 
 const tabs = ["All", "Site Staff", "Labour Contractor"];
@@ -29,35 +30,17 @@ const ProjectAttendance = ({ projectId }) => {
   const [editingStaff, setEditingStaff] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [staff, setStaff] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState({});
   const [loading, setLoading] = useState(true);
 
-  const currentDateKey = selectedDate.toISOString().slice(0, 10);
+  const selectedDateKey = selectedDate.toISOString().slice(0, 10);
 
-  // ✅ Fetch staff & attendance
+  // ✅ Fetch staff & attendance history
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         const staffData = await fetchStaffByProject(projectId);
         setStaff(staffData);
-
-        const records = {};
-        staffData.forEach((s) => {
-          // ✅ Check attendance object for current date
-          if (s.attendance && s.attendance.date) {
-            const attDate = new Date(s.attendance.date)
-              .toISOString()
-              .slice(0, 10);
-            if (attDate === currentDateKey) {
-              if (!records[currentDateKey]) records[currentDateKey] = {};
-              records[currentDateKey][s._id] = {
-                status: s.attendance.status,
-              };
-            }
-          }
-        });
-        setAttendanceRecords(records);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load staff or attendance");
@@ -66,37 +49,51 @@ const ProjectAttendance = ({ projectId }) => {
       }
     };
     loadData();
-  }, [projectId, currentDateKey]);
+  }, [projectId]);
+
+  // ✅ Helper: Get attendance for a specific date from history
+  const getAttendanceForDate = (staffMember, date) => {
+    const dateKey = date.toISOString().slice(0, 10);
+    for (const monthRecord of staffMember.attendanceHistory || []) {
+      for (const record of monthRecord.records) {
+        const recordDate = new Date(record.date).toISOString().slice(0, 10);
+        if (recordDate === dateKey) {
+          return record.status;
+        }
+      }
+    }
+    return null;
+  };
 
   // ✅ Filter staff
   const filteredStaff = useMemo(() => {
     return staff.filter((s) => {
       if (activeTab !== "All" && s.personType !== activeTab) return false;
       if (statusFilter && s.status !== statusFilter) return false;
-      if (searchTerm && !s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      if (
+        searchTerm &&
+        !s.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
         return false;
       return true;
     });
   }, [staff, activeTab, statusFilter, searchTerm]);
 
-  // ✅ Summary
+  // ✅ Summary for selected date
   const summary = useMemo(() => {
-    const todayRecords = attendanceRecords[currentDateKey] || {};
-    return {
-      present: filteredStaff.filter(
-        (s) => todayRecords[s._id]?.status === "Full Day"
-      ).length,
-      absent: filteredStaff.filter(
-        (s) => todayRecords[s._id]?.status === "Absent"
-      ).length,
-      paidLeave: filteredStaff.filter(
-        (s) => todayRecords[s._id]?.status === "Paid Leave"
-      ).length,
-      weekOff: filteredStaff.filter(
-        (s) => todayRecords[s._id]?.status === "Week Off"
-      ).length,
-    };
-  }, [filteredStaff, attendanceRecords, currentDateKey]);
+    let present = 0,
+      absent = 0,
+      paidLeave = 0,
+      weekOff = 0;
+    filteredStaff.forEach((s) => {
+      const status = getAttendanceForDate(s, selectedDate);
+      if (status === "Full Day") present++;
+      if (status === "Absent") absent++;
+      if (status === "Paid Leave") paidLeave++;
+      if (status === "Week Off") weekOff++;
+    });
+    return { present, absent, paidLeave, weekOff };
+  }, [filteredStaff, selectedDate]);
 
   const handlePrevDay = () =>
     setSelectedDate((prev) => new Date(prev.getTime() - 24 * 60 * 60 * 1000));
@@ -123,12 +120,27 @@ const ProjectAttendance = ({ projectId }) => {
       personType: formData.get("personType"),
       projectId,
     };
+
+    const attendanceStatus = formData.get("attendanceStatus");
+
     try {
       if (editingStaff) {
+        const updatedData = { ...staffData };
+
+        if (attendanceStatus) {
+          updatedData.attendance = {
+            date: new Date(),
+            status: attendanceStatus,
+          };
+        }
+
         setStaff((prev) =>
-          prev.map((s) => (s._id === editingStaff._id ? { ...s, ...staffData } : s))
+          prev.map((s) =>
+            s._id === editingStaff._id ? { ...s, ...updatedData } : s
+          )
         );
-        await updateStaff(editingStaff._id, staffData);
+
+        await updateStaff(editingStaff._id, updatedData);
         toast.success("Staff updated successfully");
       } else {
         const saved = await createStaff(staffData);
@@ -148,20 +160,44 @@ const ProjectAttendance = ({ projectId }) => {
   const handleAttendanceChange = async (staffId, value) => {
     try {
       const record = {
-        date: currentDateKey,
+        date: selectedDateKey,
         status: value,
         projectId,
       };
 
       await markStaffAttendance(staffId, record);
 
-      setAttendanceRecords((prev) => {
-        const updated = { ...(prev[currentDateKey] || {}) };
-        updated[staffId] = {
-          status: value,
-        };
-        return { ...prev, [currentDateKey]: updated };
-      });
+      // ✅ Update local state
+      setStaff((prev) =>
+        prev.map((s) => {
+          if (s._id === staffId) {
+            const updatedHistory = [...(s.attendanceHistory || [])];
+            const monthKey = selectedDateKey.slice(0, 7);
+
+            let monthEntry = updatedHistory.find((m) => m.month === monthKey);
+            if (!monthEntry) {
+              monthEntry = { month: monthKey, records: [] };
+              updatedHistory.push(monthEntry);
+            }
+
+            const existingRecord = monthEntry.records.find(
+              (r) =>
+                new Date(r.date).toISOString().slice(0, 10) === selectedDateKey
+            );
+            if (existingRecord) {
+              existingRecord.status = value;
+            } else {
+              monthEntry.records.push({
+                date: new Date(selectedDateKey),
+                status: value,
+              });
+            }
+
+            return { ...s, attendanceHistory: updatedHistory };
+          }
+          return s;
+        })
+      );
 
       toast.success("Attendance updated successfully");
     } catch (err) {
@@ -170,12 +206,13 @@ const ProjectAttendance = ({ projectId }) => {
     }
   };
 
-  // ✅ Delete Staff
   const handleDeleteStaff = async (_id) => {
     try {
+      await deleteStaff(_id);
       setStaff((prev) => prev.filter((s) => s._id !== _id));
       toast.success("Staff deleted successfully");
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete staff:", error);
       toast.error("Failed to delete staff");
     }
   };
@@ -294,67 +331,70 @@ const ProjectAttendance = ({ projectId }) => {
                 </td>
               </tr>
             ) : (
-              filteredStaff.map((s) => (
-                <tr key={s._id}>
-                  <td className="px-4 py-2">{s.name}</td>
-                  <td className="px-4 py-2">{s.personType}</td>
-                  <td className="px-4 py-2">
-                    {attendanceRecords[currentDateKey]?.[s._id]?.status ? (
-                      <span className="text-gray-800 font-medium">
-                        {attendanceRecords[currentDateKey][s._id].status}
-                      </span>
-                    ) : (
-                      <select
-                        value=""
-                        onChange={(e) =>
-                          handleAttendanceChange(s._id, e.target.value)
-                        }
-                        className="border rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">-- Select --</option>
-                        {attendanceOptions.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="relative inline-block">
-                      <FiMoreVertical
-                        className="cursor-pointer"
-                        onClick={() =>
-                          setOpenMenuId(openMenuId === s._id ? null : s._id)
-                        }
-                      />
-                      {openMenuId === s._id && (
-                        <div className="absolute right-0 mt-1 bg-white border rounded shadow-lg z-10">
-                          <button
-                            className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                            onClick={() => {
-                              setEditingStaff(s);
-                              setIsModalOpen(true);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-600"
-                            onClick={() => {
-                              handleDeleteStaff(s._id);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
+              filteredStaff.map((s) => {
+                const status = getAttendanceForDate(s, selectedDate);
+                return (
+                  <tr key={s._id}>
+                    <td className="px-4 py-2">{s.name}</td>
+                    <td className="px-4 py-2">{s.personType}</td>
+                    <td className="px-4 py-2">
+                      {status ? (
+                        <span className="text-gray-800 font-medium">
+                          {status}
+                        </span>
+                      ) : (
+                        <select
+                          value=""
+                          onChange={(e) =>
+                            handleAttendanceChange(s._id, e.target.value)
+                          }
+                          className="border rounded px-2 py-1 text-sm"
+                        >
+                          <option value="">-- Select --</option>
+                          {attendanceOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="relative inline-block">
+                        <FiMoreVertical
+                          className="cursor-pointer"
+                          onClick={() =>
+                            setOpenMenuId(openMenuId === s._id ? null : s._id)
+                          }
+                        />
+                        {openMenuId === s._id && (
+                          <div className="absolute right-0 mt-1 bg-white border rounded shadow-lg z-10">
+                            <button
+                              className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                              onClick={() => {
+                                setEditingStaff(s);
+                                setIsModalOpen(true);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-600"
+                              onClick={() => {
+                                handleDeleteStaff(s._id);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -376,6 +416,7 @@ const ProjectAttendance = ({ projectId }) => {
                 required
                 className="w-full border px-3 py-2 rounded-md"
               />
+
               <select
                 name="personType"
                 defaultValue={editingStaff?.personType || "Site Staff"}
@@ -385,6 +426,20 @@ const ProjectAttendance = ({ projectId }) => {
                 <option value="Site Staff">Site Staff</option>
                 <option value="Labour Contractor">Labour Contractor</option>
               </select>
+
+              <select
+                name="attendanceStatus"
+                defaultValue={editingStaff?.attendance?.status || ""}
+                className="w-full border px-3 py-2 rounded-md"
+              >
+                <option value="">-- Select Attendance --</option>
+                {attendanceOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+
               <div className="flex justify-end gap-2">
                 <Button
                   variant="custom"
@@ -415,424 +470,532 @@ const ProjectAttendance = ({ projectId }) => {
 
 export default ProjectAttendance;
 
-
 // import React, { useState, useMemo, useEffect } from "react";
-// import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-// import { FiPlus, FiMoreVertical } from "react-icons/fi";
-// import Button from "../../../components/Button";
-// import DropDown from "../../../components/DropDown";
-// import {
-//   createStaff,
-//   updateStaff,
-//   fetchStaffByProject,
-// } from "../../../services/staffServices";
-// import { markStaffAttendance } from "../../../services/staffServices"; // New API
-// import { toast } from "react-toastify";
+  // import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+  // import { FiPlus, FiMoreVertical } from "react-icons/fi";
+  // import Button from "../../../components/Button";
+  // import DropDown from "../../../components/DropDown";
+  // import {
+  //   createStaff,
+  //   updateStaff,
+  //   fetchStaffByProject,
+  //   markStaffAttendance,
+  //   deleteStaff,
+  // } from "../../../services/staffServices"; // API services
+  // import { toast } from "react-toastify";
 
-// const tabs = ["All", "Site Staff", "Labour Contractor"];
-// const attendanceOptions = [
-//   "Full Day",
-//   "Half Day",
-//   "Absent",
-//   "Paid Leave",
-//   "Week Off",
-// ];
+  // const tabs = ["All", "Site Staff", "Labour Contractor"];
+  // const attendanceOptions = [
+  //   "Full Day",
+  //   "Half Day",
+  //   "Absent",
+  //   "Paid Leave",
+  //   "Week Off",
+  // ];
 
-// const ProjectAttendance = ({ projectId }) => {
-//   const [selectedDate, setSelectedDate] = useState(new Date());
-//   const [activeTab, setActiveTab] = useState("Site Staff");
-//   const [statusFilter, setStatusFilter] = useState("Active");
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const [editingStaff, setEditingStaff] = useState(null);
-//   const [openMenuId, setOpenMenuId] = useState(null);
-//   const [staff, setStaff] = useState([]);
-//   const [attendanceRecords, setAttendanceRecords] = useState({});
-//   const [loading, setLoading] = useState(true);
+  // const ProjectAttendance = ({ projectId }) => {
+  //   const [selectedDate, setSelectedDate] = useState(new Date());
+  //   const [activeTab, setActiveTab] = useState("Site Staff");
+  //   const [statusFilter, setStatusFilter] = useState("Active");
+  //   const [searchTerm, setSearchTerm] = useState("");
+  //   const [isModalOpen, setIsModalOpen] = useState(false);
+  //   const [editingStaff, setEditingStaff] = useState(null);
+  //   const [openMenuId, setOpenMenuId] = useState(null);
+  //   const [staff, setStaff] = useState([]);
+  //   const [attendanceRecords, setAttendanceRecords] = useState({});
+  //   const [loading, setLoading] = useState(true);
 
-//   const currentDateKey = selectedDate.toISOString().slice(0, 10);
+  //   const currentDateKey = selectedDate.toISOString().slice(0, 10);
 
-//   // Fetch staff & attendance (attendance from staff records)
-//   useEffect(() => {
-//     const loadData = async () => {
-//       try {
-//         setLoading(true);
-//         const staffData = await fetchStaffByProject(projectId);
-//         setStaff(staffData);
+  //   // ✅ Fetch staff & attendance
+  //   useEffect(() => {
+  //     const loadData = async () => {
+  //       try {
+  //         setLoading(true);
+  //         const staffData = await fetchStaffByProject(projectId);
+  //         setStaff(staffData);
 
-//         // Load existing attendance from staff records if present
-//         const records = {};
-//         staffData.forEach((s) => {
-//           if (s.attendance?.length > 0) {
-//             s.attendance.forEach((entry) => {
-//               const dateKey = new Date(entry.date).toISOString().slice(0, 10);
-//               if (!records[dateKey]) records[dateKey] = {};
-//               records[dateKey][s._id] = {
-//                 _id: entry._id,
-//                 status: entry.status,
-//               };
-//             });
-//           }
-//         });
-//         setAttendanceRecords(records);
-//       } catch (err) {
-//         console.error(err);
-//         toast.error("Failed to load staff or attendance");
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-//     loadData();
-//   }, [projectId]);
+  //         const records = {};
+  //         staffData.forEach((s) => {
+  //           // ✅ Check attendance object for current date
+  //           if (s.attendance && s.attendance.date) {
+  //             const attDate = new Date(s.attendance.date)
+  //               .toISOString()
+  //               .slice(0, 10);
+  //             if (attDate === currentDateKey) {
+  //               if (!records[currentDateKey]) records[currentDateKey] = {};
+  //               records[currentDateKey][s._id] = {
+  //                 status: s.attendance.status,
+  //               };
+  //             }
+  //           }
+  //         });
+  //         setAttendanceRecords(records);
+  //       } catch (err) {
+  //         console.error(err);
+  //         toast.error("Failed to load staff or attendance");
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     };
+  //     loadData();
+  //   }, [projectId, currentDateKey]);
 
-//   // Filter staff
-//   const filteredStaff = useMemo(() => {
-//     return staff.filter((s) => {
-//       if (activeTab !== "All" && s.personType !== activeTab) return false;
-//       if (statusFilter && s.status !== statusFilter) return false;
-//       if (searchTerm && !s.name.toLowerCase().includes(searchTerm.toLowerCase()))
-//         return false;
-//       return true;
-//     });
-//   }, [staff, activeTab, statusFilter, searchTerm]);
+  //   // ✅ Filter staff
+  //   const filteredStaff = useMemo(() => {
+  //     return staff.filter((s) => {
+  //       if (activeTab !== "All" && s.personType !== activeTab) return false;
+  //       if (statusFilter && s.status !== statusFilter) return false;
+  //       if (
+  //         searchTerm &&
+  //         !s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  //       )
+  //         return false;
+  //       return true;
+  //     });
+  //   }, [staff, activeTab, statusFilter, searchTerm]);
 
-//   // Summary
-//   const summary = useMemo(() => {
-//     const todayRecords = attendanceRecords[currentDateKey] || {};
-//     return {
-//       present: filteredStaff.filter(
-//         (s) => todayRecords[s._id]?.status === "Full Day"
-//       ).length,
-//       absent: filteredStaff.filter(
-//         (s) => todayRecords[s._id]?.status === "Absent"
-//       ).length,
-//       paidLeave: filteredStaff.filter(
-//         (s) => todayRecords[s._id]?.status === "Paid Leave"
-//       ).length,
-//       weekOff: filteredStaff.filter(
-//         (s) => todayRecords[s._id]?.status === "Week Off"
-//       ).length,
-//     };
-//   }, [filteredStaff, attendanceRecords, currentDateKey]);
+  //   // ✅ Summary
+  //   const summary = useMemo(() => {
+  //     const todayRecords = attendanceRecords[currentDateKey] || {};
+  //     return {
+  //       present: filteredStaff.filter(
+  //         (s) => todayRecords[s._id]?.status === "Full Day"
+  //       ).length,
+  //       absent: filteredStaff.filter(
+  //         (s) => todayRecords[s._id]?.status === "Absent"
+  //       ).length,
+  //       paidLeave: filteredStaff.filter(
+  //         (s) => todayRecords[s._id]?.status === "Paid Leave"
+  //       ).length,
+  //       weekOff: filteredStaff.filter(
+  //         (s) => todayRecords[s._id]?.status === "Week Off"
+  //       ).length,
+  //     };
+  //   }, [filteredStaff, attendanceRecords, currentDateKey]);
 
-//   // Date navigation
-//   const handlePrevDay = () =>
-//     setSelectedDate((prev) => new Date(prev.getTime() - 24 * 60 * 60 * 1000));
-//   const handleNextDay = () =>
-//     setSelectedDate((prev) => new Date(prev.getTime() + 24 * 60 * 60 * 1000));
+  //   const handlePrevDay = () =>
+  //     setSelectedDate((prev) => new Date(prev.getTime() - 24 * 60 * 60 * 1000));
+  //   const handleNextDay = () =>
+  //     setSelectedDate((prev) => new Date(prev.getTime() + 24 * 60 * 60 * 1000));
 
-//   const formatDay = (date) =>
-//     new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
-//   const formatDate = (date) => date.getDate();
-//   const formatMonth = (date) =>
-//     new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
+  //   const formatDay = (date) =>
+  //     new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
+  //   const formatDate = (date) => date.getDate();
+  //   const formatMonth = (date) =>
+  //     new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
 
-//   const handleMonthChange = (e) => {
-//     const [year, month] = e.target.value.split("-");
-//     setSelectedDate(new Date(year, month - 1, 1));
-//   };
+  //   const handleMonthChange = (e) => {
+  //     const [year, month] = e.target.value.split("-");
+  //     setSelectedDate(new Date(year, month - 1, 1));
+  //   };
+  // const handleAddStaff = async (e) => {
+  //   e.preventDefault();
+  //   const formData = new FormData(e.target);
+  //   const staffData = {
+  //     name: formData.get("name"),
+  //     personType: formData.get("personType"),
+  //     projectId,
+  //   };
 
-//   // Add / Edit Staff
-//   const handleAddStaff = async (e) => {
-//     e.preventDefault();
-//     const formData = new FormData(e.target);
-//     const staffData = {
-//       name: formData.get("name"),
-//       personType: formData.get("personType"),
-//       projectId,
-//     };
-//     try {
-//       if (editingStaff) {
-//         setStaff((prev) =>
-//           prev.map((s) => (s._id === editingStaff._id ? { ...s, ...staffData } : s))
-//         );
-//         await updateStaff(editingStaff._id, staffData);
-//         toast.success("Staff updated successfully");
-//       } else {
-//         const saved = await createStaff(staffData);
-//         setStaff((prev) => [...prev, saved]);
-//         toast.success("Staff added successfully");
-//       }
-//     } catch (error) {
-//       console.error(error);
-//       toast.error("Failed to save staff");
-//     } finally {
-//       setIsModalOpen(false);
-//       setEditingStaff(null);
-//     }
-//   };
+  //   const attendanceStatus = formData.get("attendanceStatus");
 
-//   // Mark Attendance
-//   const handleAttendanceChange = async (staffId, value) => {
-//     try {
-//       const staffMember = staff.find((s) => s._id === staffId);
-//       if (!staffMember) return;
+  //   try {
+  //     if (editingStaff) {
+  //       const updatedData = { ...staffData };
 
-//       const record = {
-//         date: currentDateKey,
-//         status: value,
-//         projectId,
-//       };
+  //       // ✅ If attendance selected, include it
+  //       if (attendanceStatus) {
+  //         updatedData.attendance = {
+  //           date: new Date(), // or selectedDate
+  //           status: attendanceStatus,
+  //         };
+  //       }
 
-//       const updatedRecord = await markStaffAttendance(staffId, record);
+  //       setStaff((prev) =>
+  //         prev.map((s) =>
+  //           s._id === editingStaff._id ? { ...s, ...updatedData } : s
+  //         )
+  //       );
 
-//       setAttendanceRecords((prev) => {
-//         const updated = { ...(prev[currentDateKey] || {}) };
-//         updated[staffId] = {
-//           _id: updatedRecord._id,
-//           status: updatedRecord.status,
-//         };
-//         return { ...prev, [currentDateKey]: updated };
-//       });
+  //       await updateStaff(editingStaff._id, updatedData);
 
-//       toast.success("Attendance updated successfully");
-//     } catch (err) {
-//       console.error("Mark Attendance Error:", err);
-//       toast.error("Failed to update attendance");
-//     }
-//   };
+  //       toast.success("Staff updated successfully");
+  //     } else {
+  //       const saved = await createStaff(staffData);
+  //       setStaff((prev) => [...prev, saved]);
+  //       toast.success("Staff added successfully");
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast.error("Failed to save staff");
+  //   } finally {
+  //     setIsModalOpen(false);
+  //     setEditingStaff(null);
+  //   }
+  // };
 
-//   // Delete Staff
-//   const handleDeleteStaff = async (_id) => {
-//     try {
-//       setStaff((prev) => prev.filter((s) => s._id !== _id));
-//       toast.success("Staff deleted successfully");
-//     } catch {
-//       toast.error("Failed to delete staff");
-//     }
-//   };
+  //   // // ✅ Add / Edit Staff
+  //   // const handleAddStaff = async (e) => {
+  //   //   e.preventDefault();
+  //   //   const formData = new FormData(e.target);
+  //   //   const staffData = {
+  //   //     name: formData.get("name"),
+  //   //     personType: formData.get("personType"),
+  //   //     projectId,
+  //   //   };
+  //   //   try {
+  //   //     if (editingStaff) {
+  //   //       setStaff((prev) =>
+  //   //         prev.map((s) =>
+  //   //           s._id === editingStaff._id ? { ...s, ...staffData } : s
+  //   //         )
+  //   //       );
+  //   //       await updateStaff(editingStaff._id, staffData);
+  //   //       toast.success("Staff updated successfully");
+  //   //     } else {
+  //   //       const saved = await createStaff(staffData);
+  //   //       setStaff((prev) => [...prev, saved]);
+  //   //       toast.success("Staff added successfully");
+  //   //     }
+  //   //   } catch (error) {
+  //   //     console.error(error);
+  //   //     toast.error("Failed to save staff");
+  //   //   } finally {
+  //   //     setIsModalOpen(false);
+  //   //     setEditingStaff(null);
+  //   //   }
+  //   // };
 
-//   return (
-//     <div className="p-4 md:p-6 space-y-4 bg-white w-full m-4 rounded-xl">
-//       {/* Tabs + Dropdown + Add Button */}
-//       <div className="flex flex-wrap justify-between items-center gap-4">
-//         <div className="flex items-center gap-2 flex-wrap">
-//           {tabs.map((tab) => (
-//             <button
-//               key={tab}
-//               onClick={() => setActiveTab(tab)}
-//               className={`px-4 py-1.5 text-sm rounded-full ${
-//                 activeTab === tab
-//                   ? "bg-red-600 text-white"
-//                   : "bg-red-100 text-red-700 hover:bg-red-200"
-//               }`}
-//             >
-//               {tab}
-//             </button>
-//           ))}
+  //   // ✅ Mark Attendance
+  //   const handleAttendanceChange = async (staffId, value) => {
+  //     try {
+  //       const record = {
+  //         date: currentDateKey,
+  //         status: value,
+  //         projectId,
+  //       };
 
-//           <DropDown
-//             name="status"
-//             value={statusFilter}
-//             onChange={(e) => setStatusFilter(e.target.value)}
-//             options={["Active", "Inactive"]}
-//             className="text-sm"
-//           />
-//         </div>
+  //       await markStaffAttendance(staffId, record);
 
-//         <Button
-//           color="red"
-//           variant="custom"
-//           size="sm"
-//           onClick={() => {
-//             setEditingStaff(null);
-//             setIsModalOpen(true);
-//           }}
-//           className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md"
-//         >
-//           <FiPlus />
-//           Add Staff
-//         </Button>
-//       </div>
+  //       setAttendanceRecords((prev) => {
+  //         const updated = { ...(prev[currentDateKey] || {}) };
+  //         updated[staffId] = {
+  //           status: value,
+  //         };
+  //         return { ...prev, [currentDateKey]: updated };
+  //       });
 
-//       {/* Date Nav + Month + Search + Summary */}
-//       <div className="flex flex-wrap justify-between items-center gap-4">
-//         <div className="flex items-center gap-2 flex-wrap">
-//           <Button className="p-2 bg-gray-100 rounded" onClick={handlePrevDay}>
-//             <FaChevronLeft size={12} />
-//           </Button>
-//           <div className="px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold text-center">
-//             {formatDate(selectedDate)}
-//             <br />
-//             {formatDay(selectedDate)}
-//           </div>
-//           <Button className="p-2 bg-gray-100 rounded" onClick={handleNextDay}>
-//             <FaChevronRight size={12} />
-//           </Button>
+  //       toast.success("Attendance updated successfully");
+  //     } catch (err) {
+  //       console.error("Mark Attendance Error:", err);
+  //       toast.error("Failed to update attendance");
+  //     }
+  //   };
 
-//           <label className="relative cursor-pointer text-sm font-medium">
-//             <div className="px-3 py-1.5 bg-gray-100 border rounded-md">
-//               {formatMonth(selectedDate)}
-//             </div>
-//             <input
-//               type="month"
-//               value={selectedDate.toISOString().slice(0, 7)}
-//               onChange={handleMonthChange}
-//               className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-//             />
-//           </label>
+  //   //Delete Staff
+  // const handleDeleteStaff = async (_id) => {
+  //   try {
+  //     // Call API to delete staff
+  //     await deleteStaff(_id);
 
-//           <input
-//             type="text"
-//             placeholder="Search"
-//             value={searchTerm}
-//             onChange={(e) => setSearchTerm(e.target.value)}
-//             className="border px-3 py-1.5 text-sm rounded-md w-60"
-//           />
-//         </div>
+  //     // Update state after successful deletion
+  //     setStaff((prev) => prev.filter((s) => s._id !== _id));
 
-//         <div className="text-sm text-gray-600 space-x-3 text-right">
-//           <span className="font-semibold text-black">
-//             {summary.present} Full Day
-//           </span>
-//           <span className="text-gray-400">{summary.absent} Absent</span>
-//           <span className="text-gray-400">{summary.paidLeave} Paid Leave</span>
-//           <span className="text-gray-400">{summary.weekOff} Week Off</span>
-//         </div>
-//       </div>
+  //     toast.success("Staff deleted successfully");
+  //   } catch (error) {
+  //     console.error("Failed to delete staff:", error);
+  //     toast.error("Failed to delete staff");
+  //   }
+  // };
 
-//       {/* Table */}
-//       <div className="overflow-auto rounded-xl border">
-//         <table className="min-w-full text-sm text-gray-700">
-//           <thead className="bg-red-50 text-left">
-//             <tr>
-//               <th className="px-4 py-2">Name</th>
-//               <th className="px-4 py-2">Person Type</th>
-//               <th className="px-4 py-2">Attendance</th>
-//               <th className="px-4 py-2">Actions</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {loading ? (
-//               <tr>
-//                 <td colSpan="4" className="text-center py-6">
-//                   Loading...
-//                 </td>
-//               </tr>
-//             ) : filteredStaff.length === 0 ? (
-//               <tr>
-//                 <td colSpan="4" className="text-center text-gray-400 py-8">
-//                   No staff found
-//                 </td>
-//               </tr>
-//             ) : (
-//               filteredStaff.map((s) => (
-//                 <tr key={s._id}>
-//                   <td className="px-4 py-2">{s.name}</td>
-//                   <td className="px-4 py-2">{s.personType}</td>
-//                   <td className="px-4 py-2">
-//                     {attendanceRecords[currentDateKey]?.[s._id]?.status ? (
-//                       <span className="text-gray-800 font-medium">
-//                         {attendanceRecords[currentDateKey][s._id].status}
-//                       </span>
-//                     ) : (
-//                       <select
-//                         value=""
-//                         onChange={(e) =>
-//                           handleAttendanceChange(s._id, e.target.value)
-//                         }
-//                         className="border rounded px-2 py-1 text-sm"
-//                       >
-//                         <option value="">-- Select --</option>
-//                         {attendanceOptions.map((opt) => (
-//                           <option key={opt} value={opt}>
-//                             {opt}
-//                           </option>
-//                         ))}
-//                       </select>
-//                     )}
-//                   </td>
-//                   <td className="px-4 py-2">
-//                     <div className="relative inline-block">
-//                       <FiMoreVertical
-//                         className="cursor-pointer"
-//                         onClick={() =>
-//                           setOpenMenuId(openMenuId === s._id ? null : s._id)
-//                         }
-//                       />
-//                       {openMenuId === s._id && (
-//                         <div className="absolute right-0 mt-1 bg-white border rounded shadow-lg z-10">
-//                           <button
-//                             className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-//                             onClick={() => {
-//                               setEditingStaff(s);
-//                               setIsModalOpen(true);
-//                               setOpenMenuId(null);
-//                             }}
-//                           >
-//                             Edit
-//                           </button>
-//                           <button
-//                             className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-600"
-//                             onClick={() => {
-//                               handleDeleteStaff(s._id);
-//                               setOpenMenuId(null);
-//                             }}
-//                           >
-//                             Delete
-//                           </button>
-//                         </div>
-//                       )}
-//                     </div>
-//                   </td>
-//                 </tr>
-//               ))
-//             )}
-//           </tbody>
-//         </table>
-//       </div>
+  //   return (
+  //     <div className="p-4 md:p-6 space-y-4 bg-white w-full m-4 rounded-xl">
+  //       {/* Tabs + Dropdown + Add Button */}
+  //       <div className="flex flex-wrap justify-between items-center gap-4">
+  //         <div className="flex items-center gap-2 flex-wrap">
+  //           {tabs.map((tab) => (
+  //             <button
+  //               key={tab}
+  //               onClick={() => setActiveTab(tab)}
+  //               className={`px-4 py-1.5 text-sm rounded-full ${
+  //                 activeTab === tab
+  //                   ? "bg-red-600 text-white"
+  //                   : "bg-red-100 text-red-700 hover:bg-red-200"
+  //               }`}
+  //             >
+  //               {tab}
+  //             </button>
+  //           ))}
 
-//       {/* Add/Edit Staff Modal */}
-//       {isModalOpen && (
-//         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20">
-//           <div className="bg-white p-6 rounded-xl w-96">
-//             <h2 className="text-lg font-semibold mb-4">
-//               {editingStaff ? "Edit Staff" : "Add Staff"}
-//             </h2>
-//             <form onSubmit={handleAddStaff} className="space-y-4">
-//               <input
-//                 type="text"
-//                 name="name"
-//                 defaultValue={editingStaff?.name || ""}
-//                 placeholder="Enter name"
-//                 required
-//                 className="w-full border px-3 py-2 rounded-md"
-//               />
-//               <select
-//                 name="personType"
-//                 defaultValue={editingStaff?.personType || "Site Staff"}
-//                 required
-//                 className="w-full border px-3 py-2 rounded-md"
-//               >
-//                 <option value="Site Staff">Site Staff</option>
-//                 <option value="Labour Contractor">Labour Contractor</option>
-//               </select>
-//               <div className="flex justify-end gap-2">
-//                 <Button
-//                   variant="custom"
-//                   type="button"
-//                   onClick={() => {
-//                     setIsModalOpen(false);
-//                     setEditingStaff(null);
-//                   }}
-//                   className="px-4 py-2 bg-gray-200 rounded-md"
-//                 >
-//                   Cancel
-//                 </Button>
-//                 <Button
-//                   variant="custom"
-//                   type="submit"
-//                   className="px-4 py-2 bg-red-600 text-white rounded-md"
-//                 >
-//                   Save
-//                 </Button>
-//               </div>
-//             </form>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
+  //           <DropDown
+  //             name="status"
+  //             value={statusFilter}
+  //             onChange={(e) => setStatusFilter(e.target.value)}
+  //             options={["Active", "Inactive"]}
+  //             className="text-sm"
+  //           />
+  //         </div>
 
-// export default ProjectAttendance;
+  //         <Button
+  //           color="red"
+  //           variant="custom"
+  //           size="sm"
+  //           onClick={() => {
+  //             setEditingStaff(null);
+  //             setIsModalOpen(true);
+  //           }}
+  //           className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md"
+  //         >
+  //           <FiPlus />
+  //           Add Staff
+  //         </Button>
+  //       </div>
+
+  //       {/* Date Nav + Month + Search + Summary */}
+  //       <div className="flex flex-wrap justify-between items-center gap-4">
+  //         <div className="flex items-center gap-2 flex-wrap">
+  //           <Button className="p-2 bg-gray-100 rounded" onClick={handlePrevDay}>
+  //             <FaChevronLeft size={12} />
+  //           </Button>
+  //           <div className="px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold text-center">
+  //             {formatDate(selectedDate)}
+  //             <br />
+  //             {formatDay(selectedDate)}
+  //           </div>
+  //           <Button className="p-2 bg-gray-100 rounded" onClick={handleNextDay}>
+  //             <FaChevronRight size={12} />
+  //           </Button>
+
+  //           <label className="relative cursor-pointer text-sm font-medium">
+  //             <div className="px-3 py-1.5 bg-gray-100 border rounded-md">
+  //               {formatMonth(selectedDate)}
+  //             </div>
+  //             <input
+  //               type="month"
+  //               value={selectedDate.toISOString().slice(0, 7)}
+  //               onChange={handleMonthChange}
+  //               className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+  //             />
+  //           </label>
+
+  //           <input
+  //             type="text"
+  //             placeholder="Search"
+  //             value={searchTerm}
+  //             onChange={(e) => setSearchTerm(e.target.value)}
+  //             className="border px-3 py-1.5 text-sm rounded-md w-60"
+  //           />
+  //         </div>
+
+  //         <div className="text-sm text-gray-600 space-x-3 text-right">
+  //           <span className="font-semibold text-black">
+  //             {summary.present} Full Day
+  //           </span>
+  //           <span className="text-gray-400">{summary.absent} Absent</span>
+  //           <span className="text-gray-400">{summary.paidLeave} Paid Leave</span>
+  //           <span className="text-gray-400">{summary.weekOff} Week Off</span>
+  //         </div>
+  //       </div>
+
+  //       {/* Table */}
+  //       <div className="overflow-auto rounded-xl border">
+  //         <table className="min-w-full text-sm text-gray-700">
+  //           <thead className="bg-red-50 text-left">
+  //             <tr>
+  //               <th className="px-4 py-2">Name</th>
+  //               <th className="px-4 py-2">Person Type</th>
+  //               <th className="px-4 py-2">Attendance</th>
+  //               <th className="px-4 py-2">Actions</th>
+  //             </tr>
+  //           </thead>
+  //           <tbody>
+  //             {loading ? (
+  //               <tr>
+  //                 <td colSpan="4" className="text-center py-6">
+  //                   Loading...
+  //                 </td>
+  //               </tr>
+  //             ) : filteredStaff.length === 0 ? (
+  //               <tr>
+  //                 <td colSpan="4" className="text-center text-gray-400 py-8">
+  //                   No staff found
+  //                 </td>
+  //               </tr>
+  //             ) : (
+  //               filteredStaff.map((s) => (
+  //                 <tr key={s._id}>
+  //                   <td className="px-4 py-2">{s.name}</td>
+  //                   <td className="px-4 py-2">{s.personType}</td>
+  //                   <td className="px-4 py-2">
+  //                     {attendanceRecords[currentDateKey]?.[s._id]?.status ? (
+  //                       <span className="text-gray-800 font-medium">
+  //                         {attendanceRecords[currentDateKey][s._id].status}
+  //                       </span>
+  //                     ) : (
+  //                       <select
+  //                         value=""
+  //                         onChange={(e) =>
+  //                           handleAttendanceChange(s._id, e.target.value)
+  //                         }
+  //                         className="border rounded px-2 py-1 text-sm"
+  //                       >
+  //                         <option value="">-- Select --</option>
+  //                         {attendanceOptions.map((opt) => (
+  //                           <option key={opt} value={opt}>
+  //                             {opt}
+  //                           </option>
+  //                         ))}
+  //                       </select>
+  //                     )}
+  //                   </td>
+  //                   <td className="px-4 py-2">
+  //                     <div className="relative inline-block">
+  //                       <FiMoreVertical
+  //                         className="cursor-pointer"
+  //                         onClick={() =>
+  //                           setOpenMenuId(openMenuId === s._id ? null : s._id)
+  //                         }
+  //                       />
+  //                       {openMenuId === s._id && (
+  //                         <div className="absolute right-0 mt-1 bg-white border rounded shadow-lg z-10">
+  //                           <button
+  //                             className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+  //                             onClick={() => {
+  //                               setEditingStaff(s);
+  //                               setIsModalOpen(true);
+  //                               setOpenMenuId(null);
+  //                             }}
+  //                           >
+  //                             Edit
+  //                           </button>
+  //                           <button
+  //                             className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-600"
+  //                             onClick={() => {
+  //                               handleDeleteStaff(s._id);
+  //                               setOpenMenuId(null);
+  //                             }}
+  //                           >
+  //                             Delete
+  //                           </button>
+  //                         </div>
+  //                       )}
+  //                     </div>
+  //                   </td>
+  //                 </tr>
+  //               ))
+  //             )}
+  //           </tbody>
+  //         </table>
+  //       </div>
+
+  //       {/* Add/Edit Staff Modal */}
+  //       {isModalOpen && (
+  //         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-20">
+  //           <div className="bg-white p-6 rounded-xl w-96">
+  //             <h2 className="text-lg font-semibold mb-4">
+  //               {editingStaff ? "Edit Staff" : "Add Staff"}
+  //             </h2>
+  //             <form onSubmit={handleAddStaff} className="space-y-4">
+  //               <input
+  //                 type="text"
+  //                 name="name"
+  //                 defaultValue={editingStaff?.name || ""}
+  //                 placeholder="Enter name"
+  //                 required
+  //                 className="w-full border px-3 py-2 rounded-md"
+  //               />
+
+  //               <select
+  //                 name="personType"
+  //                 defaultValue={editingStaff?.personType || "Site Staff"}
+  //                 required
+  //                 className="w-full border px-3 py-2 rounded-md"
+  //               >
+  //                 <option value="Site Staff">Site Staff</option>
+  //                 <option value="Labour Contractor">Labour Contractor</option>
+  //               </select>
+
+  //               {/* ✅ New Attendance Field */}
+  //               <select
+  //                 name="attendanceStatus"
+  //                 defaultValue={editingStaff?.attendance?.status || ""}
+  //                 className="w-full border px-3 py-2 rounded-md"
+  //               >
+  //                 <option value="">-- Select Attendance --</option>
+  //                 {attendanceOptions.map((opt) => (
+  //                   <option key={opt} value={opt}>
+  //                     {opt}
+  //                   </option>
+  //                 ))}
+  //               </select>
+
+  //               <div className="flex justify-end gap-2">
+  //                 <Button
+  //                   variant="custom"
+  //                   type="button"
+  //                   onClick={() => {
+  //                     setIsModalOpen(false);
+  //                     setEditingStaff(null);
+  //                   }}
+  //                   className="px-4 py-2 bg-gray-200 rounded-md"
+  //                 >
+  //                   Cancel
+  //                 </Button>
+  //                 <Button
+  //                   variant="custom"
+  //                   type="submit"
+  //                   className="px-4 py-2 bg-red-600 text-white rounded-md"
+  //                 >
+  //                   Save
+  //                 </Button>
+  //               </div>
+  //             </form>
+
+  //             {/* <form onSubmit={handleAddStaff} className="space-y-4">
+  //               <input
+  //                 type="text"
+  //                 name="name"
+  //                 defaultValue={editingStaff?.name || ""}
+  //                 placeholder="Enter name"
+  //                 required
+  //                 className="w-full border px-3 py-2 rounded-md"
+  //               />
+  //               <select
+  //                 name="personType"
+  //                 defaultValue={editingStaff?.personType || "Site Staff"}
+  //                 required
+  //                 className="w-full border px-3 py-2 rounded-md"
+  //               >
+  //                 <option value="Site Staff">Site Staff</option>
+  //                 <option value="Labour Contractor">Labour Contractor</option>
+  //               </select>
+  //               <div className="flex justify-end gap-2">
+  //                 <Button
+  //                   variant="custom"
+  //                   type="button"
+  //                   onClick={() => {
+  //                     setIsModalOpen(false);
+  //                     setEditingStaff(null);
+  //                   }}
+  //                   className="px-4 py-2 bg-gray-200 rounded-md"
+  //                 >
+  //                   Cancel
+  //                 </Button>
+  //                 <Button
+  //                   variant="custom"
+  //                   type="submit"
+  //                   className="px-4 py-2 bg-red-600 text-white rounded-md"
+  //                 >
+  //                   Save
+  //                 </Button>
+  //               </div>
+  //             </form> */}
+  //           </div>
+  //         </div>
+  //       )}
+  //     </div>
+  //   );
+  // };
+
+  // export default ProjectAttendance;

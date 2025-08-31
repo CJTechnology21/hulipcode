@@ -54,6 +54,17 @@ const updateStaff = async (req, res) => {
   }
 };
 
+// const updateStaff = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const staff = await Staff.findByIdAndUpdate(id, req.body, { new: true });
+//     res.json(staff);
+//   } catch (error) {
+//     console.error("Error updating staff:", error);
+//     res.status(500).json({ message: "Server Error" });
+//   }
+// };
+
 // Delete staff
 const deleteStaff = async (req, res) => {
   try {
@@ -65,7 +76,6 @@ const deleteStaff = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 // Mark attendance for staff
 const markAttendance = async (req, res) => {
   try {
@@ -76,42 +86,49 @@ const markAttendance = async (req, res) => {
       return res.status(400).json({ message: "Attendance status is required" });
     }
 
-    // ✅ Use provided date or default to today
+    //  Use provided date or default to today
     const targetDate = date ? new Date(date) : new Date();
     targetDate.setUTCHours(0, 0, 0, 0);
 
     const targetDateStr = targetDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
     const month = targetDate.toISOString().slice(0, 7); // "YYYY-MM"
 
-    // ✅ Find staff
+    //  Find staff
     const staff = await Staff.findById(id);
     if (!staff) {
       return res.status(404).json({ message: "Staff not found" });
     }
 
-    // ✅ If marking today's attendance, update current attendance
+    //  If marking today's attendance, update current attendance
     const todayStr = new Date().toISOString().slice(0, 10);
     if (targetDateStr === todayStr) {
       staff.attendance = { date: targetDate, status };
     }
 
-    // ✅ Find or create month record
+    //  Find or create month record
     let monthRecord = staff.attendanceHistory.find((m) => m.month === month);
+
     if (!monthRecord) {
-      monthRecord = { month, records: [] };
-      staff.attendanceHistory.push(monthRecord);
+      // Push a proper mongoose subdocument
+      staff.attendanceHistory.push({
+        month,
+        records: []
+      });
+
+      // Re-fetch the newly added monthRecord from array
+      monthRecord = staff.attendanceHistory.find((m) => m.month === month);
     }
 
-    // ✅ Check if the record for target date exists
-    const dayRecord = monthRecord.records.find(
+    //  Check if the record for target date exists
+    let dayRecord = monthRecord.records.find(
       (r) => new Date(r.date).toISOString().slice(0, 10) === targetDateStr
     );
 
     if (dayRecord) {
-      // Update existing
+      // Update existing record
       dayRecord.status = status;
     } else {
-      // Add new
+      // Add new record
       monthRecord.records.push({ date: targetDate, status });
     }
 
@@ -127,42 +144,46 @@ const markAttendance = async (req, res) => {
   }
 };
 
+
+// // Mark attendance for staff
 // const markAttendance = async (req, res) => {
 //   try {
 //     const { id } = req.params; // staffId
-//     const { status } = req.body;
+//     const { status, date } = req.body;
 
 //     if (!status) {
 //       return res.status(400).json({ message: "Attendance status is required" });
 //     }
 
-//     // Normalize today's date (UTC)
-//     const today = new Date();
-//     today.setUTCHours(0, 0, 0, 0);
+//     // ✅ Use provided date or default to today
+//     const targetDate = date ? new Date(date) : new Date();
+//     targetDate.setUTCHours(0, 0, 0, 0);
 
-//     const todayStr = today.toISOString().slice(0, 10); // "YYYY-MM-DD"
-//     const month = today.toISOString().slice(0, 7); // "YYYY-MM"
+//     const targetDateStr = targetDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
+//     const month = targetDate.toISOString().slice(0, 7); // "YYYY-MM"
 
-//     // Find staff
+//     // ✅ Find staff
 //     const staff = await Staff.findById(id);
 //     if (!staff) {
 //       return res.status(404).json({ message: "Staff not found" });
 //     }
 
-//     // ✅ Update current attendance
-//     staff.attendance = { date: today, status };
+//     // ✅ If marking today's attendance, update current attendance
+//     const todayStr = new Date().toISOString().slice(0, 10);
+//     if (targetDateStr === todayStr) {
+//       staff.attendance = { date: targetDate, status };
+//     }
 
 //     // ✅ Find or create month record
 //     let monthRecord = staff.attendanceHistory.find((m) => m.month === month);
-
 //     if (!monthRecord) {
 //       monthRecord = { month, records: [] };
 //       staff.attendanceHistory.push(monthRecord);
 //     }
 
-//     // ✅ Check if today's record exists
+//     // ✅ Check if the record for target date exists
 //     const dayRecord = monthRecord.records.find(
-//       (r) => r.date.toISOString().slice(0, 10) === todayStr
+//       (r) => new Date(r.date).toISOString().slice(0, 10) === targetDateStr
 //     );
 
 //     if (dayRecord) {
@@ -170,16 +191,20 @@ const markAttendance = async (req, res) => {
 //       dayRecord.status = status;
 //     } else {
 //       // Add new
-//       monthRecord.records.push({ date: today, status });
+//       monthRecord.records.push({ date: targetDate, status });
 //     }
 
 //     await staff.save();
 
-//     res.json({ message: "Attendance marked successfully", staff });
+//     res.json({
+//       message: `Attendance for ${targetDateStr} marked successfully`,
+//       staff,
+//     });
 //   } catch (error) {
 //     console.error("Error marking attendance:", error);
 //     res.status(500).json({ message: "Server Error" });
 //   }
 // };
+
 
 module.exports = { createStaff, getStaffByProject, updateStaff, deleteStaff,markAttendance };
