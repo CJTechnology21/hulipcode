@@ -146,6 +146,66 @@ const deleteTransaction = async (req, res) => {
   }
 };
 
+// Get cash flow summary (inflow, outflow, net)
+const getCashFlowSummary = async (req, res) => {
+  try {
+    const { projectId, architectId } = req.query;
+    const filter = {};
+
+    if (projectId) {
+      if (!mongoose.Types.ObjectId.isValid(projectId)) {
+        return res.status(400).json({ message: "Invalid projectId" });
+      }
+      filter.projectId = projectId;
+    }
+
+    if (architectId) {
+      if (!mongoose.Types.ObjectId.isValid(architectId)) {
+        return res.status(400).json({ message: "Invalid architectId" });
+      }
+      filter.architectId = architectId;
+    }
+
+    const transactions = await Transaction.find(filter);
+
+    let inflow = 0;
+    let outflow = 0;
+
+    transactions.forEach((t) => {
+      const amount = Number(t.amount) || 0;
+      if (
+        ["Payment In", "I Received", "Sales Invoice", "Material Sales"].includes(
+          t.transactionType
+        )
+      ) {
+        inflow += amount;
+      } else if (
+        [
+          "Payment Out",
+          "I Paid",
+          "Material Purchase",
+          "Material Return",
+          "Material Transfer",
+          "Other Expense",
+          "Sub Con Bill",
+        ].includes(t.transactionType)
+      ) {
+        outflow += amount;
+      }
+    });
+
+    res.status(200).json({
+      inflow,
+      outflow,
+      net: inflow - outflow,
+    });
+  } catch (err) {
+    console.error("Get Cash Flow Error:", err);
+    res.status(500).json({ message: "Server error while calculating cash flow" });
+  }
+};
+
+
 module.exports = {
   createTransaction,
   getAllTransactions,
@@ -153,4 +213,5 @@ module.exports = {
   updateTransaction,
   patchTransaction,
   deleteTransaction,
+  getCashFlowSummary,
 };

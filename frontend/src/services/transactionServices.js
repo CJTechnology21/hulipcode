@@ -55,3 +55,10 @@ export const deleteTransaction = async (transactionId) => {
   const res = await axiosInstance.delete(`/api/transaction/${transactionId}`);
   return res.data;
 };
+
+export const fetchCashFlow = async (projectId, architectId) => {
+  const res = await axiosInstance.get("/transaction/cashflow", {
+    params: { projectId, architectId },
+  });
+  return res.data;
+};
