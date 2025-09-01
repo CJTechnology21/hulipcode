@@ -83,6 +83,25 @@
   return map[type] || type;
 };
 
+
+export const backendToUiTypeMap = {
+  PaymentIn: "Payment In",
+  PaymentOut: "Payment Out",
+  DebitNote: "Debit Note",
+  CreditNote: "Credit Note",
+  PartyToPartyPayment: "Party to Party Payment",
+  SalesInvoice: "Sales Invoice",
+  MaterialSales: "Material Sales",
+  MaterialPurchase: "Material Purchase",
+  MaterialReturn: "Material Return",
+  MaterialTransfer: "Material Transfer",
+  SubConBill: "Sub Con Bill",
+  OtherExpense: "Other Expense",
+  IPaid: "I Paid",
+  IReceived: "I Received",
+};
+
+
 // // ----------------- constants -----------------
 // // export const fieldConfig = {
 // //   PaymentIn: ["amount", "mode", "date", "party", "proof", "notes"],
