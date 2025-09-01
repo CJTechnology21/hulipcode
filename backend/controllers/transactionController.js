@@ -72,7 +72,6 @@ const createTransaction = async (req, res) => {
   }
 };
 
-module.exports = { createTransaction };
 
 
 // const createTransaction = async (req, res) => {
