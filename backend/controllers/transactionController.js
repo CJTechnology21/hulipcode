@@ -1,6 +1,6 @@
 const AWS = require("aws-sdk");
 const mongoose = require("mongoose");
-const Transaction = require("../models/transactionModel");
+const Transaction = require("../models/Transaction");
 
 // Configure AWS
 const s3 = new AWS.S3({
