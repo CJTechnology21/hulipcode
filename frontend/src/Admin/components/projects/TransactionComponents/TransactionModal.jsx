@@ -17,7 +17,9 @@ import {
   normalizeTransactionType,
 } from "./allConfigs";
 import { useAuth } from "../../../../context/AuthContext";
-import { generateUploadURL, addProjectPhoto } from "../../../../services/overViewServices";
+import {
+  generateUploadURL,
+} from "../../../../services/overViewServices";
 
 // ----------------- renderField ----------------- //
 const renderField = (field, value, onChange, vendors, parties) => {
@@ -191,7 +193,6 @@ function TransactionModal({
     Adjustment: "Expense",
     Transfer: "MyAccount",
   };
-
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -203,11 +204,12 @@ function TransactionModal({
       const transaction = {
         ...formData,
         projectId,
-        architectId,
+        architectId, // make sure this comes from useAuth
         category: backendCategory,
         transactionType: normalizedType,
       };
 
+      // Map party and vendor
       if (transaction.partyId) {
         transaction.party = transaction.partyId;
         delete transaction.partyId;
@@ -217,39 +219,53 @@ function TransactionModal({
         delete transaction.vendorId;
       }
 
+      // Convert numeric fields
       if (transaction.amount) transaction.amount = Number(transaction.amount);
       if (transaction.quantity)
         transaction.quantity = Number(transaction.quantity);
 
+      // Remove empty or null fields
       Object.keys(transaction).forEach((key) => {
         if (transaction[key] === "" || transaction[key] === null)
           delete transaction[key];
       });
       delete transaction._id;
 
-      // ✅ If proof exists, upload to S3 first
+      //  Handle proof file upload
       if (transaction.proof && transaction.proof instanceof File) {
         const file = transaction.proof;
-        const { uploadUrl, url } = await generateUploadURL(file.name, file.type);
+        const { uploadUrl, url } = await generateUploadURL(
+          file.name,
+          file.type
+        );
 
         // Upload file to S3
         await fetch(uploadUrl, {
           method: "PUT",
-          headers: {
-            "Content-Type": file.type,
-          },
+          headers: { "Content-Type": file.type },
           body: file,
         });
 
-        // Add file URL to transaction proofs
-        transaction.proofs = [url];
+        // Set proofs as an array of objects (required by Mongoose)
+        transaction.proofs = [
+          {
+            fileUrl: url,
+            fileType: file.type.includes("image") ? "image" : "pdf",
+          },
+        ];
 
-        // Remove the file object from transaction
+        // Remove the raw file object
         delete transaction.proof;
+
+        // console.log(" Uploaded Proof:", transaction.proofs);
       }
 
-      console.log("✅ Final Transaction Payload:", transaction);
+      // console.log(
+      //   "✅ Final Transaction Payload:",
+      //   JSON.stringify(transaction, null, 2)
+      // );
 
+      // Create or update transaction
       let res;
       if (editData?._id) {
         res = await updateTransaction(editData._id, transaction);
@@ -262,12 +278,94 @@ function TransactionModal({
       onSubmit(res, !!editData);
       onClose();
     } catch (err) {
-      console.error("❌ Transaction Error:", err.response?.data || err.message);
+      // console.error(
+      //   " Transaction Error:",
+      //   err.response?.data
+      //     ? JSON.stringify(err.response.data, null, 2)
+      //     : err.message
+      // );
       toast.error(err.response?.data?.message || "Something went wrong!");
     } finally {
       setLoading(false);
     }
   };
+
+  // const handleSave = async () => {
+  //   try {
+  //     setLoading(true);
+
+  //     const uiCategory = typeCategoryMap[uiType] || "Other";
+  //     const normalizedType = normalizeTransactionType(uiType);
+  //     const backendCategory = backendCategoryMap[uiCategory] || "Other";
+
+  //     const transaction = {
+  //       ...formData,
+  //       projectId,
+  //       architectId,
+  //       category: backendCategory,
+  //       transactionType: normalizedType,
+  //     };
+
+  //     if (transaction.partyId) {
+  //       transaction.party = transaction.partyId;
+  //       delete transaction.partyId;
+  //     }
+  //     if (transaction.vendorId) {
+  //       transaction.vendor = transaction.vendorId;
+  //       delete transaction.vendorId;
+  //     }
+
+  //     if (transaction.amount) transaction.amount = Number(transaction.amount);
+  //     if (transaction.quantity)
+  //       transaction.quantity = Number(transaction.quantity);
+
+  //     Object.keys(transaction).forEach((key) => {
+  //       if (transaction[key] === "" || transaction[key] === null)
+  //         delete transaction[key];
+  //     });
+  //     delete transaction._id;
+
+  //     // ✅ If proof exists, upload to S3 first
+  //     if (transaction.proof && transaction.proof instanceof File) {
+  //       const file = transaction.proof;
+  //       const { uploadUrl, url } = await generateUploadURL(file.name, file.type);
+
+  //       // Upload file to S3
+  //       await fetch(uploadUrl, {
+  //         method: "PUT",
+  //         headers: {
+  //           "Content-Type": file.type,
+  //         },
+  //         body: file,
+  //       });
+
+  //       // Add file URL to transaction proofs
+  //       transaction.proofs = [url];
+
+  //       // Remove the file object from transaction
+  //       delete transaction.proof;
+  //     }
+
+  //     console.log("✅ Final Transaction Payload:", transaction);
+
+  //     let res;
+  //     if (editData?._id) {
+  //       res = await updateTransaction(editData._id, transaction);
+  //       toast.success(`${uiType} transaction updated successfully!`);
+  //     } else {
+  //       res = await createTransaction(transaction);
+  //       toast.success(`${uiType} transaction created successfully!`);
+  //     }
+
+  //     onSubmit(res, !!editData);
+  //     onClose();
+  //   } catch (err) {
+  //     console.error("❌ Transaction Error:", err.response?.data || err.message);
+  //     toast.error(err.response?.data?.message || "Something went wrong!");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const isValid = fields.every((f) => {
     if (f === "proof" || f === "notes") return true;

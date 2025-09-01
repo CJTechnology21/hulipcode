@@ -74,86 +74,6 @@ const createTransaction = async (req, res) => {
 
 
 
-// const createTransaction = async (req, res) => {
-//   try {
-//     const { projectId, architectId, category, transactionType, party, vendor, ...rest } = req.body;
-
-//     // Validate projectId and architectId
-//     if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
-//       return res.status(400).json({ message: "Valid projectId is required" });
-//     }
-
-//     if (!architectId || !mongoose.Types.ObjectId.isValid(architectId)) {
-//       return res.status(400).json({ message: "Valid architectId is required" });
-//     }
-
-//     // Validate and convert party & vendor IDs if provided
-//     let partyId = null;
-//     if (party) {
-//       if (!mongoose.Types.ObjectId.isValid(party)) {
-//         return res.status(400).json({ message: "Invalid Party ID" });
-//       }
-//       partyId = party;
-//     }
-
-//     let vendorId = null;
-//     if (vendor) {
-//       if (!mongoose.Types.ObjectId.isValid(vendor)) {
-//         return res.status(400).json({ message: "Invalid Vendor ID" });
-//       }
-//       vendorId = vendor;
-//     }
-
-//     // Enum mapping for category and transactionType
-//     const validCategories = ["Payment", "Sales", "Expense", "MyAccount"];
-//     const validTransactionTypes = [
-//       "PaymentIn",
-//       "PaymentOut",
-//       "DebitNote",
-//       "CreditNote",
-//       "PartyToPartyPayment",
-//       "SalesInvoice",
-//       "MaterialSales",
-//       "MaterialPurchase",
-//       "MaterialReturn",
-//       "MaterialTransfer",
-//       "SubConBill",
-//       "OtherExpense",
-//       "IPaid",
-//       "IReceived"
-//     ];
-
-//     const formattedCategory = category?.replace(/\s+/g, "");
-//     const formattedTransactionType = transactionType?.replace(/\s+/g, "");
-
-//     if (!validCategories.includes(formattedCategory)) {
-//       return res.status(400).json({ message: `Invalid category. Allowed: ${validCategories.join(", ")}` });
-//     }
-
-//     if (!validTransactionTypes.includes(formattedTransactionType)) {
-//       return res.status(400).json({ message: `Invalid transactionType. Allowed: ${validTransactionTypes.join(", ")}` });
-//     }
-
-//     // Create transaction
-//     const transaction = await Transaction.create({
-//       projectId,
-//       architectId,
-//       category: formattedCategory,
-//       transactionType: formattedTransactionType,
-//       party: partyId,   // ✅ Use validated ID
-//       vendor: vendorId, // ✅ Use validated ID
-//       ...rest
-//     });
-
-//     res.status(201).json({ transaction });
-//   } catch (err) {
-//     console.error("Create Transaction Error:", err);
-//     res.status(500).json({ message: "Server error while creating transaction" });
-//   }
-// };
-
-
-
 // Get all transactions with optional filters (projectId, architectId)
 const getAllTransactions = async (req, res) => {
   try {
@@ -206,7 +126,8 @@ const getTransactionById = async (req, res) => {
   }
 };
 
-// Full update (PUT)
+// // Full update (PUT)
+// Full update (PUT) with S3 file upload
 const updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
@@ -215,19 +136,70 @@ const updateTransaction = async (req, res) => {
       return res.status(400).json({ message: "Invalid transaction ID" });
     }
 
-    const transaction = await Transaction.findByIdAndUpdate(id, req.body, {
+    // Fetch existing transaction
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
+
+    // Handle new proof file upload
+    let proofs = transaction.proofs || [];
+    if (req.file) {
+      const fileKey = `projects/${transaction.projectId}/transactions/${Date.now()}-${req.file.originalname}`;
+
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: fileKey,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+        ACL: "public-read",
+      };
+
+      await s3.upload(params).promise();
+
+      proofs.push({
+        fileUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`,
+        fileType: req.file.mimetype.includes("image") ? "image" : "pdf",
+      });
+    }
+
+    // Merge other fields from req.body
+    const updateData = {
+      ...req.body,
+      proofs,
+    };
+
+    const updatedTransaction = await Transaction.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     });
 
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
-
-    res.status(200).json({ transaction });
+    res.status(200).json({ transaction: updatedTransaction });
   } catch (err) {
     console.error("Update Transaction Error:", err);
     res.status(500).json({ message: "Server error while updating transaction" });
   }
 };
+
+// const updateTransaction = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: "Invalid transaction ID" });
+//     }
+
+//     const transaction = await Transaction.findByIdAndUpdate(id, req.body, {
+//       new: true,
+//       runValidators: true,
+//     });
+
+//     if (!transaction) return res.status(404).json({ message: "Transaction not found" });
+
+//     res.status(200).json({ transaction });
+//   } catch (err) {
+//     console.error("Update Transaction Error:", err);
+//     res.status(500).json({ message: "Server error while updating transaction" });
+//   }
+// };
 
 // Partial update (PATCH)
 const patchTransaction = async (req, res) => {
