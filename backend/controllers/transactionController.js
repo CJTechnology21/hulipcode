@@ -128,6 +128,7 @@ const getTransactionById = async (req, res) => {
 
 // // Full update (PUT)
 // Full update (PUT) with S3 file upload
+
 const updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,15 +137,22 @@ const updateTransaction = async (req, res) => {
       return res.status(400).json({ message: "Invalid transaction ID" });
     }
 
-    // Fetch existing transaction
     const transaction = await Transaction.findById(id);
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
+    if (!transaction) {
+      return res.status(404).json({ message: "Transaction not found" });
+    }
 
-    // Handle new proof file upload
+    // Start with existing proofs
     let proofs = transaction.proofs || [];
+
+    // If frontend sends proofs, prefer that
+    if (req.body.proofs && Array.isArray(req.body.proofs)) {
+      proofs = req.body.proofs;
+    }
+
+    // If file uploaded via backend (optional case), append it
     if (req.file) {
       const fileKey = `projects/${transaction.projectId}/transactions/${Date.now()}-${req.file.originalname}`;
-
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: fileKey,
@@ -161,7 +169,7 @@ const updateTransaction = async (req, res) => {
       });
     }
 
-    // Merge other fields from req.body
+    // Merge updated data
     const updateData = {
       ...req.body,
       proofs,
@@ -172,7 +180,7 @@ const updateTransaction = async (req, res) => {
       runValidators: true,
     });
 
-    res.status(200).json({ transaction: updatedTransaction });
+    res.status(200).json(updatedTransaction);
   } catch (err) {
     console.error("Update Transaction Error:", err);
     res.status(500).json({ message: "Server error while updating transaction" });
