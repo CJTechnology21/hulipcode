@@ -4,7 +4,9 @@ import { FiTrendingUp } from "react-icons/fi";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import TransactionTypesModal from "./TransactionTypesModal";
 import TransactionModal from "./TransactionComponents/TransactionModal";
-import ProofModal from "./TransactionComponents/ProofModal"; // <-- Import ProofModal
+import ProofModal from "./TransactionComponents/ProofModal";
+import DropDown from "../../../components/DropDown"; 
+import {formatDate} from '../../../utils/dateFormatter';
 import { toast } from "react-toastify";
 
 // API services
@@ -30,13 +32,17 @@ function ProjectTransaction({ projectId }) {
   const [proofModalOpen, setProofModalOpen] = useState(false);
   const [currentProof, setCurrentProof] = useState(null);
 
+  // Filters
+  const [filterType, setFilterType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   // Fetch transactions
   const getTransactions = async () => {
     if (!projectId) return;
     try {
       const data = await fetchTransactions({ projectId });
 
-      // Normalize party/vendor to always be Mongo IDs
       const normalized = (data?.transactions || []).map((t) => ({
         ...t,
         party: toId(t.party),
@@ -74,8 +80,29 @@ function ProjectTransaction({ projectId }) {
     //eslint-disable-next-line
   }, [projectId]);
 
+  // Apply filters
+  const filteredTransactions = transactions.filter((t) => {
+    let match = true;
+
+    if (filterType && t.transactionType !== filterType) {
+      match = false;
+    }
+
+    if (startDate) {
+      const txDate = new Date(t.date);
+      if (txDate < new Date(startDate)) match = false;
+    }
+
+    if (endDate) {
+      const txDate = new Date(t.date);
+      if (txDate > new Date(endDate)) match = false;
+    }
+
+    return match;
+  });
+
   // Summary calculations
-  const totalInvoice = transactions
+  const totalInvoice = filteredTransactions
     .filter(
       (t) =>
         t.transactionType &&
@@ -85,7 +112,7 @@ function ProjectTransaction({ projectId }) {
     )
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-  const totalExpense = transactions
+  const totalExpense = filteredTransactions
     .filter(
       (t) =>
         t.transactionType &&
@@ -155,24 +182,61 @@ function ProjectTransaction({ projectId }) {
     setEditTransaction(null);
   };
 
+  // Transaction type options
+  const transactionTypeOptions = [
+    "PaymentIn",
+    "PaymentOut",
+    "DebitNote",
+    "CreditNote",
+    "PartyToPartyPayment",
+    "SalesInvoice",
+    "MaterialSales",
+    "MaterialPurchase",
+    "MaterialReturn",
+    "MaterialTransfer",
+    "SubConBill",
+    "OtherExpense",
+    "IPaid",
+    "IReceived",
+  ];
+
   return (
     <div className="w-screen h-screen bg-white flex flex-col font-sans m-4 p-2 rounded-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            variant="custom"
-            className="px-3 sm:px-4 py-1 bg-gray-100 rounded-md border text-sm"
-          >
-            Filter
-          </Button>
-          <Button
-            variant="custom"
-            className="px-3 sm:px-4 py-1 bg-gray-100 rounded-md border text-sm"
-          >
-            Date Filter
-          </Button>
+      {/* Header with Filters */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-6 py-3 border-b">
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          {/* Date filters */}
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">From</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-2 rounded-lg border border-gray-300 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">To</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="p-2 rounded-lg border border-gray-300 text-sm"
+            />
+          </div>
+
+          {/* Type filter */}
+          <div className="min-w-[180px]">
+            <DropDown
+              label="Transaction Type"
+              name="transactionType"
+              value={filterType}
+              options={transactionTypeOptions}
+              onChange={(e) => setFilterType(e.target.value)}
+            />
+          </div>
         </div>
+
         <Button
           className="bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base"
           onClick={() => setIsTypesModalOpen(true)}
@@ -215,7 +279,7 @@ function ProjectTransaction({ projectId }) {
 
       {/* Transactions Table */}
       <div className="flex-grow bg-gray-50 overflow-y-auto">
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full space-y-2">
             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 border border-red-600">
               <FiTrendingUp className="text-red-600 text-3xl" />
@@ -239,7 +303,7 @@ function ProjectTransaction({ projectId }) {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((t, idx) => (
+                {filteredTransactions.map((t, idx) => (
                   <tr
                     key={t._id}
                     className="border-b hover:bg-gray-50 transition relative"
@@ -253,11 +317,10 @@ function ProjectTransaction({ projectId }) {
                         : "—"}
                     </td>
                     <td className="px-4 py-2">{t.transactionType}</td>
-
                     <td className="px-4 py-2">₹{t.amount}</td>
                     <td className="px-4 py-2">{t.mode || "—"}</td>
                     <td className="px-4 py-2">
-                      {t.date ? new Date(t.date).toLocaleDateString() : "—"}
+                      {t.date ? formatDate(t.date) : "—"}
                     </td>
                     <td className="px-4 py-2">{t.notes || "—"}</td>
                     <td className="px-4 py-2">
@@ -352,6 +415,7 @@ export default ProjectTransaction;
 // import { HiOutlineDotsVertical } from "react-icons/hi";
 // import TransactionTypesModal from "./TransactionTypesModal";
 // import TransactionModal from "./TransactionComponents/TransactionModal";
+// import ProofModal from "./TransactionComponents/ProofModal"; // <-- Import ProofModal
 // import { toast } from "react-toastify";
 
 // // API services
@@ -373,6 +437,10 @@ export default ProjectTransaction;
 //   const [vendors, setVendors] = useState([]);
 //   const [parties, setParties] = useState([]);
 
+//   // Proof modal state
+//   const [proofModalOpen, setProofModalOpen] = useState(false);
+//   const [currentProof, setCurrentProof] = useState(null);
+
 //   // Fetch transactions
 //   const getTransactions = async () => {
 //     if (!projectId) return;
@@ -382,7 +450,7 @@ export default ProjectTransaction;
 //       // Normalize party/vendor to always be Mongo IDs
 //       const normalized = (data?.transactions || []).map((t) => ({
 //         ...t,
-//         party: toId(t.party), // ensure always an ID string
+//         party: toId(t.party),
 //         vendor: toId(t.vendor),
 //         transactionType: t.transactionType || "Unknown",
 //       }));
@@ -589,15 +657,11 @@ export default ProjectTransaction;
 //                   >
 //                     <td className="px-4 py-2">{idx + 1}</td>
 //                     <td className="px-4 py-2">
-//                       {(() => {
-//                         if (t.party) {
-//                           return getLabel(parties, t.party);
-//                         } else if (t.vendor) {
-//                           return getLabel(vendors, t.vendor);
-//                         } else {
-//                           return "—";
-//                         }
-//                       })()}
+//                       {t.party
+//                         ? getLabel(parties, t.party)
+//                         : t.vendor
+//                         ? getLabel(vendors, t.vendor)
+//                         : "—"}
 //                     </td>
 //                     <td className="px-4 py-2">{t.transactionType}</td>
 
@@ -609,14 +673,15 @@ export default ProjectTransaction;
 //                     <td className="px-4 py-2">{t.notes || "—"}</td>
 //                     <td className="px-4 py-2">
 //                       {t.proofs && t.proofs.length ? (
-//                         <a
-//                           href={t.proofs[0].fileUrl}
-//                           target="_blank"
-//                           rel="noopener noreferrer"
+//                         <button
 //                           className="text-blue-600 underline"
+//                           onClick={() => {
+//                             setCurrentProof(t.proofs[0]);
+//                             setProofModalOpen(true);
+//                           }}
 //                         >
 //                           View
-//                         </a>
+//                         </button>
 //                       ) : (
 //                         "—"
 //                       )}
@@ -679,6 +744,13 @@ export default ProjectTransaction;
 //           onSubmit={handleTransactionSubmit}
 //         />
 //       )}
+
+//       {/* Proof Modal */}
+//       <ProofModal
+//         isOpen={proofModalOpen}
+//         proof={currentProof}
+//         onClose={() => setProofModalOpen(false)}
+//       />
 //     </div>
 //   );
 // }

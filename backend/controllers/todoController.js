@@ -110,10 +110,40 @@ const deleteTodo = async (req, res) => {
     }
 };
 
+const getTodoName = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+
+        if (!projectId) {
+            return res.status(400).json({ message: "projectId is required" });
+        }
+
+        // Find todos by projectId and only return the _id and itemName fields
+        const todos = await Todo.find({ projectId }).select("_id itemName").sort({ dueDate: -1 });
+
+        if (!todos || todos.length === 0) {
+            return res.status(404).json({ message: "No todos found for this project" });
+        }
+
+        // Map to an array of objects with id and name
+        const todoList = todos.map((todo) => ({
+            id: todo._id,
+            name: todo.itemName,
+        }));
+
+        res.status(200).json({ todos: todoList });
+    } catch (err) {
+        console.error("Get Todo Names Error:", err);
+        res.status(500).json({ message: "Server error while fetching todo names" });
+    }
+};
+
+
 module.exports = {
     createTodo,
     getTodosByProject,
     getTodoById,
     updateTodo,
     deleteTodo,
+    getTodoName,
 };

@@ -49,3 +49,8 @@ export const deleteTask = async (taskId) => {
   const res = await axiosInstance.delete(`/api/tasks/${taskId}`);
   return res.data;
 };
+
+export const getTaskName = async (projectId) => {
+  const res = await axiosInstance.get(`/api/tasks?projectId=${projectId}`);
+  return res.data;
+}

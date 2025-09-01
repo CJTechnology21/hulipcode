@@ -254,19 +254,12 @@ function TransactionModal({
         delete transaction.proof;
       }
 
-      // 🔥 DEBUG: Check whether we are creating or updating
+      //  DEBUG: Check whether we are creating or updating
       if (editData?._id) {
-        console.log(" DEBUG: Update request triggered!");
-        console.log("Transaction ID:", editData._id);
-        console.log("Payload:", JSON.stringify(transaction, null, 2));
-
         const res = await updateTransaction(editData._id, transaction);
         toast.success(`${uiType} transaction updated successfully!`);
         onSubmit(res, true);
       } else {
-        console.log(" DEBUG: Create request triggered!");
-        console.log(" Payload:", JSON.stringify(transaction, null, 2));
-
         const res = await createTransaction(transaction);
         toast.success(`${uiType} transaction created successfully!`);
         onSubmit(res, false);
@@ -280,104 +273,6 @@ function TransactionModal({
       setLoading(false);
     }
   };
-
-  // const handleSave = async () => {
-  //   try {
-  //     setLoading(true);
-
-  //     const uiCategory = typeCategoryMap[uiType] || "Other";
-  //     const normalizedType = normalizeTransactionType(uiType);
-  //     const backendCategory = backendCategoryMap[uiCategory] || "Other";
-
-  //     const transaction = {
-  //       ...formData,
-  //       projectId,
-  //       architectId, // make sure this comes from useAuth
-  //       category: backendCategory,
-  //       transactionType: normalizedType,
-  //     };
-
-  //     // Map party and vendor
-  //     if (transaction.partyId) {
-  //       transaction.party = transaction.partyId;
-  //       delete transaction.partyId;
-  //     }
-  //     if (transaction.vendorId) {
-  //       transaction.vendor = transaction.vendorId;
-  //       delete transaction.vendorId;
-  //     }
-
-  //     // Convert numeric fields
-  //     if (transaction.amount) transaction.amount = Number(transaction.amount);
-  //     if (transaction.quantity)
-  //       transaction.quantity = Number(transaction.quantity);
-
-  //     // Remove empty or null fields
-  //     Object.keys(transaction).forEach((key) => {
-  //       if (transaction[key] === "" || transaction[key] === null)
-  //         delete transaction[key];
-  //     });
-  //     delete transaction._id;
-
-  //     //  Handle proof file upload
-  //     if (transaction.proof && transaction.proof instanceof File) {
-  //       const file = transaction.proof;
-  //       const { uploadUrl, url } = await generateUploadURL(
-  //         file.name,
-  //         file.type
-  //       );
-
-  //       // Upload file to S3
-  //       await fetch(uploadUrl, {
-  //         method: "PUT",
-  //         headers: { "Content-Type": file.type },
-  //         body: file,
-  //       });
-
-  //       // Set proofs as an array of objects (required by Mongoose)
-  //       transaction.proofs = [
-  //         {
-  //           fileUrl: url,
-  //           fileType: file.type.includes("image") ? "image" : "pdf",
-  //         },
-  //       ];
-
-  //       // Remove the raw file object
-  //       delete transaction.proof;
-
-  //       // console.log(" Uploaded Proof:", transaction.proofs);
-  //     }
-
-  //     // console.log(
-  //     //   "✅ Final Transaction Payload:",
-  //     //   JSON.stringify(transaction, null, 2)
-  //     // );
-
-  //     // Create or update transaction
-  //     let res;
-  //     if (editData?._id) {
-  //       res = await updateTransaction(editData._id, transaction);
-  //       toast.success(`${uiType} transaction updated successfully!`);
-  //     } else {
-  //       res = await createTransaction(transaction);
-  //       toast.success(`${uiType} transaction created successfully!`);
-  //     }
-
-  //     onSubmit(res, !!editData);
-  //     onClose();
-  //   } catch (err) {
-  //     // console.error(
-  //     //   " Transaction Error:",
-  //     //   err.response?.data
-  //     //     ? JSON.stringify(err.response.data, null, 2)
-  //     //     : err.message
-  //     // );
-  //     toast.error(err.response?.data?.message || "Something went wrong!");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const isValid = fields.every((f) => {
     if (f === "proof" || f === "notes") return true;
     if (f === "amount" || f === "quantity")

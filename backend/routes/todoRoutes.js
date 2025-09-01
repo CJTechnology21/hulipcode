@@ -7,6 +7,7 @@ const {
   getTodosByProject,
   updateTodo,
   deleteTodo,
+  getTodoName,
 } = require('../controllers/todoController');
 
 // Get all todos by projectId (optional query: ?projectId=xxx)
@@ -14,6 +15,9 @@ router.get("/", getTodosByProject);
 
 // Create new todo
 router.post("/", createTodo);
+
+// Get todoName
+router.get("/todoname", getTodoName);
 
 // Get single todo by ID
 router.get("/:id", getTodoById);

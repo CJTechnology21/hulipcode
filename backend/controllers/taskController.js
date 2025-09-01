@@ -1,8 +1,7 @@
 const Task = require("../models/Tasks");
 const mongoose = require("mongoose");
-// ==============================
+
 // Create Task (flexible fields)
-// ==============================
 const createTask = async (req, res) => {
   try {
     const { name, projectId, ...rest } = req.body;
@@ -16,7 +15,7 @@ const createTask = async (req, res) => {
     const task = await Task.create({
       name,
       projectId,
-      ...rest, 
+      ...rest,
     });
 
     res.status(201).json({
@@ -28,9 +27,8 @@ const createTask = async (req, res) => {
   }
 };
 
-// ==============================
+
 // Get All Tasks (with optional project filter)
-// ==============================
 const getTasksByProject = async (req, res) => {
   try {
     const { projectId } = req.query;
@@ -54,9 +52,8 @@ const getTasksByProject = async (req, res) => {
   }
 };
 
-// ==============================
+
 // Get Single Task
-// ==============================
 const getTaskById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -71,9 +68,8 @@ const getTaskById = async (req, res) => {
   }
 };
 
-// ==============================
+
 // Update Task (full update)
-// ==============================
 const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -92,9 +88,8 @@ const updateTask = async (req, res) => {
   }
 };
 
-// ==============================
+
 // Patch Task (partial update)
-// ==============================
 const patchTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -114,9 +109,7 @@ const patchTask = async (req, res) => {
   }
 };
 
-// ==============================
 // Delete Task
-// ==============================
 const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
@@ -130,6 +123,34 @@ const deleteTask = async (req, res) => {
     res.status(500).json({ message: "Server error while deleting task" });
   }
 };
+const getTaskName = async (req, res) => {
+  try {
+    const { projectId } = req.query;
+
+    if (!projectId || !mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid or missing projectId" });
+    }
+
+    // Find tasks by projectId and only return _id and name fields
+    const tasks = await Task.find({ projectId }).select("_id name").sort({ createdAt: -1 });
+
+    if (!tasks || tasks.length === 0) {
+      return res.status(404).json({ message: "No tasks found for this project" });
+    }
+
+    // Map to array of objects with id and name
+    const taskList = tasks.map((task) => ({
+      id: task._id,
+      name: task.name,
+    }));
+
+    res.status(200).json({ tasks: taskList });
+  } catch (err) {
+    console.error("Get Task Names Error:", err);
+    res.status(500).json({ message: "Server error while fetching task names" });
+  }
+};
+
 
 module.exports = {
   createTask,
@@ -138,4 +159,5 @@ module.exports = {
   updateTask,
   patchTask,
   deleteTask,
+  getTaskName,
 };

@@ -81,19 +81,6 @@ const updateStaff = async (req, res) => {
   }
 };
 
-
-// const updateStaff = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const staff = await Staff.findByIdAndUpdate(id, req.body, { new: true });
-//     res.json(staff);
-//   } catch (error) {
-//     console.error("Error updating staff:", error);
-//     res.status(500).json({ message: "Server Error" });
-//   }
-// };
-
-
 // Delete staff
 const deleteStaff = async (req, res) => {
   try {
@@ -173,67 +160,41 @@ const markAttendance = async (req, res) => {
   }
 };
 
+// get staff
+const getStaffByType = async (req, res) => {
+  try {
+    // Fetch both Site Staff and Labour Contractors
+    const persons = await Staff.find({
+      personType: { $in: ["Site Staff", "Labour Contractor"] },
+    }).select("_id name personType projectId ");
 
-// // Mark attendance for staff
-// const markAttendance = async (req, res) => {
+    res.json(persons);
+  } catch (err) {
+    console.error("Error in fetching persons:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// const getStaffByType = async (req, res) => {
 //   try {
-//     const { id } = req.params; // staffId
-//     const { status, date } = req.body;
+//     const { projectId } = req.query;
 
-//     if (!status) {
-//       return res.status(400).json({ message: "Attendance status is required" });
+//     if (!projectId) {
+//       return res.status(400).json({ message: "projectId is required" });
 //     }
 
-//     // ✅ Use provided date or default to today
-//     const targetDate = date ? new Date(date) : new Date();
-//     targetDate.setUTCHours(0, 0, 0, 0);
+//     // Fetch both Site Staff and Labour Contractors for the given project
+//     const persons = await Staff.find({
+//       personType: { $in: ["Site Staff", "Labour Contractor"] },
+//       projectId, // filter by projectId
+//     }).select("_id name personType projectId");
 
-//     const targetDateStr = targetDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
-//     const month = targetDate.toISOString().slice(0, 7); // "YYYY-MM"
-
-//     // ✅ Find staff
-//     const staff = await Staff.findById(id);
-//     if (!staff) {
-//       return res.status(404).json({ message: "Staff not found" });
-//     }
-
-//     // ✅ If marking today's attendance, update current attendance
-//     const todayStr = new Date().toISOString().slice(0, 10);
-//     if (targetDateStr === todayStr) {
-//       staff.attendance = { date: targetDate, status };
-//     }
-
-//     // ✅ Find or create month record
-//     let monthRecord = staff.attendanceHistory.find((m) => m.month === month);
-//     if (!monthRecord) {
-//       monthRecord = { month, records: [] };
-//       staff.attendanceHistory.push(monthRecord);
-//     }
-
-//     // ✅ Check if the record for target date exists
-//     const dayRecord = monthRecord.records.find(
-//       (r) => new Date(r.date).toISOString().slice(0, 10) === targetDateStr
-//     );
-
-//     if (dayRecord) {
-//       // Update existing
-//       dayRecord.status = status;
-//     } else {
-//       // Add new
-//       monthRecord.records.push({ date: targetDate, status });
-//     }
-
-//     await staff.save();
-
-//     res.json({
-//       message: `Attendance for ${targetDateStr} marked successfully`,
-//       staff,
-//     });
-//   } catch (error) {
-//     console.error("Error marking attendance:", error);
+//     res.json(persons);
+//   } catch (err) {
+//     console.error("Error in fetching persons:", err);
 //     res.status(500).json({ message: "Server Error" });
 //   }
 // };
 
 
-module.exports = { createStaff, getStaffByProject, updateStaff, deleteStaff,markAttendance };
+module.exports = { createStaff, getStaffByProject, updateStaff, deleteStaff, markAttendance,getStaffByType };

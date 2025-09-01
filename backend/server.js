@@ -33,6 +33,7 @@ const vendorOrderRoutes = require('./routes/vendorOrdersRoutes')
 const transactionRoutes = require('./routes/transactionRoutes')
 const projectAttendanceRoutes = require('./routes/projectAttendanceRoutes')
 const staffRoutes = require('./routes/staffRoutes')
+const subConRoutes = require("./routes/subConRoutes")
 // Load environment variables
 dotenv.config();
 
@@ -93,6 +94,7 @@ app.use("/api/vendorOrders", vendorOrderRoutes)
 app.use("/api/transaction", transactionRoutes)
 app.use("/api/proattendance", projectAttendanceRoutes)
 app.use("/api/staff",staffRoutes)
+app.use("/api/subcon",subConRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

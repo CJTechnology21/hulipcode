@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {protect} = require("../middleware/authMiddleware")
+const { protect } = require("../middleware/authMiddleware")
 const {
   createTask,
   getTasksByProject,
@@ -8,6 +8,7 @@ const {
   updateTask,
   patchTask,
   deleteTask,
+  getTaskName,
 } = require("../controllers/taskController");
 
 //  Create new task
@@ -15,6 +16,9 @@ router.post("/", protect, createTask);
 
 //  Get all tasks (with optional filters: ?projectId=xxx, ?status=TODO)
 router.get("/", getTasksByProject);
+
+//get tasknames
+router.get("/taskname", getTaskName);
 
 //  Get single task by ID
 router.get("/:id", getTaskById);
@@ -26,6 +30,6 @@ router.put("/:id", protect, updateTask);
 router.patch("/:id", protect, patchTask);
 
 //  Delete task
-router.delete("/:id", protect ,deleteTask);
+router.delete("/:id", protect, deleteTask);
 
 module.exports = router;
