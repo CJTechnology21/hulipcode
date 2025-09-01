@@ -13,6 +13,7 @@ import {
 } from "../../../services/transactionServices";
 import { fetchVendors } from "../../../services/leadServices";
 import { fetchPartyByProject } from "../../../services/partyServices";
+import { toId, getLabel } from "../../../utils/getLabel";
 
 function ProjectTransaction({ projectId }) {
   const [isTypesModalOpen, setIsTypesModalOpen] = useState(false);
@@ -24,21 +25,24 @@ function ProjectTransaction({ projectId }) {
   const [vendors, setVendors] = useState([]);
   const [parties, setParties] = useState([]);
 
-  const toId = (val) => (val && typeof val === "object" ? val._id : val);
-
   // Fetch transactions
   const getTransactions = async () => {
     if (!projectId) return;
     try {
       const data = await fetchTransactions({ projectId });
+
+      // Normalize party/vendor to always be Mongo IDs
       const normalized = (data?.transactions || []).map((t) => ({
         ...t,
-        party: toId(t.party),
+        party: toId(t.party), // ensure always an ID string
         vendor: toId(t.vendor),
+        transactionType: t.transactionType || "Unknown",
       }));
+
       setTransactions(normalized);
-    } catch {
+    } catch (err) {
       toast.error("Failed to fetch transactions");
+      console.error(err);
       setTransactions([]);
     }
   };
@@ -65,50 +69,55 @@ function ProjectTransaction({ projectId }) {
     //eslint-disable-next-line
   }, [projectId]);
 
-  const getPartyName = (val) => {
-    const id = toId(val);
-    return parties.find((p) => p._id === id)?.name || "—";
-  };
-
-  const getVendorName = (val) => {
-    const id = toId(val);
-    return vendors.find((v) => v._id === id)?.name || "—";
-  };
-
-  // Summary
+  // Summary calculations
   const totalInvoice = transactions
-    .filter((t) => t.transactionType === "Invoice")
+    .filter(
+      (t) =>
+        t.transactionType &&
+        (t.transactionType.includes("Invoice") ||
+          t.transactionType.includes("Sales") ||
+          t.transactionType === "IReceived")
+    )
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const totalExpense = transactions
-    .filter((t) => t.transactionType === "Expense")
+    .filter(
+      (t) =>
+        t.transactionType &&
+        (t.transactionType.includes("Expense") ||
+          t.transactionType.includes("Purchase") ||
+          t.transactionType === "IPaid")
+    )
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const projectBalance = totalInvoice - totalExpense;
 
-  // Handle add / update / delete
-  const handleTransactionSubmit = (transaction, isEdit = false, isDelete = false) => {
+  // Add / update / delete handler
+  const handleTransactionSubmit = (
+    transaction,
+    isEdit = false,
+    isDelete = false
+  ) => {
+    const normalized = {
+      ...transaction,
+      party: toId(transaction.party),
+      vendor: toId(transaction.vendor),
+      transactionType: transaction.transactionType || "Unknown",
+    };
+
     if (isDelete && isEdit) {
       setTransactions((prev) =>
         prev.filter((t) => t._id !== (editTransaction?._id || transaction?._id))
       );
       toast.success("Transaction deleted successfully");
     } else if (isEdit) {
-      const normalized = {
-        ...transaction,
-        party: toId(transaction.party),
-        vendor: toId(transaction.vendor),
-      };
       setTransactions((prev) =>
-        prev.map((t) => (t._id === (editTransaction?._id || transaction?._id) ? normalized : t))
+        prev.map((t) =>
+          t._id === (editTransaction?._id || transaction?._id) ? normalized : t
+        )
       );
       toast.success("Transaction updated successfully");
     } else {
-      const normalized = {
-        ...transaction,
-        party: toId(transaction.party),
-        vendor: toId(transaction.vendor),
-      };
       setTransactions((prev) => [...prev, normalized]);
       toast.success("Transaction added successfully");
     }
@@ -128,11 +137,12 @@ function ProjectTransaction({ projectId }) {
   };
 
   const handleEdit = (transaction) => {
-    setSelectedType(transaction.transactionType);
+    setSelectedType(transaction.transactionType || "Unknown");
     setEditTransaction({
       ...transaction,
       party: toId(transaction.party),
       vendor: toId(transaction.vendor),
+      transactionType: transaction.transactionType || "Unknown",
     });
     setActionMenuOpen(null);
   };
@@ -233,12 +243,30 @@ function ProjectTransaction({ projectId }) {
                   >
                     <td className="px-4 py-2">{idx + 1}</td>
                     <td className="px-4 py-2">
-                      {t.party
-                        ? getPartyName(t.party)
-                        : t.vendor
-                        ? getVendorName(t.vendor)
-                        : "—"}
+                      {(() => {
+                        console.log("🟢 Render check:", {
+                          t,
+                          parties,
+                          vendors,
+                        });
+
+                        if (t.party) {
+                          return getLabel(parties, t.party);
+                        } else if (t.vendor) {
+                          return getLabel(vendors, t.vendor);
+                        } else {
+                          return "—";
+                        }
+                      })()}
                     </td>
+
+                    {/* <td className="px-4 py-2">
+                      {t.party
+                        ? getLabel(parties, t.party)
+                        : t.vendor
+                        ? getLabel(vendors, t.vendor)
+                        : "—"}
+                    </td> */}
                     <td className="px-4 py-2">{t.transactionType}</td>
                     <td className="px-4 py-2">₹{t.amount}</td>
                     <td className="px-4 py-2">{t.mode || "—"}</td>
@@ -333,10 +361,7 @@ export default ProjectTransaction;
 // import { toast } from "react-toastify";
 
 // // API services
-// import {
-//   fetchTransactions,
-//   deleteTransaction,
-// } from "../../../services/transactionServices";
+// import { fetchTransactions, deleteTransaction } from "../../../services/transactionServices";
 // import { fetchVendors } from "../../../services/leadServices";
 // import { fetchPartyByProject } from "../../../services/partyServices";
 
@@ -350,14 +375,29 @@ export default ProjectTransaction;
 //   const [vendors, setVendors] = useState([]);
 //   const [parties, setParties] = useState([]);
 
+//   // Helper to extract string ID from MongoDB $oid format
+//   const toId = (val) => {
+//     if (!val) return null;
+//     if (val._id && val._id.$oid) return val._id.$oid; // nested _id.$oid
+//     if (val.$oid) return val.$oid; // direct $oid
+//     return val; // already string
+//   };
+
 //   // Fetch transactions
 //   const getTransactions = async () => {
 //     if (!projectId) return;
 //     try {
 //       const data = await fetchTransactions({ projectId });
-//       setTransactions(data.transactions || []);
-//     } catch {
+//       const normalized = (data?.transactions || []).map((t) => ({
+//         ...t,
+//         party: toId(t.party),
+//         vendor: toId(t.vendor),
+//         transactionType: t.transactionType || "Unknown",
+//       }));
+//       setTransactions(normalized);
+//     } catch (err) {
 //       toast.error("Failed to fetch transactions");
+//       console.error(err);
 //       setTransactions([]);
 //     }
 //   };
@@ -384,33 +424,65 @@ export default ProjectTransaction;
 //     //eslint-disable-next-line
 //   }, [projectId]);
 
-//   const getPartyName = (id) => parties.find((p) => p._id === id)?.name || "—";
-//   const getVendorName = (id) => vendors.find((v) => v._id === id)?.name || "—";
+//   // Resolve names
+//   const getPartyName = (val) => {
+//     const id = toId(val);
+//     return parties.find((p) => toId(p._id) === id)?.name || "—";
+//   };
 
-//   // Summary
+//   const getVendorName = (val) => {
+//     const id = toId(val);
+//     return vendors.find((v) => toId(v._id) === id)?.name || "—";
+//   };
+
+//   // Summary calculations (safe checks)
 //   const totalInvoice = transactions
-//     .filter((t) => t.transactionType === "Invoice")
-//     .reduce((sum, t) => sum + Number(t.amount), 0);
+//     .filter(
+//       (t) =>
+//         t.transactionType &&
+//         (t.transactionType.includes("Invoice") ||
+//           t.transactionType.includes("Sales") ||
+//           t.transactionType === "IReceived")
+//     )
+//     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
 //   const totalExpense = transactions
-//     .filter((t) => t.transactionType === "Expense")
-//     .reduce((sum, t) => sum + Number(t.amount), 0);
+//     .filter(
+//       (t) =>
+//         t.transactionType &&
+//         (t.transactionType.includes("Expense") ||
+//           t.transactionType.includes("Purchase") ||
+//           t.transactionType === "IPaid")
+//     )
+//     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
 //   const projectBalance = totalInvoice - totalExpense;
 
-//   // Handle add / update / delete
+//   // Add / update / delete handler
 //   const handleTransactionSubmit = (transaction, isEdit = false, isDelete = false) => {
+//     // normalize transaction type and IDs
+//     const normalized = {
+//       ...transaction,
+//       party: toId(transaction.party),
+//       vendor: toId(transaction.vendor),
+//       transactionType: transaction.transactionType || "Unknown",
+//     };
+
 //     if (isDelete && isEdit) {
-//       setTransactions((prev) => prev.filter((t) => t._id !== editTransaction._id));
+//       setTransactions((prev) =>
+//         prev.filter((t) => t._id !== (editTransaction?._id || transaction?._id))
+//       );
 //       toast.success("Transaction deleted successfully");
 //     } else if (isEdit) {
 //       setTransactions((prev) =>
-//         prev.map((t) => (t._id === editTransaction._id ? transaction : t))
+//         prev.map((t) =>
+//           t._id === (editTransaction?._id || transaction?._id) ? normalized : t
+//         )
 //       );
 //       toast.success("Transaction updated successfully");
 //     } else {
-//       setTransactions((prev) => [...prev, transaction]);
-//       // toast.success("Transaction added successfully");
+//       setTransactions((prev) => [...prev, normalized]);
+//       toast.success("Transaction added successfully");
 //     }
 //     setSelectedType(null);
 //     setEditTransaction(null);
@@ -428,8 +500,13 @@ export default ProjectTransaction;
 //   };
 
 //   const handleEdit = (transaction) => {
-//     setSelectedType(transaction.transactionType);
-//     setEditTransaction(transaction);
+//     setSelectedType(transaction.transactionType || "Unknown");
+//     setEditTransaction({
+//       ...transaction,
+//       party: toId(transaction.party),
+//       vendor: toId(transaction.vendor),
+//       transactionType: transaction.transactionType || "Unknown",
+//     });
 //     setActionMenuOpen(null);
 //   };
 
@@ -529,7 +606,11 @@ export default ProjectTransaction;
 //                   >
 //                     <td className="px-4 py-2">{idx + 1}</td>
 //                     <td className="px-4 py-2">
-//                       {t.party ? getPartyName(t.party) : t.vendor ? getVendorName(t.vendor) : "—"}
+//                       {t.party
+//                         ? getPartyName(t.party)
+//                         : t.vendor
+//                         ? getVendorName(t.vendor)
+//                         : "—"}
 //                     </td>
 //                     <td className="px-4 py-2">{t.transactionType}</td>
 //                     <td className="px-4 py-2">₹{t.amount}</td>
