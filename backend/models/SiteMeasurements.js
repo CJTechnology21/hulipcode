@@ -38,7 +38,7 @@ const SpaceSchema = new mongoose.Schema({
 const SiteMeasurementSchema = new mongoose.Schema(
   {
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
-    architectId: { type: mongoose.Schema.Types.ObjectId, ref: "Architect", required: true },
+    architectId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     spaces: [SpaceSchema],
     notes: { type: String },
     status: { type: String, enum: ["pending", "completed"], default: "pending" },
