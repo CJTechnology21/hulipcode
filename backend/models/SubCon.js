@@ -15,12 +15,10 @@ const subconOrderSchema = new mongoose.Schema(
     todo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Todo",
-      required: true,
     },
     task: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task",
-      required: true,
     },
     staff: {
       type: mongoose.Schema.Types.ObjectId,
