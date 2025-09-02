@@ -5,11 +5,14 @@ import { toast } from "react-toastify";
 import { fetchStaffByType } from "../../../../services/staffServices";
 import { getTaskName } from "../../../../services/taskServices";
 import { getTodoName } from "../../../../services/todoServices";
-import { createSubcon, updateSubcon } from "../../../../services/subConServices";
-import { useAuth } from "../../../../context/AuthContext"; 
+import {
+  createSubcon,
+  updateSubcon,
+} from "../../../../services/subConServices";
+import { useAuth } from "../../../../context/AuthContext";
 
 function SubconModal({ isOpen, onClose, projectId, initialData, onSuccess }) {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const [todos, setTodos] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -72,7 +75,9 @@ function SubconModal({ isOpen, onClose, projectId, initialData, onSuccess }) {
 
           setTodos(Array.isArray(todoData) ? todoData : todoData?.todos || []);
           setTasks(Array.isArray(taskData) ? taskData : taskData?.tasks || []);
-          setStaff(Array.isArray(staffData) ? staffData : staffData?.staff || []);
+          setStaff(
+            Array.isArray(staffData) ? staffData : staffData?.staff || []
+          );
         } catch {
           toast.error(" Failed to fetch dropdown data");
         }
@@ -91,52 +96,103 @@ function SubconModal({ isOpen, onClose, projectId, initialData, onSuccess }) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-const handleSubmit = async () => {
-  // Require todo OR task
-  if ((!formData.todo.id && !formData.task.id) || !formData.staff.id || !formData.amount) {
-    toast.error(" Please fill in all required fields (Todo or Task, Staff, Amount)");
-    return;
-  }
-
-  if (!user?._id) {
-    toast.error(" Architect ID missing. Please log in again.");
-    return;
-  }
-
-  const payload = {
-    projectId,
-    todo: formData.todo.id || null,  // allow null if not chosen
-    task: formData.task.id || null,  // allow null if not chosen
-    staff: formData.staff.id,
-    architectId: user._id,
-    amount: formData.amount,
-    startDate: formData.startDate,
-    endDate: formData.endDate,
-    notes: formData.notes,
-  };
-
-  try {
-    if (initialData) {
-      await updateSubcon(initialData._id, payload);
-      toast.success(" Sub-Con Work Order updated successfully!");
-    } else {
-      await createSubcon(payload);
-      toast.success(" Sub-Con Work Order created successfully!");
+  const handleSubmit = async () => {
+    if (!formData.staff.id || !formData.amount) {
+      toast.error(" Please fill in all required fields");
+      return;
     }
 
-    onClose();
-    if (onSuccess) onSuccess();
-  } catch (error) {
-    toast.error("Failed to save Sub-Con Work Order");
-  }
-};
+    if (!formData.todo.id && !formData.task.id) {
+      toast.error(" Please select at least a Todo or a Task");
+      return;
+    }
+
+    if (!user?._id) {
+      toast.error(" Architect ID missing. Please log in again.");
+      return;
+    }
+
+    const payload = {
+      projectId,
+      todo: formData.todo.id || null,
+      task: formData.task.id || null,
+      staff: formData.staff.id,
+      architectId: user._id,
+      amount: formData.amount,
+      startDate: formData.startDate || null,
+      endDate: formData.endDate || null,
+      notes: formData.notes || "",
+    };
+
+    // 🔍 Debug log
+    console.log("Submitting payload:", payload);
+
+    try {
+      if (initialData) {
+        await updateSubcon(initialData._id, payload);
+        toast.success(" Sub-Con Work Order updated successfully!");
+      } else {
+        await createSubcon(payload);
+        toast.success(" Sub-Con Work Order created successfully!");
+      }
+
+      onClose();
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error("Save Sub-Con Error:", error); 
+      toast.error("Failed to save Sub-Con Work Order");
+    }
+  };
+
+  // const handleSubmit = async () => {
+  //   // Require todo OR task
+  //   if ((!formData.todo.id && !formData.task.id) || !formData.staff.id || !formData.amount) {
+  //     toast.error(" Please fill in all required fields (Todo or Task, Staff, Amount)");
+  //     return;
+  //   }
+
+  //   if (!user?._id) {
+  //     toast.error(" Architect ID missing. Please log in again.");
+  //     return;
+  //   }
+
+  //   const payload = {
+  //     projectId,
+  //     todo: formData.todo.id || null,  // allow null if not chosen
+  //     task: formData.task.id || null,  // allow null if not chosen
+  //     staff: formData.staff.id,
+  //     architectId: user._id,
+  //     amount: formData.amount,
+  //     startDate: formData.startDate,
+  //     endDate: formData.endDate,
+  //     notes: formData.notes,
+  //   };
+
+  //   try {
+  //     if (initialData) {
+  //       await updateSubcon(initialData._id, payload);
+  //       toast.success(" Sub-Con Work Order updated successfully!");
+  //     } else {
+  //       await createSubcon(payload);
+  //       toast.success(" Sub-Con Work Order created successfully!");
+  //     }
+
+  //     onClose();
+  //     if (onSuccess) onSuccess();
+  //   } catch (error) {
+  //     toast.error("Failed to save Sub-Con Work Order");
+  //   }
+  // };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-lg p-6 relative">
         <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          {initialData ? "Edit Sub-Con Work Order" : "Create Sub-Con Work Order"}
+          {initialData
+            ? "Edit Sub-Con Work Order"
+            : "Create Sub-Con Work Order"}
         </h2>
 
         <div className="space-y-4">
@@ -148,7 +204,11 @@ const handleSubmit = async () => {
             options={todos.map((t) => ({ value: t._id, label: t.itemName }))}
             onChange={(e) => {
               const selected = todos.find((t) => t._id === e.target.value);
-              handleDropdownChange("todo", e.target.value, selected?.itemName || "");
+              handleDropdownChange(
+                "todo",
+                e.target.value,
+                selected?.itemName || ""
+              );
             }}
           />
 
@@ -157,10 +217,17 @@ const handleSubmit = async () => {
             label="Task"
             name="task"
             value={formData.task.id}
-            options={tasks.map((t) => ({ value: t._id, label: t.name || t.title }))}
+            options={tasks.map((t) => ({
+              value: t._id,
+              label: t.name || t.title,
+            }))}
             onChange={(e) => {
               const selected = tasks.find((t) => t._id === e.target.value);
-              handleDropdownChange("task", e.target.value, selected?.name || selected?.title || "");
+              handleDropdownChange(
+                "task",
+                e.target.value,
+                selected?.name || selected?.title || ""
+              );
             }}
           />
 
@@ -172,7 +239,11 @@ const handleSubmit = async () => {
             options={staff.map((s) => ({ value: s._id, label: s.name }))}
             onChange={(e) => {
               const selected = staff.find((s) => s._id === e.target.value);
-              handleDropdownChange("staff", e.target.value, selected?.name || "");
+              handleDropdownChange(
+                "staff",
+                e.target.value,
+                selected?.name || ""
+              );
             }}
           />
 
@@ -193,7 +264,9 @@ const handleSubmit = async () => {
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
               <input
                 type="date"
                 name="startDate"
@@ -203,7 +276,9 @@ const handleSubmit = async () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
               <input
                 type="date"
                 name="endDate"
@@ -216,7 +291,9 @@ const handleSubmit = async () => {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
             <textarea
               name="notes"
               value={formData.notes}

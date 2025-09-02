@@ -143,22 +143,31 @@ function ProjectSubcon({ projectId }) {
           <table className="min-w-full border border-gray-200 rounded-md">
             <thead className="bg-gray-100">
               <tr>
+                <th className="px-4 py-2 border-b text-left text-sm">S NO</th>
                 <th className="px-4 py-2 border-b text-left text-sm">
                   Work Item
                 </th>
                 <th className="px-4 py-2 border-b text-left text-sm">Staff</th>
                 <th className="px-4 py-2 border-b text-left text-sm">Amount</th>
+                <th className="px-4 py-2 border-b text-left text-sm">
+                  Decription
+                </th>
                 <th className="px-4 py-2 border-b text-left text-sm">Status</th>
                 <th className="px-4 py-2 border-b text-left text-sm">
                   Start Date
                 </th>
-                <th className="px-4 py-2 border-b text-left text-sm">End Date</th>
-                <th className="px-4 py-2 border-b text-left text-sm">Actions</th>
+                <th className="px-4 py-2 border-b text-left text-sm">
+                  End Date
+                </th>
+                <th className="px-4 py-2 border-b text-left text-sm">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {orders.map((order, idx) => (
                 <tr key={order._id} className="hover:bg-gray-50 relative">
+                  <td className="px-4 py-2 border-b text-sm">{idx + 1}</td>
                   <td className="px-4 py-2 border-b text-sm">
                     {order.task?.name || order.todo?.itemName || "—"}
                   </td>
@@ -166,6 +175,7 @@ function ProjectSubcon({ projectId }) {
                     {order.staff?.name || "—"}
                   </td>
                   <td className="px-4 py-2 border-b text-sm">{order.amount}</td>
+                  <td className="px-4 py-2 border-b text-sm">{order.notes}</td>
                   <td className="px-4 py-2 border-b text-sm capitalize">
                     {order.status || "—"}
                   </td>
