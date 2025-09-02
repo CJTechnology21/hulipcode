@@ -5,7 +5,11 @@ const SubconOrder = require("../models/SubCon");
 // Create Subcon Order
 const createSubconOrder = async (req, res) => {
   try {
-    const { projectId, todo, task, staff, architectId, amount, ...rest } = req.body;
+    let { projectId, todo, task, staff, architectId, amount, ...rest } = req.body;
+
+    // Normalize empty strings to null
+    todo = todo || null;
+    task = task || null;
 
     // Required fields except todo/task
     if (!projectId || !staff || !architectId || !amount) {
@@ -21,8 +25,7 @@ const createSubconOrder = async (req, res) => {
       });
     }
 
-    // Log payload for debugging
-    console.log("Submitting payload:", { projectId, todo, task, staff, architectId, amount, ...rest });
+    console.log("Creating Sub-Con payload:", { projectId, todo, task, staff, architectId, amount, ...rest });
 
     const subcon = await SubconOrder.create({
       projectId,
@@ -40,17 +43,26 @@ const createSubconOrder = async (req, res) => {
     res.status(500).json({ message: "Server error while creating subcon order" });
   }
 };
-
-
 // const createSubconOrder = async (req, res) => {
 //   try {
 //     const { projectId, todo, task, staff, architectId, amount, ...rest } = req.body;
 
-//     if (!projectId || !todo || !task || !staff || !architectId || !amount) {
+//     // Required fields except todo/task
+//     if (!projectId || !staff || !architectId || !amount) {
 //       return res.status(400).json({
-//         message: "projectId, todo, task, staff, architectId, and amount are required",
+//         message: "projectId, staff, architectId, and amount are required",
 //       });
 //     }
+
+//     // At least one of todo or task must be provided
+//     if (!todo && !task) {
+//       return res.status(400).json({
+//         message: "Either todo or task must be provided",
+//       });
+//     }
+
+//     // Log payload for debugging
+//     console.log("Submitting payload:", { projectId, todo, task, staff, architectId, amount, ...rest });
 
 //     const subcon = await SubconOrder.create({
 //       projectId,
@@ -151,7 +163,11 @@ const getSubconOrderById = async (req, res) => {
 const updateSubconOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { todo, task, projectId, staff, architectId, amount, ...rest } = req.body;
+    let { projectId, todo, task, staff, architectId, amount, ...rest } = req.body;
+
+    // Normalize empty strings to null
+    todo = todo || null;
+    task = task || null;
 
     // Required fields except todo/task
     if (!projectId || !staff || !architectId || !amount) {
@@ -160,7 +176,7 @@ const updateSubconOrder = async (req, res) => {
       });
     }
 
-    // At least one of todo or task should be provided (if neither exists in DB already)
+    // Ensure at least one of todo or task exists (either in payload or already in DB)
     if (!todo && !task) {
       const existingOrder = await SubconOrder.findById(id);
       if (!existingOrder?.todo && !existingOrder?.task) {
@@ -170,18 +186,15 @@ const updateSubconOrder = async (req, res) => {
       }
     }
 
-    // Log payload for debugging
-    console.log("Updating payload:", req.body);
+    console.log("Updating Sub-Con payload:", { projectId, todo, task, staff, architectId, amount, ...rest });
 
     const order = await SubconOrder.findByIdAndUpdate(
       id,
-      { todo, task, projectId, staff, architectId, amount, ...rest },
+      { projectId, todo, task, staff, architectId, amount, ...rest },
       { new: true, runValidators: true }
     );
 
-    if (!order) {
-      return res.status(404).json({ message: "Subcon order not found" });
-    }
+    if (!order) return res.status(404).json({ message: "Subcon order not found" });
 
     res.status(200).json({ order });
   } catch (err) {
@@ -189,17 +202,40 @@ const updateSubconOrder = async (req, res) => {
     res.status(500).json({ message: "Server error while updating subcon order" });
   }
 };
-
 // const updateSubconOrder = async (req, res) => {
 //   try {
 //     const { id } = req.params;
+//     const { todo, task, projectId, staff, architectId, amount, ...rest } = req.body;
 
-//     const order = await SubconOrder.findByIdAndUpdate(id, req.body, {
-//       new: true,
-//       runValidators: true,
-//     });
+//     // Required fields except todo/task
+//     if (!projectId || !staff || !architectId || !amount) {
+//       return res.status(400).json({
+//         message: "projectId, staff, architectId, and amount are required",
+//       });
+//     }
 
-//     if (!order) return res.status(404).json({ message: "Subcon order not found" });
+//     // At least one of todo or task should be provided (if neither exists in DB already)
+//     if (!todo && !task) {
+//       const existingOrder = await SubconOrder.findById(id);
+//       if (!existingOrder?.todo && !existingOrder?.task) {
+//         return res.status(400).json({
+//           message: "Either todo or task must be provided",
+//         });
+//       }
+//     }
+
+//     // Log payload for debugging
+//     console.log("Updating payload:", req.body);
+
+//     const order = await SubconOrder.findByIdAndUpdate(
+//       id,
+//       { todo, task, projectId, staff, architectId, amount, ...rest },
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!order) {
+//       return res.status(404).json({ message: "Subcon order not found" });
+//     }
 
 //     res.status(200).json({ order });
 //   } catch (err) {
@@ -207,7 +243,6 @@ const updateSubconOrder = async (req, res) => {
 //     res.status(500).json({ message: "Server error while updating subcon order" });
 //   }
 // };
-
 
 // Patch Subcon Order (partial update)
 
