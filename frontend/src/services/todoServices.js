@@ -44,6 +44,6 @@ export const deleteTodo = async (todoId) => {
 
 //Get TodoName
 export const getTodoName = async (projectId) => {
-  const res = await axiosInstance.get(`/api/todo?projectId${projectId}`)
+  const res = await axiosInstance.get(`/api/todo?projectId=${projectId}`);
   return res.data;
 }

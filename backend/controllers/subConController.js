@@ -31,6 +31,34 @@ const createSubconOrder = async (req, res) => {
 };
 
 
+// const createSubconOrder = async (req, res) => {
+//   try {
+//     const { projectId, todo, task, staff, architectId, amount, ...rest } = req.body;
+
+//     if (!projectId || !todo || !task || !staff || !architectId || !amount) {
+//       return res.status(400).json({
+//         message: "projectId, todo, task, staff, architectId, and amount are required",
+//       });
+//     }
+
+//     const subcon = await SubconOrder.create({
+//       projectId,
+//       todo,
+//       task,
+//       staff,
+//       architectId,
+//       amount,
+//       ...rest,
+//     });
+
+//     res.status(201).json({ subcon });
+//   } catch (err) {
+//     console.error("Create Subcon Error:", err);
+//     res.status(500).json({ message: "Server error while creating subcon order" });
+//   }
+// };
+
+
 // Get All Subcon Orders (with optional project filter)
 
 const getSubconOrdersByProject = async (req, res) => {
@@ -42,7 +70,7 @@ const getSubconOrdersByProject = async (req, res) => {
     }
 
     const orders = await SubconOrder.find({ projectId })
-      .populate("todo", "title")
+      .populate("todo", "itemName")
       .populate("task", "name")
       .populate("staff", "name email")
       .populate("architectId", "name email")
