@@ -13,15 +13,15 @@ const {
 router.get("/", getSiteMeasurementsByProject);
 
 // Create new site measurement
-router.post("/", createSiteMeasurement);
+router.post("/", protect,createSiteMeasurement);
 
 // Get single site measurement by ID
 router.get("/:id", getSiteMeasurementById);
 
 // Update site measurement
-router.put("/:id", updateSiteMeasurement);
+router.put("/:id", protect, updateSiteMeasurement);
 
 // Delete site measurement
-router.delete("/:id", deleteSiteMeasurement);
+router.delete("/:id", protect,deleteSiteMeasurement);
 
 module.exports = router;
