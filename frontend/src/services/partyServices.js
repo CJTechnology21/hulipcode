@@ -41,3 +41,14 @@ export const deleteParty = async (partyId) => {
   const res = await axiosInstance.delete(`/api/party/${partyId}`);
   return res.data;
 };
+
+//GetAllParties
+export const getAllParties = async () => {
+  try {
+    const response = await axiosInstance.get('/api/party');
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch parties:", error);
+    throw error;
+  }
+};

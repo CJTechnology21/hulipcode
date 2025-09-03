@@ -33,6 +33,17 @@ const getPartyById = async (req, res) => {
     }
 };
 
+const getAllParties = async (req, res) => {
+    try {
+        const parties = await ProjectParty.find();
+        res.status(200).json(parties);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to get parties", error: error.message });
+    }
+};
+
+
 //  Update (PATCH)
 const updateParty = async (req, res) => {
     try {
@@ -59,4 +70,4 @@ const deleteParty = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-module.exports = { createParty, deleteParty, updateParty, getPartiesByProject, getPartyById }
+module.exports = { createParty, deleteParty, updateParty, getPartiesByProject, getPartyById, getAllParties }

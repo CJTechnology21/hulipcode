@@ -7,10 +7,15 @@ const {
     getPartyById,
     updateParty,
     deleteParty,
+    getAllParties,
 } = require("../controllers/partyController");
 
 //  Create new party
 router.post("/", protect, createParty);
+
+
+//Get All parites
+router.get("/",getAllParties)
 
 //  Get all parties (with optional filters: ?projectId=xxx, ?type=Vendor)
 router.get("/", getPartiesByProject);

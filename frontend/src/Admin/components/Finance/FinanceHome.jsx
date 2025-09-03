@@ -1,17 +1,18 @@
 import React, { useState } from "react";
 import Layout from "../Layout";
 import PartyTab from "./PartyTab";
-import TransactionTab from "./TransactionTab"; // ✅ fixed typo from TranscationTab
+import TransactionTab from "./TransactionTab";
+import Button from "../../../components/Button";
 
 function FinanceHome() {
   const [activeTab, setActiveTab] = useState("party");
 
   return (
     <Layout title="Finance">
-      {/* Tab Header with white background */}
       <div className="bg-white px-6 py-4 shadow-sm">
         <div className="flex gap-6 border-b">
-          <button
+          <Button
+            variant="custom"
             onClick={() => setActiveTab("party")}
             className={`pb-2 font-medium ${
               activeTab === "party"
@@ -20,8 +21,9 @@ function FinanceHome() {
             }`}
           >
             Party
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="custom"
             onClick={() => setActiveTab("transaction")}
             className={`pb-2 font-medium ${
               activeTab === "transaction"
@@ -30,11 +32,9 @@ function FinanceHome() {
             }`}
           >
             Transaction
-          </button>
+          </Button>
         </div>
       </div>
-
-      {/* Tab Content */}
       <div className="px-6 py-4">
         {activeTab === "party" ? <PartyTab /> : <TransactionTab />}
       </div>
