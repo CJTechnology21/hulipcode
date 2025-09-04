@@ -179,7 +179,7 @@ function TransactionTab() {
                     {txn.projectId?.name || "-"}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {txn.projectId?.location || ""}
+                    {txn.projectId?.notes || ""}
                   </p>
                 </div>
 

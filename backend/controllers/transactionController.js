@@ -24,7 +24,7 @@ const createTransaction = async (req, res) => {
       ...rest
     } = req.body;
 
-    // ✅ Validate IDs
+    //  Validate IDs
     if (!mongoose.Types.ObjectId.isValid(projectId)) {
       return res.status(400).json({ message: "Valid projectId is required" });
     }
@@ -32,7 +32,7 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ message: "Valid architectId is required" });
     }
 
-    // ✅ Prepare proofs array
+    //  Prepare proofs array
     let proofs = [];
     if (req.file) {
       const fileKey = `projects/${projectId}/transactions/${Date.now()}-${req.file.originalname}`;
@@ -53,7 +53,7 @@ const createTransaction = async (req, res) => {
       });
     }
 
-    // ✅ Create transaction
+    //  Create transaction
     const transaction = await Transaction.create({
       projectId,
       architectId,
@@ -61,7 +61,7 @@ const createTransaction = async (req, res) => {
       transactionType,
       party: party || null,
       vendor: vendor || null,
-      proofs, // ✅ Save as an array of objects
+      proofs, //  Save as an array of objects
       ...rest,
     });
 
@@ -318,9 +318,9 @@ const getPaymentTransactions = async (req, res) => {
       transactionType: { $in: ["PaymentIn", "PaymentOut"] },
     })
       .populate("architectId", "name",)
-      .populate("projectId", "name location client")
-      .populate("party", "name")      // from Party
-      .populate("vendor", "name")     // from Vendor
+      .populate("projectId", "name location client notes")
+      .populate("party", "name")
+      .populate("vendor", "name")
       .sort({ createdAt: -1 });
 
     if (!transactions || transactions.length === 0) {
