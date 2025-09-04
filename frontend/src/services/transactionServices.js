@@ -64,6 +64,6 @@ export const fetchCashFlow = async (projectId, architectId) => {
 };
 
 export const getPaymentTransactions = async () => {
-  const res = await axiosInstance.get("/transaction/inout")
+  const res = await axiosInstance.get("/api/transaction/inout")
   return res.data;
 }
