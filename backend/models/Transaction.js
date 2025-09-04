@@ -48,7 +48,7 @@ const transactionSchema = new mongoose.Schema(
 
 
     party: { type: mongoose.Schema.Types.ObjectId, ref: "Party" },
-    vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
+    vendor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     material: { type: String },
     quantity: { type: Number, min: 0 },
@@ -66,8 +66,11 @@ const transactionSchema = new mongoose.Schema(
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
+
     projectBalance: { type: Number, default: 0 },
+    detail: { type: String },
   },
+
   { timestamps: true }
 );
 

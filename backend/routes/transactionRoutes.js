@@ -8,7 +8,8 @@ const {
   updateTransaction,
   patchTransaction,
   deleteTransaction,
-  getCashFlowSummary
+  getCashFlowSummary,
+  getPaymentTransactions,
 } = require("../controllers/transactionController");
 
 // Create new transaction
@@ -17,6 +18,10 @@ router.post("/", createTransaction);
 // Get all transactions with optional filters (?projectId=xxx&architectId=xxx)
 router.get("/", getAllTransactions);
 
+//Get paymnet in and out
+router.get("/inout", getPaymentTransactions)
+
+//get Cashflow
 router.get("/cashflow", getCashFlowSummary);
 
 // Get single transaction by ID

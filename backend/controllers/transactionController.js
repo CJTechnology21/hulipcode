@@ -311,6 +311,53 @@ const getCashFlowSummary = async (req, res) => {
   }
 };
 
+// // Get only Payment In / Payment Out transactions
+const getPaymentTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({
+      transactionType: { $in: ["PaymentIn", "PaymentOut"] },
+    })
+      .populate("architectId", "name",)
+      .populate("projectId", "name location client")
+      .populate("party", "name")      // from Party
+      .populate("vendor", "name")     // from Vendor
+      .sort({ createdAt: -1 });
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(404).json({ message: "No payment transactions found" });
+    }
+
+    res.status(200).json({ transactions });
+  } catch (err) {
+    console.error("Get Payment Transactions Error:", err);
+    res
+      .status(500)
+      .json({ message: "Server error while fetching payment transactions" });
+  }
+};
+
+// const getPaymentTransactions = async (req, res) => {
+//   try {
+//     const transactions = await Transaction.find({
+//       transactionType: { $in: ["PaymentIn", "PaymentOut"] },
+//     }).sort({ createdAt: -1 });
+
+//     if (!transactions || transactions.length === 0) {
+//       return res.status(404).json({ message: "No payment transactions found" });
+//     }
+
+//     res.status(200).json({ transactions });
+//   } catch (err) {
+//     console.error("Get Payment Transactions Error:", err);
+//     res
+//       .status(500)
+//       .json({ message: "Server error while fetching payment transactions" });
+//   }
+// };
+
+module.exports = { getPaymentTransactions };
+
+
 
 module.exports = {
   createTransaction,
@@ -320,4 +367,5 @@ module.exports = {
   patchTransaction,
   deleteTransaction,
   getCashFlowSummary,
+  getPaymentTransactions,
 };
