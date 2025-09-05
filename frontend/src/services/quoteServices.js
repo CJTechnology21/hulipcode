@@ -12,19 +12,19 @@ const axiosInstance = axios.create({
 // Fetch all quotes (with optional filters)
 export const fetchQuotes = async (filters = {}) => {
   const query = new URLSearchParams(filters).toString();
-  const res = await axiosInstance.get(`/api/quotes${query ? `?${query}` : ""}`);
+  const res = await axiosInstance.get(`/api/quote${query ? `?${query}` : ""}`);
   return res.data;
 };
 
 // Fetch single quote by ID
 export const fetchQuoteById = async (quoteId) => {
-  const res = await axiosInstance.get(`/api/quotes/${quoteId}`);
+  const res = await axiosInstance.get(`/api/quote/${quoteId}`);
   return res.data;
 };
 
 // Create a new quote
 export const createQuote = async (quoteData) => {
-  const res = await axiosInstance.post("/api/quotes", quoteData, {
+  const res = await axiosInstance.post("/api/quote", quoteData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
@@ -32,7 +32,7 @@ export const createQuote = async (quoteData) => {
 
 // Update (PUT – full update) quote
 export const updateQuote = async (quoteId, quoteData) => {
-  const res = await axiosInstance.put(`/api/quotes/${quoteId}`, quoteData, {
+  const res = await axiosInstance.put(`/api/quote/${quoteId}`, quoteData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
@@ -40,7 +40,7 @@ export const updateQuote = async (quoteId, quoteData) => {
 
 // Patch (partial update) quote
 export const patchQuote = async (quoteId, quoteData) => {
-  const res = await axiosInstance.patch(`/api/quotes/${quoteId}`, quoteData, {
+  const res = await axiosInstance.patch(`/api/quote/${quoteId}`, quoteData, {
     headers: { "Content-Type": "application/json" },
   });
   return res.data;
@@ -48,6 +48,6 @@ export const patchQuote = async (quoteId, quoteData) => {
 
 // Delete quote
 export const deleteQuote = async (quoteId) => {
-  const res = await axiosInstance.delete(`/api/quotes/${quoteId}`);
+  const res = await axiosInstance.delete(`/api/quote/${quoteId}`);
   return res.data;
 };

@@ -3,30 +3,30 @@ const Quote = require("../models/Quote");
 
 //  Create a new quote
 const createQuote = async (req, res) => {
-  try {
-    const { leadId, quoteAmount, assigned } = req.body;
+    try {
+        const { leadId, quoteAmount, assigned } = req.body;
 
-    const newQuote = new Quote({
-      leadId,
-      quoteAmount,
-      assigned,
-    });
+        const newQuote = new Quote({
+            leadId,
+            quoteAmount,
+            assigned,
+        });
 
-    const savedQuote = await newQuote.save();
+        const savedQuote = await newQuote.save();
 
-    // Re-fetch with population
-    const populated = await Quote.findById(savedQuote._id)
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email");
+        // Re-fetch with population
+        const populated = await Quote.findById(savedQuote._id)
+            .populate("leadId", "id name budget contact category city")
+            .populate("assigned", "name email");
 
-    res.status(201).json(populated);
-  } catch (error) {
-    console.error("Error creating quote:", error);
-    res.status(500).json({
-      message: "Error creating quote",
-      error: error.message,
-    });
-  }
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error("Error creating quote:", error);
+        res.status(500).json({
+            message: "Error creating quote",
+            error: error.message,
+        });
+    }
 };
 
 // const createQuote = async (req, res) => {
@@ -86,39 +86,79 @@ const getQuoteById = async (req, res) => {
     }
 };
 
-//  Update a quote (PUT - replace all updatable fields)
+// //  Update a quote (PUT - replace all updatable fields)
+// Update a quote (PUT - replace all updatable fields)
 const updateQuote = async (req, res) => {
     try {
-        const updated = await Quote.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-        })
+        // First, update the quote
+        await Quote.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+        // Then fetch the updated document with populated fields
+        const updatedQuote = await Quote.findById(req.params.id)
             .populate("leadId", "id name budget contact category")
             .populate("assigned", "name email");
 
-        if (!updated) return res.status(404).json({ message: "Quote not found" });
+        if (!updatedQuote)
+            return res.status(404).json({ message: "Quote not found" });
 
-        res.status(200).json(updated);
+        res.status(200).json(updatedQuote);
     } catch (error) {
         res.status(500).json({ message: "Error updating quote", error });
     }
 };
 
-//  Patch a quote (update specific fields only)
+// Patch a quote (PATCH - update specific fields only)
 const patchQuote = async (req, res) => {
     try {
-        const patched = await Quote.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-        })
+        // Apply partial updates
+        await Quote.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+        // Fetch the updated document with populated fields
+        const patchedQuote = await Quote.findById(req.params.id)
             .populate("leadId", "id name budget contact category")
             .populate("assigned", "name email");
 
-        if (!patched) return res.status(404).json({ message: "Quote not found" });
+        if (!patchedQuote)
+            return res.status(404).json({ message: "Quote not found" });
 
-        res.status(200).json(patched);
+        res.status(200).json(patchedQuote);
     } catch (error) {
         res.status(500).json({ message: "Error patching quote", error });
     }
 };
+
+// const updateQuote = async (req, res) => {
+//     try {
+//         const updated = await Quote.findByIdAndUpdate(req.params.id, req.body, {
+//             new: true,
+//         })
+//             .populate("leadId", "id name budget contact category")
+//             .populate("assigned", "name email");
+
+//         if (!updated) return res.status(404).json({ message: "Quote not found" });
+
+//         res.status(200).json(updated);
+//     } catch (error) {
+//         res.status(500).json({ message: "Error updating quote", error });
+//     }
+// };
+
+// //  Patch a quote (update specific fields only)
+// const patchQuote = async (req, res) => {
+//     try {
+//         const patched = await Quote.findByIdAndUpdate(req.params.id, req.body, {
+//             new: true,
+//         })
+//             .populate("leadId", "id name budget contact category")
+//             .populate("assigned", "name email");
+
+//         if (!patched) return res.status(404).json({ message: "Quote not found" });
+
+//         res.status(200).json(patched);
+//     } catch (error) {
+//         res.status(500).json({ message: "Error patching quote", error });
+//     }
+// };
 
 // Delete a quote
 const deleteQuote = async (req, res) => {
