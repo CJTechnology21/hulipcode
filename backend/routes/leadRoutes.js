@@ -7,7 +7,8 @@ const {
   getLeadById,
   updateLead,
   patchLead,
-  deleteLead
+  deleteLead,
+  getClientType,
 } = require("../controllers/leadController");
 
 router.post("/", protect, createLead);
@@ -16,5 +17,6 @@ router.get("/:id", getLeadById);
 router.put("/:id", protect, updateLead);
 router.patch("/:id", protect, patchLead);
 router.delete("/:id", protect, deleteLead);
+router.get("/:id/client-type", getClientType);
 
 module.exports = router;
