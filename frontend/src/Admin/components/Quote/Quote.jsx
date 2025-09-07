@@ -36,18 +36,19 @@ function Quote() {
         const normalized = data.map((item, index) => ({
           sno: index + 1,
           qid: item.qid,
-          id: item._id, 
+          id: item._id,
           leadId: item.leadId?.id || "",
-          leadIdMongo: item.leadId?._id, 
+          leadIdMongo: item.leadId?._id,
           name: item.leadId?.name || "",
           budget: item.leadId?.budget || "",
           contact: item.leadId?.contact || "",
           quoteAmount: item.quoteAmount,
           city: item.city || "",
-          assigned: item.assigned?.map((a) => ({
-            _id: a?._id,
-            name: a?.name || "",
-          })) || [],
+          assigned:
+            item.assigned?.map((a) => ({
+              _id: a?._id,
+              name: a?.name || "",
+            })) || [],
           status: item.status || "",
         }));
         setLeads(normalized);
@@ -133,10 +134,11 @@ function Quote() {
         sno: editedData.sno,
         leadId: editedData.leadId,
         leadIdMongo: updatedQuote.leadId?._id,
-        assigned: updatedQuote.assigned?.map((a) => ({
-          _id: a?._id,
-          name: a?.name || "",
-        })) || [],
+        assigned:
+          updatedQuote.assigned?.map((a) => ({
+            _id: a?._id,
+            name: a?.name || "",
+          })) || [],
       };
 
       setLeads(updatedLeads);
@@ -218,7 +220,12 @@ function Quote() {
                     className="px-3 py-2 cursor-pointer"
                     onClick={() =>
                       navigate("/quotedetails", {
-                        state: { qid: lead.qid, clientName: lead.name, leadMongoId: lead.leadIdMongo },
+                        state: {
+                          qid: lead.qid,
+                          clientName: lead.name,
+                          leadMongoId: lead.leadIdMongo,
+                          quoteId: lead.id,
+                        },
                       })
                     }
                   >
@@ -244,7 +251,10 @@ function Quote() {
                       <input
                         value={editedData.contact || ""}
                         onChange={(e) =>
-                          setEditedData({ ...editedData, contact: e.target.value })
+                          setEditedData({
+                            ...editedData,
+                            contact: e.target.value,
+                          })
                         }
                         className="border border-red-500 px-2 py-1 rounded w-full text-sm"
                       />
@@ -417,10 +427,11 @@ function Quote() {
                   contact: selectedClient.contact || "",
                   quoteAmount: savedQuote.quoteAmount || "",
                   city: savedQuote.city || "N/A",
-                  assigned: savedQuote.assigned?.map((a) => ({
-                    _id: a?._id,
-                    name: a?.name || "",
-                  })) || [],
+                  assigned:
+                    savedQuote.assigned?.map((a) => ({
+                      _id: a?._id,
+                      name: a?.name || "",
+                    })) || [],
                   status: savedQuote.status || "",
                 };
 
