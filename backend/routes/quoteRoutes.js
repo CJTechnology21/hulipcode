@@ -10,6 +10,6 @@ router.put("/:id", updateQuote);
 router.patch("/:id", patchQuote);
 router.delete("/:id", deleteQuote);
 router.get("/:id/summary", getQuoteSummary)
-router.post("/:id/summary", addSummaryToQuote)
+router.patch("/:id/summary", addSummaryToQuote)
 
 module.exports = router;

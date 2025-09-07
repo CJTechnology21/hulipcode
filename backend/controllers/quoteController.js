@@ -20,6 +20,7 @@ const createQuote = async (req, res) => {
 };
 
 // Add or replace summary array
+// Update summary
 const addSummaryToQuote = async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,14 +40,14 @@ const addSummaryToQuote = async (req, res) => {
 
     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
 
-    res.status(200).json(updatedQuote);
+    res.status(200).json({ summary: updatedQuote.summary });
   } catch (error) {
     console.error("Error adding summary:", error);
     res.status(500).json({ message: "Error adding summary", error: error.message });
   }
 };
 
-// Get only summary of a particular quote
+// Get only summary
 const getQuoteSummary = async (req, res) => {
   try {
     const { id } = req.params;
@@ -56,12 +57,55 @@ const getQuoteSummary = async (req, res) => {
       return res.status(404).json({ message: "Quote not found" });
     }
 
-    res.status(200).json(quote.summary || []);
+    res.status(200).json({ summary: quote.summary || [] });
   } catch (error) {
     console.error("Error fetching summary:", error);
     res.status(500).json({ message: "Error fetching summary", error: error.message });
   }
 };
+
+// const addSummaryToQuote = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { summary } = req.body;
+
+//     if (!Array.isArray(summary)) {
+//       return res.status(400).json({ message: "Summary must be an array" });
+//     }
+
+//     const updatedQuote = await Quote.findByIdAndUpdate(
+//       id,
+//       { $set: { summary } },
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
+
+//     res.status(200).json(updatedQuote);
+//   } catch (error) {
+//     console.error("Error adding summary:", error);
+//     res.status(500).json({ message: "Error adding summary", error: error.message });
+//   }
+// };
+
+// // Get only summary of a particular quote
+// const getQuoteSummary = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const quote = await Quote.findById(id).select("summary");
+//     if (!quote) {
+//       return res.status(404).json({ message: "Quote not found" });
+//     }
+
+//     res.status(200).json(quote.summary || []);
+//   } catch (error) {
+//     console.error("Error fetching summary:", error);
+//     res.status(500).json({ message: "Error fetching summary", error: error.message });
+//   }
+// };
 
 
 // Get all quotes
