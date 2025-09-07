@@ -1,10 +1,21 @@
 const mongoose = require("mongoose");
-const Counter = require("./Counter"); 
+const Counter = require("./Counter");
+
+const summarySchema = new mongoose.Schema(
+  {
+    space: { type: String, required: true },
+    workPackages: { type: Number, default: 0 },
+    items: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
 
 const quoteSchema = new mongoose.Schema(
   {
-    qid: { type: String }, 
-    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", required: true }, 
+    qid: { type: String },
+    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", required: true },
     quoteAmount: { type: String, required: true },
     city: { type: String, default: "N/A" },
     assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -13,15 +24,17 @@ const quoteSchema = new mongoose.Schema(
       enum: ["Send", "In Review", "Shortlisted", "Approved", "Rejected"],
       default: "Send",
     },
+    summary: [summarySchema], // 🔥 Add summary here
   },
   { timestamps: true }
 );
+
 // Pre-save hook to generate auto QID
 quoteSchema.pre("save", async function (next) {
   if (!this.qid) {
     try {
       const counter = await Counter.findOneAndUpdate(
-        { name: "quoteId" }, 
+        { name: "quoteId" },
         { $inc: { seq: 1 } },
         { new: true, upsert: true }
       );
@@ -38,16 +51,15 @@ quoteSchema.pre("save", async function (next) {
 module.exports = mongoose.model("Quote", quoteSchema);
 
 // const mongoose = require("mongoose");
-// const Counter = require("./Counter"); // same counter schema you're using for projects
+// const Counter = require("./Counter"); 
 
 // const quoteSchema = new mongoose.Schema(
 //   {
-//     qid: { type: String },
-//     name: { type: String, required: true },
-//     leadId: { type: String, required: true },
-//     budget: { type: String, required: true },
-//     contact: { type: String, required: true },
+//     qid: { type: String }, 
+//     leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", required: true }, 
 //     quoteAmount: { type: String, required: true },
+//     city: { type: String, default: "N/A" },
+//     assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 //     status: {
 //       type: String,
 //       enum: ["Send", "In Review", "Shortlisted", "Approved", "Rejected"],
@@ -56,18 +68,15 @@ module.exports = mongoose.model("Quote", quoteSchema);
 //   },
 //   { timestamps: true }
 // );
-
 // // Pre-save hook to generate auto QID
 // quoteSchema.pre("save", async function (next) {
 //   if (!this.qid) {
 //     try {
 //       const counter = await Counter.findOneAndUpdate(
-//         { name: "quoteId" }, // keep this separate from project counter
+//         { name: "quoteId" }, 
 //         { $inc: { seq: 1 } },
 //         { new: true, upsert: true }
 //       );
-
-//       // Format -> Q001, Q002, ...
 //       this.qid = "Q" + String(counter.seq).padStart(3, "0");
 //       next();
 //     } catch (err) {

@@ -51,3 +51,24 @@ export const deleteQuote = async (quoteId) => {
   const res = await axiosInstance.delete(`/api/quote/${quoteId}`);
   return res.data;
 };
+
+/* ---------------------- SUMMARY SERVICES ---------------------- */
+
+// Add or replace summary array for a quote
+export const addSummaryToQuote = async (quoteId, summary) => {
+  if (!Array.isArray(summary)) {
+    throw new Error("Summary must be an array");
+  }
+  const res = await axiosInstance.patch(
+    `/api/quote/${quoteId}/summary`,
+    { summary },
+    { headers: { "Content-Type": "application/json" } }
+  );
+  return res.data;
+};
+
+// Fetch only the summary of a quote
+export const fetchQuoteSummary = async (quoteId) => {
+  const res = await axiosInstance.get(`/api/quote/${quoteId}/summary`);
+  return res.data;
+};
