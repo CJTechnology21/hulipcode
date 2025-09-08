@@ -1,6 +1,8 @@
 const Quote = require("../models/Quote");
 
-//  Create a new quote (without summary at first)
+// -------------------- QUOTE CONTROLLERS -------------------- //
+
+// Create a new quote (without summary at first)
 const createQuote = async (req, res) => {
   try {
     const { leadId, quoteAmount, assigned, city } = req.body;
@@ -18,95 +20,6 @@ const createQuote = async (req, res) => {
     res.status(500).json({ message: "Error creating quote", error: error.message });
   }
 };
-
-// Add or replace summary array
-// Update summary
-const addSummaryToQuote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { summary } = req.body;
-
-    if (!Array.isArray(summary)) {
-      return res.status(400).json({ message: "Summary must be an array" });
-    }
-
-    const updatedQuote = await Quote.findByIdAndUpdate(
-      id,
-      { $set: { summary } },
-      { new: true }
-    )
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email");
-
-    if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
-
-    res.status(200).json({ summary: updatedQuote.summary });
-  } catch (error) {
-    console.error("Error adding summary:", error);
-    res.status(500).json({ message: "Error adding summary", error: error.message });
-  }
-};
-
-// Get only summary
-const getQuoteSummary = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const quote = await Quote.findById(id).select("summary");
-    if (!quote) {
-      return res.status(404).json({ message: "Quote not found" });
-    }
-
-    res.status(200).json({ summary: quote.summary || [] });
-  } catch (error) {
-    console.error("Error fetching summary:", error);
-    res.status(500).json({ message: "Error fetching summary", error: error.message });
-  }
-};
-
-// const addSummaryToQuote = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { summary } = req.body;
-
-//     if (!Array.isArray(summary)) {
-//       return res.status(400).json({ message: "Summary must be an array" });
-//     }
-
-//     const updatedQuote = await Quote.findByIdAndUpdate(
-//       id,
-//       { $set: { summary } },
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     console.error("Error adding summary:", error);
-//     res.status(500).json({ message: "Error adding summary", error: error.message });
-//   }
-// };
-
-// // Get only summary of a particular quote
-// const getQuoteSummary = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const quote = await Quote.findById(id).select("summary");
-//     if (!quote) {
-//       return res.status(404).json({ message: "Quote not found" });
-//     }
-
-//     res.status(200).json(quote.summary || []);
-//   } catch (error) {
-//     console.error("Error fetching summary:", error);
-//     res.status(500).json({ message: "Error fetching summary", error: error.message });
-//   }
-// };
-
 
 // Get all quotes
 const getQuotes = async (req, res) => {
@@ -137,12 +50,11 @@ const getQuoteById = async (req, res) => {
   }
 };
 
-// PUT: Replace entire quote (including summary if passed)
+// Update full quote (not summary)
 const updateQuote = async (req, res) => {
   try {
     const updatedQuote = await Quote.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-      overwrite: true, // full replacement
     })
       .populate("leadId", "id name budget contact category city")
       .populate("assigned", "name email");
@@ -155,62 +67,10 @@ const updateQuote = async (req, res) => {
   }
 };
 
-// PATCH: Partial update (quote fields OR summary rows)
-const patchQuote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { summary, summaryUpdate } = req.body;
-
-    let patchedQuote;
-
-    if (summary) {
-      // Replace full summary array
-      patchedQuote = await Quote.findByIdAndUpdate(id, { $set: { summary } }, { new: true });
-    } else if (summaryUpdate) {
-      // Partial update on a single summary row
-      // summaryUpdate example: { space: "Kitchen", fields: { items: 12, amount: 460000 } }
-      patchedQuote = await Quote.findOneAndUpdate(
-        { _id: id, "summary.space": summaryUpdate.space },
-        { $set: Object.fromEntries(Object.entries(summaryUpdate.fields).map(([k, v]) => [`summary.$.${k}`, v])) },
-        { new: true }
-      );
-    } else {
-      // Patch top-level fields
-      patchedQuote = await Quote.findByIdAndUpdate(id, req.body, { new: true });
-    }
-
-    patchedQuote = await patchedQuote
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email");
-
-    if (!patchedQuote) return res.status(404).json({ message: "Quote not found" });
-
-    res.status(200).json(patchedQuote);
-  } catch (error) {
-    res.status(500).json({ message: "Error patching quote", error });
-  }
-};
-
-// DELETE: delete quote OR delete summary row
+// Delete full quote (not summary row)
 const deleteQuote = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { space } = req.query; // optional query param to remove specific summary row
-
-    if (space) {
-      const updated = await Quote.findByIdAndUpdate(
-        id,
-        { $pull: { summary: { space } } },
-        { new: true }
-      )
-        .populate("leadId", "id name budget contact category city")
-        .populate("assigned", "name email");
-
-      if (!updated) return res.status(404).json({ message: "Quote not found" });
-      return res.status(200).json(updated);
-    }
-
-    const deleted = await Quote.findByIdAndDelete(id);
+    const deleted = await Quote.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Quote not found" });
 
     res.status(200).json({ message: "Quote deleted successfully" });
@@ -219,130 +79,310 @@ const deleteQuote = async (req, res) => {
   }
 };
 
+// -------------------- SUMMARY CONTROLLERS -------------------- //
+
+// Add or replace full summary array
+const addSummaryToQuote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { summary } = req.body;
+
+    if (!Array.isArray(summary)) {
+      return res.status(400).json({ message: "Summary must be an array" });
+    }
+
+    const updatedQuote = await Quote.findByIdAndUpdate(
+      id,
+      { $set: { summary } },
+      { new: true }
+    )
+      .populate("leadId", "id name budget contact category city")
+      .populate("assigned", "name email");
+
+    if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
+
+    res.status(200).json(updatedQuote.summary);
+  } catch (error) {
+    console.error("Error adding summary:", error);
+    res.status(500).json({ message: "Error adding summary", error: error.message });
+  }
+};
+
+// Get only summary
+const getQuoteSummary = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await Quote.findById(id).select("summary");
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    res.status(200).json(quote.summary || []);
+  } catch (error) {
+    console.error("Error fetching summary:", error);
+    res.status(500).json({ message: "Error fetching summary", error: error.message });
+  }
+};
+
+// Update a single summary row (by space)
+const updateSummaryRow = async (req, res) => {
+  try {
+    const { id } = req.params; // quoteId
+    const { space, fields } = req.body;
+
+    if (!space || !fields) {
+      return res.status(400).json({ message: "Space and fields are required" });
+    }
+
+    const updatedQuote = await Quote.findOneAndUpdate(
+      { _id: id, "summary.space": space },
+      {
+        $set: Object.fromEntries(
+          Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
+        ),
+      },
+      { new: true }
+    )
+      .populate("leadId", "id name budget contact category city")
+      .populate("assigned", "name email");
+
+    if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
+
+    res.status(200).json(updatedQuote);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating summary row", error });
+  }
+};
+
+// Delete a single summary row (by space)
+const deleteSummaryRow = async (req, res) => {
+  try {
+    const { id } = req.params; // quoteId
+    const { space } = req.body;
+
+    if (!space) {
+      return res.status(400).json({ message: "Space is required" });
+    }
+
+    const updatedQuote = await Quote.findByIdAndUpdate(
+      id,
+      { $pull: { summary: { space } } },
+      { new: true }
+    )
+      .populate("leadId", "id name budget contact category city")
+      .populate("assigned", "name email");
+
+    if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
+
+    res.status(200).json(updatedQuote);
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting summary row", error });
+  }
+};
+
 module.exports = {
+  // Quote
   createQuote,
   getQuotes,
   getQuoteById,
   updateQuote,
-  patchQuote,
   deleteQuote,
+
+  // Summary
   addSummaryToQuote,
   getQuoteSummary,
+  updateSummaryRow,
+  deleteSummaryRow,
 };
 
-// const { get } = require("mongoose");
 // const Quote = require("../models/Quote");
 
-// //  Create a new quote
+// //  Create a new quote (without summary at first)
 // const createQuote = async (req, res) => {
-//     try {
-//         const { leadId, quoteAmount, assigned } = req.body;
+//   try {
+//     const { leadId, quoteAmount, assigned, city } = req.body;
 
-//         const newQuote = new Quote({
-//             leadId,
-//             quoteAmount,
-//             assigned,
-//         });
+//     const newQuote = new Quote({ leadId, quoteAmount, assigned, city });
+//     const savedQuote = await newQuote.save();
 
-//         const savedQuote = await newQuote.save();
+//     const populated = await Quote.findById(savedQuote._id)
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
 
-//         // Re-fetch with population
-//         const populated = await Quote.findById(savedQuote._id)
-//             .populate("leadId", "id name budget contact category city")
-//             .populate("assigned", "name email");
-
-//         res.status(201).json(populated);
-//     } catch (error) {
-//         console.error("Error creating quote:", error);
-//         res.status(500).json({
-//             message: "Error creating quote",
-//             error: error.message,
-//         });
-//     }
+//     res.status(201).json(populated);
+//   } catch (error) {
+//     console.error("Error creating quote:", error);
+//     res.status(500).json({ message: "Error creating quote", error: error.message });
+//   }
 // };
 
-// //  Get all quotes
+// // Add or replace summary array
+// // Update summary
+// const addSummaryToQuote = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { summary } = req.body;
+
+//     if (!Array.isArray(summary)) {
+//       return res.status(400).json({ message: "Summary must be an array" });
+//     }
+
+//     const updatedQuote = await Quote.findByIdAndUpdate(
+//       id,
+//       { $set: { summary } },
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
+
+//     res.status(200).json({ summary: updatedQuote.summary });
+//   } catch (error) {
+//     console.error("Error adding summary:", error);
+//     res.status(500).json({ message: "Error adding summary", error: error.message });
+//   }
+// };
+
+// // Get only summary
+// const getQuoteSummary = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const quote = await Quote.findById(id).select("summary");
+//     if (!quote) {
+//       return res.status(404).json({ message: "Quote not found" });
+//     }
+
+//     res.status(200).json({ summary: quote.summary || [] });
+//   } catch (error) {
+//     console.error("Error fetching summary:", error);
+//     res.status(500).json({ message: "Error fetching summary", error: error.message });
+//   }
+// };
+
+
+// // Get all quotes
 // const getQuotes = async (req, res) => {
-//     try {
-//         const quotes = await Quote.find()
-//             .populate("leadId", "id name budget contact category")
-//             .populate("assigned", "name email")
-//             .sort({ createdAt: -1 });
+//   try {
+//     const quotes = await Quote.find()
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email")
+//       .sort({ createdAt: -1 });
 
-//         res.status(200).json(quotes);
-//     } catch (error) {
-//         res.status(500).json({ message: "Error fetching quotes", error });
-//     }
+//     res.status(200).json(quotes);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching quotes", error });
+//   }
 // };
 
-// //  Get a single quote by ID
+// // Get one quote
 // const getQuoteById = async (req, res) => {
-//     try {
-//         const quote = await Quote.findById(req.params.id)
-//             .populate("leadId", "id name budget contact category")
-//             .populate("assigned", "name email");
+//   try {
+//     const quote = await Quote.findById(req.params.id)
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
 
-//         if (!quote) return res.status(404).json({ message: "Quote not found" });
+//     if (!quote) return res.status(404).json({ message: "Quote not found" });
 
-//         res.status(200).json(quote);
-//     } catch (error) {
-//         res.status(500).json({ message: "Error fetching quote", error });
-//     }
+//     res.status(200).json(quote);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching quote", error });
+//   }
 // };
 
-// // //  Update a quote (PUT - replace all updatable fields)
-// // Update a quote (PUT - replace all updatable fields)
+// // PUT: Replace entire quote (including summary if passed)
 // const updateQuote = async (req, res) => {
-//     try {
-//         // First, update the quote
-//         await Quote.findByIdAndUpdate(req.params.id, req.body, { new: true });
+//   try {
+//     const updatedQuote = await Quote.findByIdAndUpdate(
+//       req.params.id,
+//       { $push: { summary: req.body } },
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
 
-//         // Then fetch the updated document with populated fields
-//         const updatedQuote = await Quote.findById(req.params.id)
-//             .populate("leadId", "id name budget contact category")
-//             .populate("assigned", "name email");
+//     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
 
-//         if (!updatedQuote)
-//             return res.status(404).json({ message: "Quote not found" });
-
-//         res.status(200).json(updatedQuote);
-//     } catch (error) {
-//         res.status(500).json({ message: "Error updating quote", error });
-//     }
+//     res.status(200).json(updatedQuote);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error updating quote", error });
+//   }
 // };
 
-// // Patch a quote (PATCH - update specific fields only)
+
+// // PATCH: Partial update (quote fields OR summary rows)
 // const patchQuote = async (req, res) => {
-//     try {
-//         // Apply partial updates
-//         await Quote.findByIdAndUpdate(req.params.id, req.body, { new: true });
+//   try {
+//     const { id } = req.params;
+//     const { summary, summaryUpdate } = req.body;
 
-//         // Fetch the updated document with populated fields
-//         const patchedQuote = await Quote.findById(req.params.id)
-//             .populate("leadId", "id name budget contact category")
-//             .populate("assigned", "name email");
+//     let patchedQuote;
 
-//         if (!patchedQuote)
-//             return res.status(404).json({ message: "Quote not found" });
-
-//         res.status(200).json(patchedQuote);
-//     } catch (error) {
-//         res.status(500).json({ message: "Error patching quote", error });
+//     if (summary) {
+//       // Replace full summary array
+//       patchedQuote = await Quote.findByIdAndUpdate(id, { $set: { summary } }, { new: true });
+//     } else if (summaryUpdate) {
+//       // Partial update on a single summary row
+//       // summaryUpdate example: { space: "Kitchen", fields: { items: 12, amount: 460000 } }
+//       patchedQuote = await Quote.findOneAndUpdate(
+//         { _id: id, "summary.space": summaryUpdate.space },
+//         { $set: Object.fromEntries(Object.entries(summaryUpdate.fields).map(([k, v]) => [`summary.$.${k}`, v])) },
+//         { new: true }
+//       );
+//     } else {
+//       // Patch top-level fields
+//       patchedQuote = await Quote.findByIdAndUpdate(id, req.body, { new: true });
 //     }
+
+//     patchedQuote = await patchedQuote
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!patchedQuote) return res.status(404).json({ message: "Quote not found" });
+
+//     res.status(200).json(patchedQuote);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error patching quote", error });
+//   }
 // };
 
-// // Delete a quote
+// // DELETE: delete quote OR delete summary row
 // const deleteQuote = async (req, res) => {
-//     try {
-//         const deleted = await Quote.findByIdAndDelete(req.params.id);
+//   try {
+//     const { id } = req.params;
+//     const { space } = req.query; 
 
-//         if (!deleted) return res.status(404).json({ message: "Quote not found" });
+//     if (space) {
+//       const updated = await Quote.findByIdAndUpdate(
+//         id,
+//         { $pull: { summary: { space } } },
+//         { new: true }
+//       )
+//         .populate("leadId", "id name budget contact category city")
+//         .populate("assigned", "name email");
 
-//         res.status(200).json({ message: "Quote deleted successfully" });
-//     } catch (error) {
-//         res.status(500).json({ message: "Error deleting quote", error });
+//       if (!updated) return res.status(404).json({ message: "Quote not found" });
+//       return res.status(200).json(updated);
 //     }
+
+//     const deleted = await Quote.findByIdAndDelete(id);
+//     if (!deleted) return res.status(404).json({ message: "Quote not found" });
+
+//     res.status(200).json({ message: "Quote deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error deleting quote", error });
+//   }
 // };
 
-
-// module.exports = { createQuote, getQuotes, getQuoteById, updateQuote, patchQuote, deleteQuote }
+// module.exports = {
+//   createQuote,
+//   getQuotes,
+//   getQuoteById,
+//   updateQuote,
+//   patchQuote,
+//   deleteQuote,
+//   addSummaryToQuote,
+//   getQuoteSummary,
+// };
