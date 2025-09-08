@@ -1,67 +1,107 @@
+
+
 // components/QuoteItemizedSection.jsx
-import React, { useState } from "react";
+import React, { useState, Fragment } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { FaPencil } from "react-icons/fa6";
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment } from "react";
+import { initialItems } from "./initialLeads";
 import Modal from "../Modal";
-const initialItems = [
-  {
-    id: 1,
-    photo: "https://www.shutterstock.com/image-photo/renovation-house-building-construction-interior-260nw-2125628186.jpg",
-    code: "BHD876633",
-    category: "Electrical Work",
-    description: "Internal Electrical Work",
-    spec: "KEI, FINOLEX, POLYCAB.",
-    qty: 140,
-    unit: "sqft",
-    rate: 250,
-    gst: 18,
-  },
-  {
-    id: 2,
-    photo: "https://www.shutterstock.com/image-photo/renovation-house-building-construction-interior-260nw-2125628186.jpg",
-    code: "KNCH962365",
-    category: "Plumbing Work",
-    description: "Internal Plumbing Work",
-    spec: "Supreme Astral prince.",
-    qty: 1,
-    unit: "Lumsum",
-    rate: 25000,
-    gst: 18,
-  },
-  {
-    id: 3,
-    photo: "https://www.shutterstock.com/image-photo/renovation-house-building-construction-interior-260nw-2125628186.jpg",
-    code: "FLOOR123456",
-    category: "Flooring Work",
-    description: "Vitrified Tiles Flooring",
-    spec: "Kajaria, Somany, Johnson.",
-    qty: 500,
-    unit: "sqft",
-    rate: 60,
-    gst: 18,
-  },
-  {
-    id: 4,
-    photo: "https://www.shutterstock.com/image-photo/renovation-house-building-construction-interior-260nw-2125628186.jpg",
-    code: "WALLPAPER7890",
-    category: "Wall Treatment",
-    description: "Designer Wallpaper",
-    spec: "Imported Vinyl Wallpaper.",
-    qty: 300,
-    unit: "sqft",
-    rate: 150,
-    gst: 18,
-  },
+import Button from "../../../components/Button";
+import DropDown from "../../../components/DropDown";
+
+const categories = [
+  "Living Room",
+  "Bedroom",
+  "Kitchen",
+  "Bathroom",
+  "Dining Room",
+  "Hall",
+  "Study Room",
+  "Balcony",
+  "Toilet",
 ];
 
-const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
+const QuoteItemizedSection = ({
+  areaName: defaultAreaName = "Master Bedroom Toilet",
+}) => {
+  const [areaName, setAreaName] = useState(defaultAreaName);
+  const [category, setCategory] = useState("Toilet");
+
   const [length, setLength] = useState(12);
   const [breadth, setBreadth] = useState(6);
   const [height, setHeight] = useState(9);
   const [unit, setUnit] = useState("Feet");
   const [toggle, setToggle] = useState("Save");
+
+  const [items, setItems] = useState(initialItems);
+  const [dimensions, setDimensions] = useState([
+    { name: "Door 1", h: 7, w: 2.5 },
+    { name: "Door 2", h: 7, w: 3 },
+    { name: "Window", h: 3, w: 2 },
+  ]);
+  // inside QuoteItemizedSection.jsx
+
+  const [showDeliverableModal, setShowDeliverableModal] = useState(false);
+  const [newDeliverable, setNewDeliverable] = useState({
+    photo: "",
+    description: "",
+    spec: "",
+    code: "",
+    category: "",
+    unit: "",
+    qty: 0,
+    rate: 0,
+    hsn: "",
+    gst: 0,
+  });
+
+  // handle file upload
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewDeliverable((prev) => ({ ...prev, photo: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleNewDeliverableChange = (field, value) => {
+    setNewDeliverable((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddDeliverable = () => {
+    const newItem = {
+      ...newDeliverable,
+      id: Date.now(), // unique id
+    };
+    setItems((prev) => [...prev, newItem]);
+    setShowDeliverableModal(false);
+    setNewDeliverable({
+      photo: "",
+      description: "",
+      spec: "",
+      code: "",
+      category: "",
+      unit: "",
+      qty: 0,
+      rate: 0,
+      hsn: "",
+      gst: 0,
+    });
+  };
+
+  // const [editField, setEditField] = useState({ index: null, type: null });
+
+  // Modal for add opening
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [type, setType] = useState("Door");
+  const [newHeight, setNewHeight] = useState("");
+  const [newWidth, setNewWidth] = useState("");
+
+  // Side modal for deliverables
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -70,28 +110,34 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
     setShowModal(true);
   };
 
-  const [items, setItems] = useState(initialItems);
-  const [dimensions, setDimensions] = useState([
-    { name: "Door 1", h: 7, w: 2.5 },
-    { name: "Door 2", h: 7, w: 3 },
-    { name: "Window", h: 3, w: 2 },
-  ]);
-  const [editField, setEditField] = useState({ index: null, type: null });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [type, setType] = useState("Door");
-  const [Heightft, setHeightft] = useState("");
-  const [width, setWidth] = useState("");
-
-  // Optional: submit handler
-  const handleSubmit = () => {
-    console.log({ type, height, width });
-    setIsModalOpen(false);
-  };
-
   const handleValueChange = (index, type, value) => {
     const updated = [...dimensions];
     updated[index][type] = value;
     setDimensions(updated);
+  };
+
+  const handleSubmit = () => {
+    if (!newHeight || !newWidth) return;
+    const newItem = {
+      name: `${type} ${dimensions.length + 1}`,
+      h: parseFloat(newHeight),
+      w: parseFloat(newWidth),
+    };
+    setDimensions([...dimensions, newItem]);
+    setNewHeight("");
+    setNewWidth("");
+    setIsModalOpen(false);
+  };
+
+  const handleItemChange = (field, value) => {
+    setSelectedItem((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveItem = () => {
+    setItems((prev) =>
+      prev.map((itm) => (itm.id === selectedItem.id ? selectedItem : itm))
+    );
+    setShowModal(false);
   };
 
   const floorArea = length * breadth;
@@ -111,29 +157,22 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
             <label className="text-red-700 font-bold text-sm block">
               Area Name
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={areaName}
-                readOnly
-                className="border rounded px-2 py-1 w-full pr-8 font-semibold"
-              />
-              <FaPencil className="absolute top-2.5 right-2 text-red-700 cursor-pointer text-lg" />
-            </div>
+            <input
+              type="text"
+              value={areaName}
+              onChange={(e) => setAreaName(e.target.value)}
+              className="border rounded px-2 py-1 w-full font-semibold"
+            />
           </div>
           <div>
-            <label className="text-red-700 font-bold text-sm block">
-              Select Category
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value="Toilet"
-                readOnly
-                className="border rounded px-2 py-1 w-full pr-8 font-semibold"
-              />
-              <FaPencil className="absolute top-2.5 right-2 text-red-700 cursor-pointer text-lg" />
-            </div>
+            <DropDown
+              label="Select Category"
+              name="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              options={categories}
+              className="border-red-700 text-red-700 focus:ring-red-700 focus:border-red-700"
+            />
           </div>
         </div>
 
@@ -151,120 +190,76 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
               <span className="text-sm font-bold text-red-700 w-16">
                 {dim.label}
               </span>
-              <div className="relative w-24">
-                <input
-                  type="number"
-                  value={dim.val}
-                  onChange={(e) => dim.set(+e.target.value)}
-                  className="border rounded px-2 py-1 w-full pr-10 font-bold text-sm text-center"
-                />
-                <span className="absolute top-1/2 right-7 transform -translate-y-1/2 text-xs text-black font-bold">
-                  ft
-                </span>
-                <FaPencil className="absolute top-1/2 right-1 transform -translate-y-1/2 text-red-700 text-lg cursor-pointer" />
-              </div>
+              <input
+                type="number"
+                value={dim.val}
+                onChange={(e) => dim.set(+e.target.value)}
+                className="border rounded px-2 py-1 w-24 font-bold text-sm text-center"
+              />
+              <span className="text-xs font-bold">ft</span>
             </div>
           ))}
         </div>
-
         {/* Doors & Windows */}
-        <div className="">
-          <div className="flex items-center justify-between mb-3 mr-20">
-            <label className="text-red-700 font-bold text-sm">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-red-700 font-bold text-sm mr-6">
               Door &amp; Window Dimensions
             </label>
-            <button
+            <Button
+              variant="custom"
               onClick={() => setIsModalOpen(true)}
               className="flex items-center gap-1 bg-red-700 text-white text-sm px-3 py-1 rounded-full"
             >
               <FaPlus className="text-xs" /> Add
-            </button>
+            </Button>
           </div>
 
-         
+          {/* Local grid wrapper just for door/window rows */}
+          <div className="space-y-2 -ml-20 ">
+            {dimensions.map((item, index) => (
+              <div
+                key={item.name}
+                className="grid grid-cols-[100px_20px_80px_20px_80px] items-center gap-2"
+              >
+                <label className="text-red-700 font-bold text-sm text-right">
+                  {item.name}
+                </label>
 
-          {dimensions.map((item, index) => (
-            <div key={item.name} className="flex items-center gap-3 mb-2">
-              <label className="text-red-700 font-bold text-sm w-20">
-                {item.name}
-              </label>
-              <span className="text-red-700 font-bold text-sm">H</span>
-              <div className="relative w-20">
-                {editField.index === index && editField.type === "h" ? (
-                  <input
-                    type="text"
-                    value={item.h}
-                    autoFocus
-                    className="border rounded px-2 py-1 w-full pr-10 text-sm font-bold text-center"
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      handleValueChange(index, "h", isNaN(val) ? 0 : val);
-                    }}
-                    onBlur={() => setEditField({ index: null, type: null })}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" &&
-                      setEditField({ index: null, type: null })
-                    }
-                  />
-                ) : (
-                  <div className="border rounded px-2 py-1 w-full pr-10 text-sm font-bold text-center relative">
-                    {item.h}
-                    <span className="absolute top-1/2 right-7 transform -translate-y-1/2 text-black text-xs">
-                      ft
-                    </span>
-                    <FaPencil
-                      className="absolute top-1/2 right-1 transform -translate-y-1/2 text-red-700 cursor-pointer text-lg"
-                      onClick={() => setEditField({ index, type: "h" })}
-                    />
-                  </div>
-                )}
+                <span className="text-red-700 font-bold text-sm">H</span>
+                <input
+                  type="number"
+                  value={item.h}
+                  onChange={(e) =>
+                    handleValueChange(index, "h", parseFloat(e.target.value))
+                  }
+                  className="border rounded px-2 py-1 text-sm font-bold text-center"
+                />
+
+                <span className="text-red-700 font-bold text-sm">W</span>
+                <input
+                  type="number"
+                  value={item.w}
+                  onChange={(e) =>
+                    handleValueChange(index, "w", parseFloat(e.target.value))
+                  }
+                  className="border rounded px-2 py-1 text-sm font-bold text-center"
+                />
               </div>
-              <span className="text-red-700 font-bold text-sm">W</span>
-              <div className="relative w-20">
-                {editField.index === index && editField.type === "w" ? (
-                  <input
-                    type="text"
-                    value={item.w}
-                    autoFocus
-                    className="border rounded px-2 py-1 w-full pr-10 text-sm font-bold text-center"
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      handleValueChange(index, "w", isNaN(val) ? 0 : val);
-                    }}
-                    onBlur={() => setEditField({ index: null, type: null })}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" &&
-                      setEditField({ index: null, type: null })
-                    }
-                  />
-                ) : (
-                  <div className="border rounded px-2 py-1 w-full pr-10 text-sm font-bold text-center relative">
-                    {item.w}
-                    <span className="absolute top-1/2 right-7 transform -translate-y-1/2 text-black text-xs">
-                      ft
-                    </span>
-                    <FaPencil
-                      className="absolute top-1/2 right-1 transform -translate-y-1/2 text-red-700 text-lg cursor-pointer"
-                      onClick={() => setEditField({ index, type: "w" })}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-
         {/* Unit toggle + Area Values */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-sm font-bold text-red-700">Unit</label>
-            <button
+            <Button
+              variant="custom"
               onClick={() => setUnit(unit === "Feet" ? "Meters" : "Feet")}
-              className="flex items-center bg-red-700 text-white text-sm rounded-full px-3 py-1"
+              className="flex items-center bg-red-700 hover:bg-red-900 text-white text-sm rounded-full px-3 py-1"
             >
-              <span className="mr-1">▾</span>
               {unit}
-            </button>
+            </Button>
           </div>
 
           {/* Area Display */}
@@ -294,29 +289,45 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <label className="text-sm font-bold text-red-700">Action</label>
-            <button
+            <Button
+              variant="custom"
               onClick={() => setToggle(toggle === "Save" ? "Action" : "Save")}
-              className="flex items-center bg-red-700 text-white text-sm rounded-full px-3 py-1"
+              className="flex items-center bg-red-700 hover:bg-red-900 text-white text-sm rounded-full px-3 py-1"
             >
-              <span className="mr-1">▾</span>
               {toggle}
-            </button>
+            </Button>
           </div>
 
           <div className="font-bold text-black text-sm border-b-4 border-red-700 w-fit">
             Area Calculation
           </div>
 
-          <button className="w-full border-2 border-black px-2 py-1 rounded-full text-sm font-bold bg-white hover:bg-gray-100">
+          <Button
+            variant="custom"
+            className="w-full border-2 border-black px-2 py-1 rounded-full text-sm font-bold bg-white hover:bg-gray-100"
+          >
             Automatic
-          </button>
-          <button className="w-full bg-red-700 text-white px-2 py-1 rounded-full text-sm font-bold hover:bg-red-800">
+          </Button>
+          <Button
+            variant="custom"
+            className="w-full bg-red-700 text-white px-2 py-1 rounded-full text-sm font-bold hover:bg-red-800"
+          >
             Custom
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Table */}
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="custom"
+          onClick={() => setShowDeliverableModal(true)}
+          className="flex items-center gap-2 bg-red-700 hover:bg-red-900 text-white px-4 py-2 rounded-full text-sm font-bold"
+        >
+          <FaPlus /> Add Deliverable
+        </Button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm text-left border mt-4">
           <thead className="bg-gray-100 font-semibold">
@@ -368,7 +379,15 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
                   </td>
                   <td className="border px-2 py-1 flex gap-2">
                     <FaPencil className="text-blue-600 cursor-pointer" />
-                    <FaTrash className="text-red-600 cursor-pointer" />
+                    <FaTrash
+                      className="text-red-600 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setItems((prev) =>
+                          prev.filter((itm) => itm.id !== item.id)
+                        );
+                      }}
+                    />
                   </td>
                 </tr>
               );
@@ -380,6 +399,8 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
       <div className="text-right text-lg font-semibold text-red-700 mt-4">
         Total Amount: ₹ {total.toLocaleString("en-IN")}/-
       </div>
+
+      {/* Side Modal for Deliverables */}
       <Transition.Root show={showModal} as={Fragment}>
         <Dialog
           as="div"
@@ -421,20 +442,10 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
                     <label className="font-bold block mb-1">Deliverable</label>
                     <input
                       type="text"
-                      value={selectedItem?.description}
-                      readOnly
-                      className="w-full border px-3 py-1.5 rounded-xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold block mb-1">
-                      Deliverable Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      readOnly
-                      value={`Creating Routes for electrical wiring and inserting conducting pipes for stability of wires running along the route. This include Mcb’s , Mcb Unit box as well. This also includes conduits, junction boxes and electrical wires as well. Wire & MCB Brand :`}
+                      value={selectedItem?.description || ""}
+                      onChange={(e) =>
+                        handleItemChange("description", e.target.value)
+                      }
                       className="w-full border px-3 py-1.5 rounded-xl"
                     />
                   </div>
@@ -445,8 +456,8 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
                     </label>
                     <input
                       type="text"
-                      value={selectedItem?.spec}
-                      readOnly
+                      value={selectedItem?.spec || ""}
+                      onChange={(e) => handleItemChange("spec", e.target.value)}
                       className="w-full border px-3 py-1.5 rounded-xl"
                     />
                   </div>
@@ -456,8 +467,10 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
                       <label className="font-bold block mb-1">Code</label>
                       <input
                         type="text"
-                        value={selectedItem?.code}
-                        readOnly
+                        value={selectedItem?.code || ""}
+                        onChange={(e) =>
+                          handleItemChange("code", e.target.value)
+                        }
                         className="w-full border px-3 py-1.5 rounded-xl"
                       />
                     </div>
@@ -465,81 +478,89 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
                       <label className="font-bold block mb-1">Category</label>
                       <input
                         type="text"
-                        value={selectedItem?.category}
-                        readOnly
+                        value={selectedItem?.category || ""}
+                        onChange={(e) =>
+                          handleItemChange("category", e.target.value)
+                        }
                         className="w-full border px-3 py-1.5 rounded-xl"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
-                    {/* Editable UOM */}
-                    <div className="relative">
+                    <div>
                       <label className="font-bold block mb-1">UOM</label>
                       <input
                         type="text"
-                        value={selectedItem?.unit}
-                        className="w-full border px-3 py-1.5 rounded-xl pr-8"
+                        value={selectedItem?.unit || ""}
+                        onChange={(e) =>
+                          handleItemChange("unit", e.target.value)
+                        }
+                        className="w-full border px-3 py-1.5 rounded-xl"
                       />
-                      <FaPencil className="absolute top-9 right-2 text-gray-500 text-xs cursor-pointer" />
                     </div>
 
-                    {/* Editable QTY */}
-                    <div className="relative">
+                    <div>
                       <label className="font-bold block mb-1">QTY</label>
                       <input
                         type="number"
-                        value={selectedItem?.qty}
-                        className="w-full border px-3 py-1.5 rounded-xl pr-8"
+                        value={selectedItem?.qty || 0}
+                        onChange={(e) =>
+                          handleItemChange("qty", +e.target.value)
+                        }
+                        className="w-full border px-3 py-1.5 rounded-xl"
                       />
-                      <FaPencil className="absolute top-9 right-2 text-gray-500 text-xs cursor-pointer" />
                     </div>
 
-                    {/* Editable RATE */}
-                    <div className="relative">
+                    <div>
                       <label className="font-bold block mb-1">Rate</label>
                       <input
                         type="number"
-                        value={selectedItem?.rate}
-                        className="w-full border px-3 py-1.5 rounded-xl pr-8"
+                        value={selectedItem?.rate || 0}
+                        onChange={(e) =>
+                          handleItemChange("rate", +e.target.value)
+                        }
+                        className="w-full border px-3 py-1.5 rounded-xl"
                       />
-                      <FaPencil className="absolute top-9 right-2 text-gray-500 text-xs cursor-pointer" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Editable HSN */}
-                    <div className="relative">
+                    <div>
                       <label className="font-bold block mb-1">HSN</label>
                       <input
                         type="text"
-                        value="7746337"
-                        className="w-full border px-3 py-1.5 rounded-xl pr-8"
+                        value={selectedItem?.hsn || ""}
+                        onChange={(e) =>
+                          handleItemChange("hsn", e.target.value)
+                        }
+                        className="w-full border px-3 py-1.5 rounded-xl"
                       />
-                      <FaPencil className="absolute top-9 right-2 text-gray-500 text-xs cursor-pointer" />
                     </div>
 
-                    {/* Editable GST */}
-                    <div className="relative">
+                    <div>
                       <label className="font-bold block mb-1">GST</label>
                       <input
-                        type="text"
-                        value={`${selectedItem?.gst}%`}
-                        className="w-full border px-3 py-1.5 rounded-xl pr-8"
+                        type="number"
+                        value={selectedItem?.gst || 0}
+                        onChange={(e) =>
+                          handleItemChange("gst", +e.target.value)
+                        }
+                        className="w-full border px-3 py-1.5 rounded-xl"
                       />
-                      <FaPencil className="absolute top-9 right-2 text-gray-500 text-xs cursor-pointer" />
                     </div>
                   </div>
                 </div>
 
                 {/* Save Button */}
                 <div className="pt-2 text-center">
-                  <button
-                    className="bg-red-700 hover:bg-red-800 text-white px-6 py-2 rounded-full font-semibold"
-                    onClick={() => setShowModal(false)}
+                  <Button
+                    variant="custom"
+                    className="bg-red-700 hover:bg-red-900 text-white px-6 py-2 rounded-full font-semibold"
+                    onClick={handleSaveItem}
                   >
                     Save
-                  </button>
+                  </Button>
                 </div>
               </div>
             </Dialog.Panel>
@@ -547,6 +568,7 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
         </Dialog>
       </Transition.Root>
 
+      {/* Modal for Add Opening */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -554,7 +576,6 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
         size="sm"
       >
         <div className="space-y-4">
-          {/* Type Dropdown */}
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">
               Type
@@ -569,48 +590,203 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
             </select>
           </div>
 
-          {/* Height Input */}
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">
               Height (ft)
             </label>
             <input
               type="number"
-              value={height}
-              onChange={(e) => setHeight(e.target.value)}
+              value={newHeight}
+              onChange={(e) => setNewHeight(e.target.value)}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               placeholder="Enter height"
             />
           </div>
 
-          {/* Width Input */}
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">
               Width (ft)
             </label>
             <input
               type="number"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
+              value={newWidth}
+              onChange={(e) => setNewWidth(e.target.value)}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               placeholder="Enter width"
             />
           </div>
 
-          {/* Buttons */}
           <div className="flex justify-end gap-3 pt-2">
-            <button
+            <Button
+              variant="custom"
               onClick={() => setIsModalOpen(false)}
               className="px-4 py-2 rounded text-sm border border-gray-400"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="custom"
               onClick={handleSubmit}
-              className="px-4 py-2 rounded text-sm bg-red-700 text-white"
+              className="px-4 py-2 rounded text-sm bg-red-700 hover:bg-red-900 text-white"
             >
               Save
-            </button>
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* Modal for Adding Deliverable */}
+      <Modal
+        isOpen={showDeliverableModal}
+        onClose={() => setShowDeliverableModal(false)}
+        title="Add Deliverable"
+        size="sm"
+      >
+        <div className="space-y-4">
+          {/* Upload Photo */}
+          <div>
+            <label className="font-bold block mb-1">Upload Photo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full border px-3 py-2 rounded text-sm"
+            />
+            {newDeliverable.photo && (
+              <img
+                src={newDeliverable.photo}
+                alt="Preview"
+                className="w-full h-32 object-cover mt-2 rounded"
+              />
+            )}
+          </div>
+
+          {/* Deliverable Fields */}
+          <div>
+            <label className="font-bold block mb-1">Deliverable</label>
+            <input
+              type="text"
+              value={newDeliverable.description}
+              onChange={(e) =>
+                handleNewDeliverableChange("description", e.target.value)
+              }
+              className="w-full border px-3 py-2 rounded text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="font-bold block mb-1">Specification</label>
+            <input
+              type="text"
+              value={newDeliverable.spec}
+              onChange={(e) =>
+                handleNewDeliverableChange("spec", e.target.value)
+              }
+              className="w-full border px-3 py-2 rounded text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-bold block mb-1">Code</label>
+              <input
+                type="text"
+                value={newDeliverable.code}
+                onChange={(e) =>
+                  handleNewDeliverableChange("code", e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="font-bold block mb-1">Category</label>
+              <input
+                type="text"
+                value={newDeliverable.category}
+                onChange={(e) =>
+                  handleNewDeliverableChange("category", e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="font-bold block mb-1">UOM</label>
+              <input
+                type="text"
+                value={newDeliverable.unit}
+                onChange={(e) =>
+                  handleNewDeliverableChange("unit", e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="font-bold block mb-1">QTY</label>
+              <input
+                type="number"
+                value={newDeliverable.qty}
+                onChange={(e) =>
+                  handleNewDeliverableChange("qty", +e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="font-bold block mb-1">Rate</label>
+              <input
+                type="number"
+                value={newDeliverable.rate}
+                onChange={(e) =>
+                  handleNewDeliverableChange("rate", +e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-bold block mb-1">HSN</label>
+              <input
+                type="text"
+                value={newDeliverable.hsn}
+                onChange={(e) =>
+                  handleNewDeliverableChange("hsn", e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="font-bold block mb-1">GST (%)</label>
+              <input
+                type="number"
+                value={newDeliverable.gst}
+                onChange={(e) =>
+                  handleNewDeliverableChange("gst", +e.target.value)
+                }
+                className="w-full border px-3 py-2 rounded text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="custom"
+              onClick={() => setShowDeliverableModal(false)}
+              className="px-4 py-2 rounded text-sm border border-gray-400"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="custom"
+              onClick={handleAddDeliverable}
+              className="px-4 py-2 rounded text-sm bg-red-700 hover:bg-red-900 text-white"
+            >
+              Save
+            </Button>
           </div>
         </div>
       </Modal>
@@ -619,3 +795,90 @@ const QuoteItemizedSection = ({ areaName = "Master Bedroom Toilet" }) => {
 };
 
 export default QuoteItemizedSection;
+
+// import React, { useState } from "react";
+// import AreaDetails from "./AreaDetails";
+// import DeliverablesTable from "./DeliverablesTable";
+// import DeliverableModal from "./DeliverableModal";
+// import DeliverableEditModal from "./DeliverableEditModal";
+// import OpeningModal from "./OpeningModal";
+// import { initialItems } from "./initialLeads";
+
+// const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
+//   const [areaName, setAreaName] = useState(defaultAreaName || "Master Bedroom Toilet");
+//   const [category, setCategory] = useState("Toilet");
+//   const [dimensions, setDimensions] = useState([
+//     { name: "Door 1", h: 7, w: 2.5 },
+//     { name: "Door 2", h: 7, w: 3 },
+//     { name: "Window", h: 3, w: 2 },
+//   ]);
+//   const [unit, setUnit] = useState("Feet");
+//   const [length, setLength] = useState(10);
+//   const [breadth, setBreadth] = useState(12);
+//   const [height, setHeight] = useState(10);
+
+//   const [items, setItems] = useState(initialItems);
+
+//   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [showOpeningModal, setShowOpeningModal] = useState(false);
+//   const [selectedItem, setSelectedItem] = useState(null);
+
+//   return (
+//     <div className="bg-white p-4 rounded shadow space-y-6">
+//       <AreaDetails
+//         areaName={areaName}
+//         setAreaName={setAreaName}
+//         category={category}
+//         setCategory={setCategory}
+//         dimensions={dimensions}
+//         setDimensions={setDimensions}
+//         unit={unit}
+//         setUnit={setUnit}
+//         length={length}
+//         setLength={setLength}
+//         breadth={breadth}
+//         setBreadth={setBreadth}
+//         height={height}
+//         setHeight={setHeight}
+//         onAddOpening={() => setShowOpeningModal(true)}
+//       />
+
+//       <DeliverablesTable
+//         items={items}
+//         onRowClick={(item) => {
+//           setSelectedItem(item);
+//           setShowEditModal(true);
+//         }}
+//         onDelete={(id) => setItems((prev) => prev.filter((itm) => itm.id !== id))}
+//         onAddDeliverable={() => setShowDeliverableModal(true)}
+//       />
+
+//       {/* Add Deliverable */}
+//       <DeliverableModal
+//         isOpen={showDeliverableModal}
+//         onClose={() => setShowDeliverableModal(false)}
+//         onSave={(newItem) => setItems((prev) => [...prev, newItem])}
+//       />
+
+//       {/* Edit Deliverable */}
+//       <DeliverableEditModal
+//         isOpen={showEditModal}
+//         item={selectedItem}
+//         onClose={() => setShowEditModal(false)}
+//         onSave={(updated) =>
+//           setItems((prev) => prev.map((itm) => (itm.id === updated.id ? updated : itm)))
+//         }
+//       />
+
+//       {/* Add Opening */}
+//       <OpeningModal
+//         isOpen={showOpeningModal}
+//         onClose={() => setShowOpeningModal(false)}
+//         onSave={(newOpening) => setDimensions((prev) => [...prev, newOpening])}
+//       />
+//     </div>
+//   );
+// };
+
+// export default QuoteItemizedSection;
