@@ -10,7 +10,13 @@ import {
 } from "../../../services/quoteServices";
 import { toast } from "react-toastify";
 
-const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId }) => {
+const QuoteSummary = ({
+  activeSection,
+  isHuelip,
+  summary,
+  setSummary,
+  quoteId,
+}) => {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
@@ -22,8 +28,14 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
       : (summary || []).filter((row) => row.space === activeSection);
 
   // Totals
-  const totalAmount = filteredData.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-  const totalTax = filteredData.reduce((sum, row) => sum + (Number(row.tax) || 0), 0);
+  const totalAmount = filteredData.reduce(
+    (sum, row) => sum + (Number(row.amount) || 0),
+    0
+  );
+  const totalTax = filteredData.reduce(
+    (sum, row) => sum + (Number(row.tax) || 0),
+    0
+  );
   const total = totalAmount + totalTax;
 
   const formatCurrency = (amount) =>
@@ -35,28 +47,73 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
 
   // Save edit
   const handleSaveEdit = async (row) => {
+    console.log("👉 handleSaveEdit called", row);
+
+    const fields = {
+      workPackages: row.workPackages,
+      items: row.items,
+      amount: row.amount,
+      tax: row.tax,
+    };
+    console.log("✅ fields prepared", fields);
+
     try {
-      const updated = await updateSummaryRow(quoteId, row._id, row);
+      console.log("🚀 calling updateSummaryRow with:", {
+        quoteId,
+        spaceId: row._id,
+        fields,
+      });
+
+      const updated = await updateSummaryRow(quoteId, row._id, fields); // 👈 wrap fields
+
+      console.log("✅ API call success, updated:", updated);
+
       setSummary(updated.summary || []);
       setEditingRowId(null);
       toast.success("Row updated");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to update row");
+      console.error(
+        "❌ Update row failed:",
+        err.response?.data || err.message || err
+      );
+      toast.error(err.response?.data?.message || "Failed to update row");
     }
   };
 
+  // const handleSaveEdit = async (row) => {
+  //   try {
+  //     const fields = {
+  //       workPackages: row.workPackages,
+  //       items: row.items,
+  //       amount: row.amount,
+  //       tax: row.tax,
+  //     };
+
+  //     const updated = await updateSummaryRow(quoteId, row._id, fields);
+  //     setSummary(updated.summary || []);
+  //     setEditingRowId(null);
+  //     console.log("rowId,quoteId,fields", row._id, quoteId, fields);
+  //     toast.success("Row updated");
+  //   } catch (err) {
+  //     console.error(
+  //       "Update row failed:",
+  //       err.response?.data || err.message || err
+  //     );
+  //     toast.error(err.response?.data?.message || "Failed to update row");
+  //   }
+  // };
+
   // Delete row
-  const handleDeleteRow = async (rowId) => {
-    try {
-      const updated = await deleteSummaryRow(quoteId, rowId);
-      setSummary(updated.summary || []);
-      toast.success("Row deleted");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete row");
-    }
-  };
+const handleDeleteRow = async (spaceId) => {
+  try {
+    const updated = await deleteSummaryRow(quoteId, spaceId);
+    setSummary(updated.summary || []);
+    toast.success("Row deleted");
+  } catch (err) {
+    console.error("Delete row failed:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Failed to delete row");
+  }
+};
 
   return (
     <div className="bg-white rounded-lg shadow p-4 overflow-x-auto">
@@ -64,7 +121,9 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
       <table className="min-w-full text-sm text-left">
         <thead>
           <tr className="border-b font-semibold">
-            <th className="py-2 px-2"><FiFilter /></th>
+            <th className="py-2 px-2">
+              <FiFilter />
+            </th>
             <th className="py-2 px-2">Space</th>
             <th className="py-2 px-2">Work Packages</th>
             <th className="py-2 px-2">Items</th>
@@ -114,7 +173,9 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
                         onChange={(e) =>
                           setSummary((prev) =>
                             prev.map((r) =>
-                              r._id === row._id ? { ...r, items: e.target.value } : r
+                              r._id === row._id
+                                ? { ...r, items: e.target.value }
+                                : r
                             )
                           )
                         }
@@ -128,7 +189,9 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
                         onChange={(e) =>
                           setSummary((prev) =>
                             prev.map((r) =>
-                              r._id === row._id ? { ...r, amount: e.target.value } : r
+                              r._id === row._id
+                                ? { ...r, amount: e.target.value }
+                                : r
                             )
                           )
                         }
@@ -141,14 +204,20 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
                         value={row.tax}
                         onChange={(e) =>
                           setSummary((prev) =>
-                            prev.map((r) => (r._id === row._id ? { ...r, tax: e.target.value } : r))
+                            prev.map((r) =>
+                              r._id === row._id
+                                ? { ...r, tax: e.target.value }
+                                : r
+                            )
                           )
                         }
                         className="border p-1 rounded"
                       />
                     </td>
                     <td className="py-2 px-2">
-                      {formatCurrency((Number(row.amount) || 0) + (Number(row.tax) || 0))}
+                      {formatCurrency(
+                        (Number(row.amount) || 0) + (Number(row.tax) || 0)
+                      )}
                     </td>
                     <td className="py-2 px-2">
                       <Button
@@ -169,7 +238,9 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
                     <td className="py-2 px-2">{formatCurrency(row.amount)}</td>
                     <td className="py-2 px-2">{formatCurrency(row.tax)}</td>
                     <td className="py-2 px-2">
-                      {formatCurrency((Number(row.amount) || 0) + (Number(row.tax) || 0))}
+                      {formatCurrency(
+                        (Number(row.amount) || 0) + (Number(row.tax) || 0)
+                      )}
                     </td>
                     <td
                       className="py-2 px-2 text-red-700 hover:cursor-pointer"
@@ -234,7 +305,9 @@ const QuoteSummary = ({ activeSection, isHuelip, summary, setSummary, quoteId })
                 This document outlines the terms and conditions governing the
                 engagement between [Your Company Name] and [Client Name].
               </p>
-              <p className="mt-2 italic">1. Quotation Validity & Acceptance ...</p>
+              <p className="mt-2 italic">
+                1. Quotation Validity & Acceptance ...
+              </p>
               <p className="mt-1">2. Payment Terms ...</p>
               <p className="mt-1">3. Project Scope ...</p>
 
@@ -547,7 +620,7 @@ export default QuoteSummary;
 // };
 
 // export default QuoteSummary;
-  
+
 // import React, { useState } from "react";
 // import { FaEdit, FaChevronDown, FaChevronUp } from "react-icons/fa";
 // import { FiFilter } from "react-icons/fi";

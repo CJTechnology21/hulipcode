@@ -76,20 +76,53 @@ export const fetchQuoteSummary = async (quoteId) => {
 };
 
 // Update a single summary row (by space)
-export const updateSummaryRow = async (quoteId, space, fields,spaceId) => {
+// api service
+export const updateSummaryRow = async (quoteId, spaceId, fields) => {
+  console.log("PATCH URL:", `/api/quote/${quoteId}/summary/${spaceId}`);
+  console.log("PATCH body:", { fields });
+
   const res = await axiosInstance.patch(
-    `/api/quote/${quoteId}/summary${spaceId}`,
-    { space, fields },
+    `/api/quote/${quoteId}/summary/${spaceId}`,
+    { fields },
     { headers: { "Content-Type": "application/json" } }
+  );
+
+  return res.data;
+};
+
+
+// export const updateSummaryRow = async (quoteId, spaceId, fields) => {
+//   const res = await axiosInstance.patch(
+//     `/api/quote/${quoteId}/summary/${spaceId}`,
+//      {fields} ,
+//     { headers: { "Content-Type": "application/json" } }
+//   );
+//   return res.data;
+// };
+
+// Delete a single summary row (by space)
+export const deleteSummaryRow = async (quoteId, spaceId) => {
+  const res = await axiosInstance.delete(
+    `/api/quote/${quoteId}/summary/${spaceId}`
   );
   return res.data;
 };
 
-// Delete a single summary row (by space)
-export const deleteSummaryRow = async (quoteId, space,spaceId) => {
-  const res = await axiosInstance.delete(`/api/quote/${quoteId}/summary${spaceId}`, {
-    data: { space }, // axios requires `data` for DELETE body
-    headers: { "Content-Type": "application/json" },
-  });
-  return res.data;
-};
+// export const deleteSummaryRow = async (quoteId, spaceId) => {
+//   const res = await axiosInstance.delete(
+//     `/api/quote/${quoteId}/summary/${spaceId}`,
+//     {
+//       data: { spaceId }, 
+//       headers: { "Content-Type": "application/json" },
+//     }
+//   );
+//   return res.data;
+// };
+
+// export const deleteSummaryRow = async (quoteId, space, spaceId) => {
+//   const res = await axiosInstance.delete(`/api/quote/${quoteId}/summary/${spaceId}`, {
+//     data: { space }, // axios requires `data` for DELETE body
+//     headers: { "Content-Type": "application/json" },
+//   });
+//   return res.data;
+// };

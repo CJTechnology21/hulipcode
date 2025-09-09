@@ -127,7 +127,7 @@ function QuoteDetail() {
         }
         const data = await fetchQuoteSummary(quoteId);
         setSummary(Array.isArray(data) ? data : []);
-        console.log("Fetched Summary:", data);
+      
 
         // 🔥 Dynamically build sections from spaces
         const dynamicSpaces = (Array.isArray(data) ? data : []).map(

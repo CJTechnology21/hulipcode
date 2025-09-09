@@ -125,19 +125,20 @@ const getQuoteSummary = async (req, res) => {
   }
 };
 
-// // Update a single summary row (by spaceId)
 // Update a single summary row (by spaceId)
+import mongoose from "mongoose";
+
 const updateSummaryRow = async (req, res) => {
   try {
-    const { id, spaceId } = req.params; // ✅ get both from params
-    const { fields } = req.body;       // ✅ only fields in body
+    const { id, spaceId } = req.params;
+    const { fields } = req.body;
 
-    if (!fields) {
-      return res.status(400).json({ message: "fields are required" });
+    if (!mongoose.Types.ObjectId.isValid(spaceId) || !fields) {
+      return res.status(400).json({ message: "spaceId and fields are required" });
     }
 
     const updatedQuote = await Quote.findOneAndUpdate(
-      { _id: id, "summary._id": spaceId }, // ✅ match by subdocument _id
+      { _id: id, "summary._id": new mongoose.Types.ObjectId(spaceId) },
       {
         $set: Object.fromEntries(
           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
@@ -154,19 +155,53 @@ const updateSummaryRow = async (req, res) => {
 
     res.status(200).json(updatedQuote);
   } catch (error) {
+    console.error(" Error updating summary row:", error);
     res.status(500).json({ message: "Error updating summary row", error });
   }
 };
 
+// const updateSummaryRow = async (req, res) => {
+//   try {
+//     const { id, spaceId } = req.params;
+//     const { fields } = req.body;
+//     if (!fields) {
+//       return res.status(400).json({ message: "fields are required" });
+//     }
+
+//     const updatedQuote = await Quote.findOneAndUpdate(
+//       { _id: id, "summary._id": spaceId }, 
+//       {
+//         $set: Object.fromEntries(
+//           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
+//         ),
+//       },
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!updatedQuote) {
+//       return res.status(404).json({ message: "Quote or summary row not found" });
+//     }
+
+//     res.status(200).json(updatedQuote);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error updating summary row", error });
+//   }
+// };
+
 // Delete a single summary row (by spaceId)
 const deleteSummaryRow = async (req, res) => {
   try {
-    const { id, spaceId } = req.params; // quoteId + spaceId
+    const { id, spaceId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
 
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
-      { $pull: { summary: { _id: spaceId } } }, // pull subdocument by _id
-      { new: true }
+      { $pull: { summary: { _id: new mongoose.Types.ObjectId(spaceId) } } }, { new: true }
     )
       .populate("leadId", "id name budget contact category city")
       .populate("assigned", "name email");
@@ -179,9 +214,33 @@ const deleteSummaryRow = async (req, res) => {
 
     res.status(200).json(updatedQuote);
   } catch (error) {
+    console.error("Error in deleteSummaryRow:", error);
     res.status(500).json({ message: "Error deleting summary row", error });
   }
 };
+// const deleteSummaryRow = async (req, res) => {
+//   try {
+//     const { id, spaceId } = req.params; // quoteId + spaceId
+
+//     const updatedQuote = await Quote.findByIdAndUpdate(
+//       id,
+//       { $pull: { summary: { _id: spaceId } } }, // pull subdocument by _id
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!updatedQuote) {
+//       return res
+//         .status(404)
+//         .json({ message: "Quote or summary row not found" });
+//     }
+
+//     res.status(200).json(updatedQuote);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error deleting summary row", error });
+//   }
+// };
 
 // const updateSummaryRow = async (req, res) => {
 //   try {
