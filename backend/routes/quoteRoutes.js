@@ -27,8 +27,8 @@ router.delete("/:id", protect, deleteQuote);
 // SUMMARY ROUTES
 router.get("/:id/summary", getQuoteSummary);
 router.put("/:id/summary", protect, addSummaryToQuote);
-router.patch("/:id/summary", protect, updateSummaryRow);
-router.delete("/:id/summary", protect, deleteSummaryRow);
+router.patch("/:id/summary/:spaceId", protect, updateSummaryRow);
+router.delete("/:id/summary/:spaceId", protect, deleteSummaryRow);
 
 module.exports = router;
 

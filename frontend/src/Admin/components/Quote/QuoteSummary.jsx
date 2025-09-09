@@ -48,7 +48,7 @@ const QuoteSummary = ({
   //  Save edit
   const handleSaveEdit = async (row) => {
     try {
-      const updated = await updateSummaryRow(quoteId, row.space, row);
+      const updated = await updateSummaryRow(quoteId, row.spaceId, row);
       setSummary(updated.summary || []);
       setEditingRow(null);
       toast.success("Row updated");
@@ -61,7 +61,7 @@ const QuoteSummary = ({
   //  Delete row
   const handleDeleteRow = async (space) => {
     try {
-      const updated = await deleteSummaryRow(quoteId, space);
+      const updated = await deleteSummaryRow(quoteId, spaceId);
       setSummary(updated.summary || []);
       toast.success("Row deleted");
     } catch (err) {
