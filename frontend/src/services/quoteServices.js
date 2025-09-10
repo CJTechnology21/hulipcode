@@ -65,9 +65,8 @@ export const fetchQuoteSummary = async (quoteId) => {
 
 
 //  Add summary rows (single or multiple)
-
 export const addSummaryToQuote = async (quoteId, summary) => {
-  const rows = Array.isArray(summary) ? summary : [summary];
+  const rows = [].concat(summary || []); // ensures it's always a flat array
 
   const res = await axiosInstance.put(
     `/api/quote/${quoteId}/summary`,
@@ -75,8 +74,20 @@ export const addSummaryToQuote = async (quoteId, summary) => {
     { headers: { "Content-Type": "application/json" } }
   );
 
-  return res.data; // return backend response as-is
+  return res.data;
 };
+
+
+// export const addSummaryToQuote = async (quoteId, summary) => {
+//   const res = await axiosInstance.put(
+//     `/api/quote/${quoteId}/summary`,
+//     Array.isArray(summary) ? summary : [summary], // always array
+//     { headers: { "Content-Type": "application/json" } }
+//   );
+
+//   return res.data;
+// };
+
 
 
 //  Update a single summary row by spaceId

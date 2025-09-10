@@ -117,7 +117,7 @@ function QuoteDetail() {
     }
   }, [showImportTemplateModal]);
 
-  // Fetch Quote Summary initially 
+  // Fetch Quote Summary initially
   useEffect(() => {
     const loadSummary = async () => {
       try {
@@ -127,7 +127,6 @@ function QuoteDetail() {
         }
         const data = await fetchQuoteSummary(quoteId);
         setSummary(Array.isArray(data) ? data : []);
-      
 
         // 🔥 Dynamically build sections from spaces
         const dynamicSpaces = (Array.isArray(data) ? data : []).map(
@@ -147,14 +146,71 @@ function QuoteDetail() {
       toast.error("No Quote ID found");
       return;
     }
+
     try {
-      await addSummaryToQuote(qid, summary);
+      const newSections = summary.filter((s) => !s._id);
+
+      if (newSections.length === 0) {
+        toast.info("No new sections to save");
+        return;
+      }
+
+      // Save new sections (object if single, array if multiple)
+      await addSummaryToQuote(
+        qid,
+        newSections.length === 1 ? newSections[0] : newSections
+      );
+
+      // Re-fetch latest summary from backend
+      const updated = await fetchQuoteSummary(quoteId);
+      setSummary(Array.isArray(updated) ? updated : []);
+
+      // Update dynamic sections properly
+      const dynamicSpaces = (Array.isArray(updated) ? updated : []).map(
+        (s) => s.spaceName
+      );
+      setSections(["Summary", ...dynamicSpaces]);
+
       toast.success("Summary saved successfully");
     } catch (err) {
       console.error("Error saving summary:", err);
       toast.error("Failed to save summary");
     }
   };
+
+  // const handleSaveSummary = async () => {
+  //   if (!qid) {
+  //     toast.error("No Quote ID found");
+  //     return;
+  //   }
+
+  //   try {
+  //     const newSections = summary.filter((s) => !s._id);
+
+  //     if (newSections.length === 0) {
+  //       toast.info("No new sections to save");
+  //       return;
+  //     }
+
+  //     // Save new sections
+  //     await addSummaryToQuote(qid, newSections);
+
+  //     // 🔥 Re-fetch latest summary from backend instead of merging manually
+  //     const updated = await fetchQuoteSummary(quoteId);
+  //     setSummary(Array.isArray(updated) ? updated : []);
+
+  //     // 🔥 Update dynamic sections properly
+  //     const dynamicSpaces = (Array.isArray(updated) ? updated : []).map(
+  //       (s) => s.space
+  //     );
+  //     setSections(["Summary", ...dynamicSpaces]);
+
+  //     toast.success("Summary saved successfully");
+  //   } catch (err) {
+  //     console.error("Error saving summary:", err);
+  //     toast.error("Failed to save summary");
+  //   }
+  // };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -316,29 +372,27 @@ function QuoteDetail() {
         size="md"
       >
         <form className="space-y-4">
-          {["space", "workpackages", "items", "amount", "tax",].map(
-            (field) => (
-              <div key={field}>
-                <label className="block font-semibold capitalize mb-1">
-                  {field}
-                </label>
-                <input
-                  type={
-                    field === "items" ||
-                    field === "amount" ||
-                    field === "tax" ||
-                    field === "total"
-                      ? "number"
-                      : "text"
-                  }
-                  name={field}
-                  value={sectionForm[field]}
-                  onChange={handleSectionChange}
-                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-                />
-              </div>
-            )
-          )}
+          {["space", "workpackages", "items", "amount", "tax"].map((field) => (
+            <div key={field}>
+              <label className="block font-semibold capitalize mb-1">
+                {field}
+              </label>
+              <input
+                type={
+                  field === "items" ||
+                  field === "amount" ||
+                  field === "tax" ||
+                  field === "total"
+                    ? "number"
+                    : "text"
+                }
+                name={field}
+                value={sectionForm[field]}
+                onChange={handleSectionChange}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+              />
+            </div>
+          ))}
           <div className="flex justify-end space-x-2">
             <Button
               className="bg-gray-300 text-black px-4 py-1 rounded-full"
