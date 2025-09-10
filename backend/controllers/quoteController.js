@@ -1,5 +1,5 @@
 const Quote = require("../models/Quote");
-
+const mongoose = require("mongoose")
 //  QUOTE CONTROLLERS  //
 
 // Create a new quote (without summary at first)
@@ -82,31 +82,34 @@ const deleteQuote = async (req, res) => {
 //  SUMMARY CONTROLLERS  //
 
 // Add or replace full summary array
-const addSummaryToQuote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { summary } = req.body;
+  const addSummaryToQuote = async (req, res) => {
+    try {
+      const { id } = req.params;
+      let rows = req.body;
 
-    if (!Array.isArray(summary)) {
-      return res.status(400).json({ message: "Summary must be an array" });
+      // Wrap single object into array
+      if (!Array.isArray(rows)) {
+        rows = [rows];
+      }
+
+      const updatedQuote = await Quote.findByIdAndUpdate(
+        id,
+        { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
+        { new: true }
+      )
+        .populate("leadId", "id name budget contact category city")
+        .populate("assigned", "name email");
+
+      if (!updatedQuote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      res.status(200).json(updatedQuote.summary);
+    } catch (error) {
+      console.error("Error adding summary row:", error);
+      res.status(500).json({ message: "Error adding summary row", error: error.message });
     }
-
-    const updatedQuote = await Quote.findByIdAndUpdate(
-      id,
-      { $set: { summary } },
-      { new: true }
-    )
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email");
-
-    if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
-
-    res.status(200).json(updatedQuote.summary);
-  } catch (error) {
-    console.error("Error adding summary:", error);
-    res.status(500).json({ message: "Error adding summary", error: error.message });
-  }
-};
+  };
 
 // Get only summary
 const getQuoteSummary = async (req, res) => {
@@ -130,14 +133,17 @@ const getQuoteSummary = async (req, res) => {
 const updateSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
-    const fields = req.body; // ✅ send fields directly from client
+    const { fields } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId)) {
-      return res.status(400).json({ message: "Valid quoteId and spaceId are required" });
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId) || !fields) {
+      return res.status(400).json({ message: "quoteId, spaceId and fields are required" });
     }
 
     const updatedQuote = await Quote.findOneAndUpdate(
-      { _id: id, "summary.spaceId": spaceId }, // match by summary.spaceId
+      { 
+        _id: new mongoose.Types.ObjectId(id), 
+        "summary._id": new mongoose.Types.ObjectId(spaceId) 
+      },
       {
         $set: Object.fromEntries(
           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
@@ -159,70 +165,9 @@ const updateSummaryRow = async (req, res) => {
   }
 };
 
-// const updateSummaryRow = async (req, res) => {
-//   try {
-//     const { id, spaceId } = req.params;
-//     const { fields } = req.body;
-
-//     if (!mongoose.Types.ObjectId.isValid(spaceId) || !fields) {
-//       return res.status(400).json({ message: "spaceId and fields are required" });
-//     }
-
-//     const updatedQuote = await Quote.findOneAndUpdate(
-//       { _id: id, "summary._id": new mongoose.Types.ObjectId(spaceId) },
-//       {
-//         $set: Object.fromEntries(
-//           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
-//         ),
-//       },
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) {
-//       return res.status(404).json({ message: "Quote or summary row not found" });
-//     }
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     console.error(" Error updating summary row:", error);
-//     res.status(500).json({ message: "Error updating summary row", error });
-//   }
-// };
-
-// const updateSummaryRow = async (req, res) => {
-//   try {
-//     const { id, spaceId } = req.params;
-//     const { fields } = req.body;
-//     if (!fields) {
-//       return res.status(400).json({ message: "fields are required" });
-//     }
-
-//     const updatedQuote = await Quote.findOneAndUpdate(
-//       { _id: id, "summary._id": spaceId }, 
-//       {
-//         $set: Object.fromEntries(
-//           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
-//         ),
-//       },
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) {
-//       return res.status(404).json({ message: "Quote or summary row not found" });
-//     }
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error updating summary row", error });
-//   }
-// };
 
 // Delete a single summary row (by spaceId)
-const deleteSummaryRow = async (req, res) => {
+ const deleteSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
 
@@ -232,103 +177,24 @@ const deleteSummaryRow = async (req, res) => {
 
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
-      { $pull: { summary: { spaceId: spaceId } } }, // ✅ match by spaceId, not _id
+      { $pull: { summary: { _id: new mongoose.Types.ObjectId(spaceId) } } },
       { new: true }
     )
       .populate("leadId", "id name budget contact category city")
       .populate("assigned", "name email");
 
     if (!updatedQuote) {
-      return res
-        .status(404)
-        .json({ message: "Quote or summary row not found" });
+      return res.status(404).json({ message: "Quote or summary row not found" });
     }
 
     res.status(200).json(updatedQuote);
   } catch (error) {
-    console.error("❌ Error in deleteSummaryRow:", error);
+    console.error(" Error deleting summary row:", error);
     res.status(500).json({ message: "Error deleting summary row", error });
   }
 };
 
-// const deleteSummaryRow = async (req, res) => {
-//   try {
-//     const { id, spaceId } = req.params; // quoteId + spaceId
 
-//     const updatedQuote = await Quote.findByIdAndUpdate(
-//       id,
-//       { $pull: { summary: { _id: spaceId } } }, // pull subdocument by _id
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) {
-//       return res
-//         .status(404)
-//         .json({ message: "Quote or summary row not found" });
-//     }
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error deleting summary row", error });
-//   }
-// };
-
-// const updateSummaryRow = async (req, res) => {
-//   try {
-//     const { id } = req.params; // quoteId
-//     const { spaceId, fields } = req.body;
-
-//     if (!spaceId || !fields) {
-//       return res.status(400).json({ message: "spaceId and fields are required" });
-//     }
-
-//     const updatedQuote = await Quote.findOneAndUpdate(
-//       { _id: id, "summary.spaceId": spaceId },
-//       {
-//         $set: Object.fromEntries(
-//           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
-//         ),
-//       },
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error updating summary row", error });
-//   }
-// };
-
-// // Delete a single summary row (by spaceId)
-// const deleteSummaryRow = async (req, res) => {
-//   try {
-//     const { id } = req.params; // quoteId
-//     const { spaceId } = req.body;
-
-//     if (!spaceId) {
-//       return res.status(400).json({ message: "spaceId is required" });
-//     }
-
-//     const updatedQuote = await Quote.findByIdAndUpdate(
-//       id,
-//       { $pull: { summary: { spaceId } } },
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
-
-//     res.status(200).json(updatedQuote);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error deleting summary row", error });
-//   }
-// };
 
 module.exports = {
   // Quote

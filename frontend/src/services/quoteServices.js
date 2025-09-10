@@ -56,76 +56,45 @@ export const deleteQuote = async (quoteId) => {
 
 // -------------------- SUMMARY SERVICES -------------------- //
 
-// Add or replace summary array for a quote
-export const addSummaryToQuote = async (quoteId, summary) => {
-  if (!Array.isArray(summary)) {
-    throw new Error("Summary must be an array");
-  }
-  const res = await axiosInstance.put(
-    `/api/quote/${quoteId}/summary`,
-    { summary },
-    { headers: { "Content-Type": "application/json" } }
-  );
-  return res.data;
-};
-
 // Fetch only the summary of a quote
 export const fetchQuoteSummary = async (quoteId) => {
   const res = await axiosInstance.get(`/api/quote/${quoteId}/summary`);
   return res.data;
 };
 
-// Update a single summary row (by space)
-// api service
-// services/quoteServices.js
 
 
+//  Add summary rows (single or multiple)
+
+export const addSummaryToQuote = async (quoteId, summary) => {
+  const rows = Array.isArray(summary) ? summary : [summary];
+
+  const res = await axiosInstance.put(
+    `/api/quote/${quoteId}/summary`,
+    rows,
+    { headers: { "Content-Type": "application/json" } }
+  );
+
+  return res.data; // return backend response as-is
+};
+
+
+//  Update a single summary row by spaceId
 export const updateSummaryRow = async (quoteId, spaceId, fields) => {
-  console.log("PATCH URL:", `/api/quote/${quoteId}/summary/${spaceId}`);
-  console.log("PATCH body:", fields);
-
   const res = await axiosInstance.patch(
     `/api/quote/${quoteId}/summary/${spaceId}`,
-    fields, // ✅ send fields directly
+    { fields }, // match backend controller
     { headers: { "Content-Type": "application/json" } }
   );
 
   return res.data;
 };
 
-
-// export const updateSummaryRow = async (quoteId, spaceId, fields) => {
-//   const res = await axiosInstance.patch(
-//     `/api/quote/${quoteId}/summary/${spaceId}`,
-//      {fields} ,
-//     { headers: { "Content-Type": "application/json" } }
-//   );
-//   return res.data;
-// };
-
-// Delete a single summary row (by space)
+//  Delete a single summary row by spaceId
 export const deleteSummaryRow = async (quoteId, spaceId) => {
   const res = await axiosInstance.delete(
     `/api/quote/${quoteId}/summary/${spaceId}`
   );
+
   return res.data;
 };
-
-// export const deleteSummaryRow = async (quoteId, spaceId) => {
-//   const res = await axiosInstance.delete(
-//     `/api/quote/${quoteId}/summary/${spaceId}`,
-//     {
-//       data: { spaceId },
-//       headers: { "Content-Type": "application/json" },
-//     }
-//   );
-//   return res.data;
-// };
-
-// export const deleteSummaryRow = async (quoteId, space, spaceId) => {
-//   const res = await axiosInstance.delete(`/api/quote/${quoteId}/summary/${spaceId}`, {
-//     data: { space }, // axios requires `data` for DELETE body
-//     headers: { "Content-Type": "application/json" },
-//   });
-//   return res.data;
-// };
