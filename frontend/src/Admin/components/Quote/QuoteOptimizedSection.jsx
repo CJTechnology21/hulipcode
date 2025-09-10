@@ -1,5 +1,3 @@
-
-
 // // components/QuoteItemizedSection.jsx
 // import React, { useState, Fragment } from "react";
 // import { FaPlus, FaTrash } from "react-icons/fa";
@@ -891,7 +889,7 @@ import DeliverableEditModal from "./DeliverableEditModal";
 import OpeningModal from "./OpeningModal";
 import { initialItems } from "./initialLeads";
 
-const QuoteItemizedSection = ({ spaceRow }) => {
+const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip }) => {
   // useEffect so state resets when switching sections
   const [areaName, setAreaName] = useState(spaceRow?.space || "");
   const [category, setCategory] = useState(spaceRow?.category || "");
@@ -921,6 +919,8 @@ const QuoteItemizedSection = ({ spaceRow }) => {
   return (
     <div className="bg-white p-4 rounded shadow space-y-6">
       <AreaDetails
+        quoteId={quoteId}
+        spaceId={spaceRow?._id}
         areaName={areaName}
         setAreaName={setAreaName}
         category={category}
@@ -939,12 +939,16 @@ const QuoteItemizedSection = ({ spaceRow }) => {
       />
 
       <DeliverablesTable
+        quoteId={quoteId}
+        spaceId={spaceRow?._id}
         items={items}
         onRowClick={(item) => {
           setSelectedItem(item);
           setShowEditModal(true);
         }}
-        onDelete={(id) => setItems((prev) => prev.filter((itm) => itm._id !== id))}
+        onDelete={(id) =>
+          setItems((prev) => prev.filter((itm) => itm._id !== id))
+        }
         onAddDeliverable={() => setShowDeliverableModal(true)}
       />
 
@@ -961,7 +965,9 @@ const QuoteItemizedSection = ({ spaceRow }) => {
         item={selectedItem}
         onClose={() => setShowEditModal(false)}
         onSave={(updated) =>
-          setItems((prev) => prev.map((itm) => (itm._id === updated._id ? updated : itm)))
+          setItems((prev) =>
+            prev.map((itm) => (itm._id === updated._id ? updated : itm))
+          )
         }
       />
 
