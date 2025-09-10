@@ -82,34 +82,35 @@ const deleteQuote = async (req, res) => {
 //  SUMMARY CONTROLLERS  //
 
 // Add or replace full summary array
-  const addSummaryToQuote = async (req, res) => {
-    try {
-      const { id } = req.params;
-      let rows = req.body;
+const addSummaryToQuote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let rows = req.body;
+    console.log("Incoming rows:", rows); // 👈
 
-      // Wrap single object into array
-      if (!Array.isArray(rows)) {
-        rows = [rows];
-      }
-
-      const updatedQuote = await Quote.findByIdAndUpdate(
-        id,
-        { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
-        { new: true }
-      )
-        .populate("leadId", "id name budget contact category city")
-        .populate("assigned", "name email");
-
-      if (!updatedQuote) {
-        return res.status(404).json({ message: "Quote not found" });
-      }
-
-      res.status(200).json(updatedQuote.summary);
-    } catch (error) {
-      console.error("Error adding summary row:", error);
-      res.status(500).json({ message: "Error adding summary row", error: error.message });
+    // Wrap single object into array
+    if (!Array.isArray(rows)) {
+      rows = [rows];
     }
-  };
+
+    const updatedQuote = await Quote.findByIdAndUpdate(
+      id,
+      { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
+      { new: true }
+    )
+      .populate("leadId", "id name budget contact category city")
+      .populate("assigned", "name email");
+
+    if (!updatedQuote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    res.status(200).json(updatedQuote.summary);
+  } catch (error) {
+    console.error("Error adding summary row:", error);
+    res.status(500).json({ message: "Error adding summary row", error: error.message });
+  }
+};
 
 // Get only summary
 const getQuoteSummary = async (req, res) => {
@@ -140,9 +141,9 @@ const updateSummaryRow = async (req, res) => {
     }
 
     const updatedQuote = await Quote.findOneAndUpdate(
-      { 
-        _id: new mongoose.Types.ObjectId(id), 
-        "summary._id": new mongoose.Types.ObjectId(spaceId) 
+      {
+        _id: new mongoose.Types.ObjectId(id),
+        "summary._id": new mongoose.Types.ObjectId(spaceId)
       },
       {
         $set: Object.fromEntries(
@@ -167,7 +168,7 @@ const updateSummaryRow = async (req, res) => {
 
 
 // Delete a single summary row (by spaceId)
- const deleteSummaryRow = async (req, res) => {
+const deleteSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
 

@@ -48,7 +48,7 @@ function QuoteDetail() {
   // form state for Add Section
   const [sectionForm, setSectionForm] = useState({
     space: "",
-    workpackages: "",
+    workPackages: "",
     items: "",
     amount: "",
     tax: "",
@@ -59,29 +59,58 @@ function QuoteDetail() {
     const { name, value } = e.target;
     setSectionForm((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleAddSection = () => {
     if (!sectionForm.space) {
       toast.error("Space name is required");
       return;
     }
 
-    // Update summary locally
+    // Create new section object
     const newSection = { ...sectionForm };
+
+    // 🔎 Debug log
+    console.log("🚀 New Section before saving:", newSection);
+
+    // Update summary locally
     setSummary((prev) => [...prev, newSection]);
 
     // Update sections list dynamically
     setSections((prev) => [...prev, sectionForm.space]);
 
     setShowAddSectionModal(false);
+
+    // Reset form
     setSectionForm({
       space: "",
-      workpackages: "",
+      workPackages: "",
       items: "",
       amount: "",
       tax: "",
     });
   };
+
+  // const handleAddSection = () => {
+  //   if (!sectionForm.space) {
+  //     toast.error("Space name is required");
+  //     return;
+  //   }
+
+  //   // Update summary locally
+  //   const newSection = { ...sectionForm };
+  //   setSummary((prev) => [...prev, newSection]);
+
+  //   // Update sections list dynamically
+  //   setSections((prev) => [...prev, sectionForm.space]);
+
+  //   setShowAddSectionModal(false);
+  //   setSectionForm({
+  //     space: "",
+  //     workPackages: "",
+  //     items: "",
+  //     amount: "",
+  //     tax: "",
+  //   });
+  // };
 
   // --- Fetch client type using leadMongoId ---
   useEffect(() => {
@@ -140,14 +169,16 @@ function QuoteDetail() {
 
     loadSummary();
   }, [quoteId]);
+
   // --- Save Summary Handler ---
   const handleSaveSummary = async () => {
-    if (!qid) {
+    if (!quoteId) {
       toast.error("No Quote ID found");
       return;
     }
 
     try {
+      // Only take unsaved rows (no _id yet)
       const newSections = summary.filter((s) => !s._id);
 
       if (newSections.length === 0) {
@@ -155,10 +186,12 @@ function QuoteDetail() {
         return;
       }
 
-      // Save new sections (object if single, array if multiple)
+      console.log("Saving summary for:", quoteId, newSections);
+
+      // Always send array to backend
       await addSummaryToQuote(
-        qid,
-        newSections.length === 1 ? newSections[0] : newSections
+        quoteId,
+        Array.isArray(newSections) ? newSections : [newSections]
       );
 
       // Re-fetch latest summary from backend
@@ -167,7 +200,7 @@ function QuoteDetail() {
 
       // Update dynamic sections properly
       const dynamicSpaces = (Array.isArray(updated) ? updated : []).map(
-        (s) => s.spaceName
+        (s) => s.space
       );
       setSections(["Summary", ...dynamicSpaces]);
 
@@ -177,41 +210,6 @@ function QuoteDetail() {
       toast.error("Failed to save summary");
     }
   };
-
-  // const handleSaveSummary = async () => {
-  //   if (!qid) {
-  //     toast.error("No Quote ID found");
-  //     return;
-  //   }
-
-  //   try {
-  //     const newSections = summary.filter((s) => !s._id);
-
-  //     if (newSections.length === 0) {
-  //       toast.info("No new sections to save");
-  //       return;
-  //     }
-
-  //     // Save new sections
-  //     await addSummaryToQuote(qid, newSections);
-
-  //     // 🔥 Re-fetch latest summary from backend instead of merging manually
-  //     const updated = await fetchQuoteSummary(quoteId);
-  //     setSummary(Array.isArray(updated) ? updated : []);
-
-  //     // 🔥 Update dynamic sections properly
-  //     const dynamicSpaces = (Array.isArray(updated) ? updated : []).map(
-  //       (s) => s.space
-  //     );
-  //     setSections(["Summary", ...dynamicSpaces]);
-
-  //     toast.success("Summary saved successfully");
-  //   } catch (err) {
-  //     console.error("Error saving summary:", err);
-  //     toast.error("Failed to save summary");
-  //   }
-  // };
-
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -372,7 +370,7 @@ function QuoteDetail() {
         size="md"
       >
         <form className="space-y-4">
-          {["space", "workpackages", "items", "amount", "tax"].map((field) => (
+          {["space", "workPackages", "items", "amount", "tax"].map((field) => (
             <div key={field}>
               <label className="block font-semibold capitalize mb-1">
                 {field}
