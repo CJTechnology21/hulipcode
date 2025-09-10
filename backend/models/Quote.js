@@ -36,7 +36,7 @@ const spaceDetailSchema = new mongoose.Schema(
     length: Number,
     breadth: Number,
     height: Number,
-    unit: { type: String, default: "Feet" },
+    unit: { type: String, default: "Meter" },
     perimeter: Number,
     floorArea: Number,
     wallArea: Number,

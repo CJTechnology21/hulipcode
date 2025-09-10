@@ -1,7 +1,7 @@
 const Quote = require("../models/Quote");
-const mongoose = require("mongoose")
-//  QUOTE CONTROLLERS  //
+const mongoose = require("mongoose");
 
+// QUOTE CONTROLLERS 
 // Create a new quote (without summary at first)
 const createQuote = async (req, res) => {
   try {
@@ -79,21 +79,20 @@ const deleteQuote = async (req, res) => {
   }
 };
 
-//  SUMMARY CONTROLLERS  //
+
+// SUMMARY CONTROLLERS 
+
 
 // Add or replace full summary array
 const addSummaryToQuote = async (req, res) => {
   try {
     const { id } = req.params;
     let rows = req.body;
-    console.log("Incoming rows:", rows); // 👈
 
-    // Wrap single object into array
     if (!Array.isArray(rows)) {
       rows = [rows];
     }
 
-    // Remove `total` and ensure numeric fields are numbers
     rows = rows.map(({ total, workPackages, items, amount, tax, ...rest }) => ({
       ...rest,
       workPackages: Number(workPackages) || 0,
@@ -104,7 +103,7 @@ const addSummaryToQuote = async (req, res) => {
 
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
-      { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
+      { $push: { summary: { $each: rows } } },
       { new: true }
     )
       .populate("leadId", "id name budget contact category city")
@@ -120,36 +119,6 @@ const addSummaryToQuote = async (req, res) => {
     res.status(500).json({ message: "Error adding summary row", error: error.message });
   }
 };
-
-// const addSummaryToQuote = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     let rows = req.body;
-//     console.log("Incoming rows:", rows); // 👈
-
-//     // Wrap single object into array
-//     if (!Array.isArray(rows)) {
-//       rows = [rows];
-//     }
-
-//     const updatedQuote = await Quote.findByIdAndUpdate(
-//       id,
-//       { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
-//       { new: true }
-//     )
-//       .populate("leadId", "id name budget contact category city")
-//       .populate("assigned", "name email");
-
-//     if (!updatedQuote) {
-//       return res.status(404).json({ message: "Quote not found" });
-//     }
-
-//     res.status(200).json(updatedQuote.summary);
-//   } catch (error) {
-//     console.error("Error adding summary row:", error);
-//     res.status(500).json({ message: "Error adding summary row", error: error.message });
-//   }
-// };
 
 // Get only summary
 const getQuoteSummary = async (req, res) => {
@@ -169,7 +138,6 @@ const getQuoteSummary = async (req, res) => {
 };
 
 // Update a single summary row (by spaceId)
-
 const updateSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
@@ -205,15 +173,10 @@ const updateSummaryRow = async (req, res) => {
   }
 };
 
-
-// Delete a single summary row (by spaceId)
+// Delete a single summary row
 const deleteSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId)) {
-      return res.status(400).json({ message: "Invalid ID format" });
-    }
 
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
@@ -234,7 +197,139 @@ const deleteSummaryRow = async (req, res) => {
   }
 };
 
+// NESTED CRUD HELPERS //
 
+
+// GET all nested items
+const getNestedItems = async (req, res, field) => {
+  try {
+    const { id, spaceId } = req.params;
+
+    const quote = await Quote.findOne(
+      { _id: id, "summary._id": spaceId },
+      { "summary.$": 1 }
+    );
+
+    if (!quote || !quote.summary?.length) {
+      return res.status(404).json({ message: "Summary row not found" });
+    }
+
+    res.status(200).json(quote.summary[0][field] || []);
+  } catch (error) {
+    res.status(500).json({ message: `Error fetching ${field}`, error: error.message });
+  }
+};
+
+// GET single nested item
+const getNestedItemById = async (req, res, field) => {
+  try {
+    const { id, spaceId, itemId } = req.params;
+
+    const quote = await Quote.findOne(
+      { _id: id, "summary._id": spaceId },
+      { "summary.$": 1 }
+    );
+
+    if (!quote || !quote.summary?.length) {
+      return res.status(404).json({ message: "Summary row not found" });
+    }
+
+    const item = quote.summary[0][field].id(itemId);
+    if (!item) {
+      return res.status(404).json({ message: `${field} item not found` });
+    }
+
+    res.status(200).json(item);
+  } catch (error) {
+    res.status(500).json({ message: `Error fetching ${field} item`, error: error.message });
+  }
+};
+
+// ADD nested item
+const addNestedItem = async (req, res, field) => {
+  try {
+    const { id, spaceId } = req.params;
+    const data = req.body;
+
+    const updatedQuote = await Quote.findOneAndUpdate(
+      { _id: id, "summary._id": spaceId },
+      { $push: { [`summary.$.${field}`]: data } },
+      { new: true }
+    );
+
+    if (!updatedQuote) return res.status(404).json({ message: "Not found" });
+
+    res.status(200).json(updatedQuote);
+  } catch (error) {
+    res.status(500).json({ message: `Error adding ${field}`, error: error.message });
+  }
+};
+
+// UPDATE nested item
+const updateNestedItem = async (req, res, field) => {
+  try {
+    const { id, spaceId, itemId } = req.params;
+    const { fields } = req.body;
+
+    const path = `summary.$.${field}.$[elem]`;
+
+    const updatedQuote = await Quote.findOneAndUpdate(
+      { _id: id, "summary._id": spaceId },
+      { $set: Object.fromEntries(Object.entries(fields).map(([k, v]) => [`${path}.${k}`, v])) },
+      {
+        new: true,
+        arrayFilters: [{ "elem._id": itemId }]
+      }
+    );
+
+    if (!updatedQuote) return res.status(404).json({ message: "Not found" });
+
+    res.status(200).json(updatedQuote);
+  } catch (error) {
+    res.status(500).json({ message: `Error updating ${field}`, error: error.message });
+  }
+};
+
+// DELETE nested item
+const deleteNestedItem = async (req, res, field) => {
+  try {
+    const { id, spaceId, itemId } = req.params;
+
+    const updatedQuote = await Quote.findOneAndUpdate(
+      { _id: id, "summary._id": spaceId },
+      { $pull: { [`summary.$.${field}`]: { _id: itemId } } },
+      { new: true }
+    );
+
+    if (!updatedQuote) return res.status(404).json({ message: "Not found" });
+
+    res.status(200).json(updatedQuote);
+  } catch (error) {
+    res.status(500).json({ message: `Error deleting ${field}`, error: error.message });
+  }
+};
+
+// WRAPPERS FOR EXPORT //
+// SPACES
+const getSpaces = (req, res) => getNestedItems(req, res, "spaces");
+const getSpaceById = (req, res) => getNestedItemById(req, res, "spaces");
+const addSpace = (req, res) => addNestedItem(req, res, "spaces");
+const updateSpace = (req, res) => updateNestedItem(req, res, "spaces");
+const deleteSpace = (req, res) => deleteNestedItem(req, res, "spaces");
+
+// OPENINGS
+const getOpenings = (req, res) => getNestedItems(req, res, "openings");
+const getOpeningById = (req, res) => getNestedItemById(req, res, "openings");
+const addOpening = (req, res) => addNestedItem(req, res, "openings");
+const updateOpening = (req, res) => updateNestedItem(req, res, "openings");
+const deleteOpening = (req, res) => deleteNestedItem(req, res, "openings");
+
+// DELIVERABLES (photo field stores S3 URL)
+const getDeliverables = (req, res) => getNestedItems(req, res, "deliverables");
+const getDeliverableById = (req, res) => getNestedItemById(req, res, "deliverables");
+const addDeliverable = (req, res) => addNestedItem(req, res, "deliverables");
+const updateDeliverable = (req, res) => updateNestedItem(req, res, "deliverables");
+const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables");
 
 module.exports = {
   // Quote
@@ -249,10 +344,31 @@ module.exports = {
   getQuoteSummary,
   updateSummaryRow,
   deleteSummaryRow,
+
+  // Spaces
+  getSpaces,
+  getSpaceById,
+  addSpace,
+  updateSpace,
+  deleteSpace,
+
+  // Openings
+  getOpenings,
+  getOpeningById,
+  addOpening,
+  updateOpening,
+  deleteOpening,
+
+  // Deliverables
+  getDeliverables,
+  getDeliverableById,
+  addDeliverable,
+  updateDeliverable,
+  deleteDeliverable,
 };
 
 // const Quote = require("../models/Quote");
-
+// const mongoose = require("mongoose")
 // //  QUOTE CONTROLLERS  //
 
 // // Create a new quote (without summary at first)
@@ -303,7 +419,7 @@ module.exports = {
 //   }
 // };
 
-// // Update full quote (not summary)
+// // Update full quote
 // const updateQuote = async (req, res) => {
 //   try {
 //     const updatedQuote = await Quote.findByIdAndUpdate(req.params.id, req.body, {
@@ -320,7 +436,7 @@ module.exports = {
 //   }
 // };
 
-// // Delete full quote (not summary row)
+// // Delete full quote
 // const deleteQuote = async (req, res) => {
 //   try {
 //     const deleted = await Quote.findByIdAndDelete(req.params.id);
@@ -332,32 +448,45 @@ module.exports = {
 //   }
 // };
 
-// //  SUMMARY CONTROLLERS
+// //  SUMMARY CONTROLLERS  //
 
 // // Add or replace full summary array
 // const addSummaryToQuote = async (req, res) => {
 //   try {
 //     const { id } = req.params;
-//     const { summary } = req.body;
+//     let rows = req.body;
+//     console.log("Incoming rows:", rows); // 👈
 
-//     if (!Array.isArray(summary)) {
-//       return res.status(400).json({ message: "Summary must be an array" });
+//     // Wrap single object into array
+//     if (!Array.isArray(rows)) {
+//       rows = [rows];
 //     }
+
+//     // Remove `total` and ensure numeric fields are numbers
+//     rows = rows.map(({ total, workPackages, items, amount, tax, ...rest }) => ({
+//       ...rest,
+//       workPackages: Number(workPackages) || 0,
+//       items: Number(items) || 0,
+//       amount: Number(amount) || 0,
+//       tax: Number(tax) || 0,
+//     }));
 
 //     const updatedQuote = await Quote.findByIdAndUpdate(
 //       id,
-//       { $set: { summary } },
+//       { $push: { summary: { $each: rows } } },
 //       { new: true }
 //     )
 //       .populate("leadId", "id name budget contact category city")
 //       .populate("assigned", "name email");
 
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
+//     if (!updatedQuote) {
+//       return res.status(404).json({ message: "Quote not found" });
+//     }
 
 //     res.status(200).json(updatedQuote.summary);
 //   } catch (error) {
-//     console.error("Error adding summary:", error);
-//     res.status(500).json({ message: "Error adding summary", error: error.message });
+//     console.error("Error adding summary row:", error);
+//     res.status(500).json({ message: "Error adding summary row", error: error.message });
 //   }
 // };
 
@@ -378,18 +507,22 @@ module.exports = {
 //   }
 // };
 
-// // Update a single summary row (by space)
+// // Update a single summary row (by spaceId)
+
 // const updateSummaryRow = async (req, res) => {
 //   try {
-//     const { id } = req.params; // quoteId
-//     const { space, fields } = req.body;
+//     const { id, spaceId } = req.params;
+//     const { fields } = req.body;
 
-//     if (!space || !fields) {
-//       return res.status(400).json({ message: "Space and fields are required" });
+//     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId) || !fields) {
+//       return res.status(400).json({ message: "quoteId, spaceId and fields are required" });
 //     }
 
 //     const updatedQuote = await Quote.findOneAndUpdate(
-//       { _id: id, "summary.space": space },
+//       {
+//         _id: new mongoose.Types.ObjectId(id),
+//         "summary._id": new mongoose.Types.ObjectId(spaceId)
+//       },
 //       {
 //         $set: Object.fromEntries(
 //           Object.entries(fields).map(([k, v]) => [`summary.$.${k}`, v])
@@ -400,39 +533,47 @@ module.exports = {
 //       .populate("leadId", "id name budget contact category city")
 //       .populate("assigned", "name email");
 
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
+//     if (!updatedQuote) {
+//       return res.status(404).json({ message: "Quote or summary row not found" });
+//     }
 
 //     res.status(200).json(updatedQuote);
 //   } catch (error) {
+//     console.error(" Error updating summary row:", error);
 //     res.status(500).json({ message: "Error updating summary row", error });
 //   }
 // };
 
-// // Delete a single summary row (by space)
+
+// // Delete a single summary row (by spaceId)
 // const deleteSummaryRow = async (req, res) => {
 //   try {
-//     const { id } = req.params; // quoteId
-//     const { space } = req.body;
+//     const { id, spaceId } = req.params;
 
-//     if (!space) {
-//       return res.status(400).json({ message: "Space is required" });
+//     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId)) {
+//       return res.status(400).json({ message: "Invalid ID format" });
 //     }
 
 //     const updatedQuote = await Quote.findByIdAndUpdate(
 //       id,
-//       { $pull: { summary: { space } } },
+//       { $pull: { summary: { _id: new mongoose.Types.ObjectId(spaceId) } } },
 //       { new: true }
 //     )
 //       .populate("leadId", "id name budget contact category city")
 //       .populate("assigned", "name email");
 
-//     if (!updatedQuote) return res.status(404).json({ message: "Quote or summary row not found" });
+//     if (!updatedQuote) {
+//       return res.status(404).json({ message: "Quote or summary row not found" });
+//     }
 
 //     res.status(200).json(updatedQuote);
 //   } catch (error) {
+//     console.error(" Error deleting summary row:", error);
 //     res.status(500).json({ message: "Error deleting summary row", error });
 //   }
 // };
+
+
 
 // module.exports = {
 //   // Quote

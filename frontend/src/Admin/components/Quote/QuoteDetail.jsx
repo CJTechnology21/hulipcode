@@ -65,11 +65,7 @@ function QuoteDetail() {
       return;
     }
 
-    // Create new section object
     const newSection = { ...sectionForm };
-
-    // 🔎 Debug log
-    console.log("🚀 New Section before saving:", newSection);
 
     // Update summary locally
     setSummary((prev) => [...prev, newSection]);
@@ -88,29 +84,6 @@ function QuoteDetail() {
       tax: "",
     });
   };
-
-  // const handleAddSection = () => {
-  //   if (!sectionForm.space) {
-  //     toast.error("Space name is required");
-  //     return;
-  //   }
-
-  //   // Update summary locally
-  //   const newSection = { ...sectionForm };
-  //   setSummary((prev) => [...prev, newSection]);
-
-  //   // Update sections list dynamically
-  //   setSections((prev) => [...prev, sectionForm.space]);
-
-  //   setShowAddSectionModal(false);
-  //   setSectionForm({
-  //     space: "",
-  //     workPackages: "",
-  //     items: "",
-  //     amount: "",
-  //     tax: "",
-  //   });
-  // };
 
   // --- Fetch client type using leadMongoId ---
   useEffect(() => {
@@ -157,7 +130,7 @@ function QuoteDetail() {
         const data = await fetchQuoteSummary(quoteId);
         setSummary(Array.isArray(data) ? data : []);
 
-        // 🔥 Dynamically build sections from spaces
+        //  Dynamically build sections from spaces
         const dynamicSpaces = (Array.isArray(data) ? data : []).map(
           (s) => s.space
         );
@@ -316,10 +289,16 @@ function QuoteDetail() {
             />
           ) : (
             <QuoteItemizedSection
-              areaName={activeSection}
+              spaceRow={summary.find((s) => s.space === activeSection)}
               isHuelip={isHuelip}
               quoteId={quoteId}
             />
+
+            // <QuoteItemizedSection
+            //   areaName={activeSection}
+            //   isHuelip={isHuelip}
+            //   quoteId={quoteId}
+            // />
           )}
         </div>
       </div>

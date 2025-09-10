@@ -796,7 +796,94 @@
 
 // export default QuoteItemizedSection;
 
-import React, { useState } from "react";
+// import React, { useState } from "react";
+// import AreaDetails from "./AreaDetails";
+// import DeliverablesTable from "./DeliverablesTable";
+// import DeliverableModal from "./DeliverableModal";
+// import DeliverableEditModal from "./DeliverableEditModal";
+// import OpeningModal from "./OpeningModal";
+// import { initialItems } from "./initialLeads";
+
+// const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
+//   const [areaName, setAreaName] = useState(defaultAreaName || "Master Bedroom Toilet");
+//   const [category, setCategory] = useState("Toilet");
+//   const [dimensions, setDimensions] = useState([
+//     { name: "Door 1", h: 7, w: 2.5 },
+//     { name: "Door 2", h: 7, w: 3 },
+//     { name: "Window", h: 3, w: 2 },
+//   ]);
+//   const [unit, setUnit] = useState("Feet");
+//   const [length, setLength] = useState(10);
+//   const [breadth, setBreadth] = useState(12);
+//   const [height, setHeight] = useState(10);
+
+//   const [items, setItems] = useState(initialItems);
+
+//   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [showOpeningModal, setShowOpeningModal] = useState(false);
+//   const [selectedItem, setSelectedItem] = useState(null);
+
+//   return (
+//     <div className="bg-white p-4 rounded shadow space-y-6">
+//       <AreaDetails
+//         areaName={areaName}
+//         setAreaName={setAreaName}
+//         category={category}
+//         setCategory={setCategory}
+//         dimensions={dimensions}
+//         setDimensions={setDimensions}
+//         unit={unit}
+//         setUnit={setUnit}
+//         length={length}
+//         setLength={setLength}
+//         breadth={breadth}
+//         setBreadth={setBreadth}
+//         height={height}
+//         setHeight={setHeight}
+//         onAddOpening={() => setShowOpeningModal(true)}
+//       />
+
+//       <DeliverablesTable
+//         items={items}
+//         onRowClick={(item) => {
+//           setSelectedItem(item);
+//           setShowEditModal(true);
+//         }}
+//         onDelete={(id) => setItems((prev) => prev.filter((itm) => itm.id !== id))}
+//         onAddDeliverable={() => setShowDeliverableModal(true)}
+//       />
+
+//       {/* Add Deliverable */}
+//       <DeliverableModal
+//         isOpen={showDeliverableModal}
+//         onClose={() => setShowDeliverableModal(false)}
+//         onSave={(newItem) => setItems((prev) => [...prev, newItem])}
+//       />
+
+//       {/* Edit Deliverable */}
+//       <DeliverableEditModal
+//         isOpen={showEditModal}
+//         item={selectedItem}
+//         onClose={() => setShowEditModal(false)}
+//         onSave={(updated) =>
+//           setItems((prev) => prev.map((itm) => (itm.id === updated.id ? updated : itm)))
+//         }
+//       />
+
+//       {/* Add Opening */}
+//       <OpeningModal
+//         isOpen={showOpeningModal}
+//         onClose={() => setShowOpeningModal(false)}
+//         onSave={(newOpening) => setDimensions((prev) => [...prev, newOpening])}
+//       />
+//     </div>
+//   );
+// };
+
+// export default QuoteItemizedSection;
+
+import React, { useState, useEffect } from "react";
 import AreaDetails from "./AreaDetails";
 import DeliverablesTable from "./DeliverablesTable";
 import DeliverableModal from "./DeliverableModal";
@@ -804,20 +891,27 @@ import DeliverableEditModal from "./DeliverableEditModal";
 import OpeningModal from "./OpeningModal";
 import { initialItems } from "./initialLeads";
 
-const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
-  const [areaName, setAreaName] = useState(defaultAreaName || "Master Bedroom Toilet");
-  const [category, setCategory] = useState("Toilet");
-  const [dimensions, setDimensions] = useState([
-    { name: "Door 1", h: 7, w: 2.5 },
-    { name: "Door 2", h: 7, w: 3 },
-    { name: "Window", h: 3, w: 2 },
-  ]);
-  const [unit, setUnit] = useState("Feet");
-  const [length, setLength] = useState(10);
-  const [breadth, setBreadth] = useState(12);
-  const [height, setHeight] = useState(10);
+const QuoteItemizedSection = ({ spaceRow }) => {
+  // useEffect so state resets when switching sections
+  const [areaName, setAreaName] = useState(spaceRow?.space || "");
+  const [category, setCategory] = useState(spaceRow?.category || "");
+  const [unit, setUnit] = useState(spaceRow?.unit || "Feet");
+  const [length, setLength] = useState(spaceRow?.length || 0);
+  const [breadth, setBreadth] = useState(spaceRow?.breadth || 0);
+  const [height, setHeight] = useState(spaceRow?.height || 0);
+  const [dimensions, setDimensions] = useState(spaceRow?.openings || []);
+  const [items, setItems] = useState(spaceRow?.deliverables || initialItems);
 
-  const [items, setItems] = useState(initialItems);
+  useEffect(() => {
+    setAreaName(spaceRow?.space || "");
+    setCategory(spaceRow?.category || "");
+    setUnit(spaceRow?.unit || "Feet");
+    setLength(spaceRow?.length || 0);
+    setBreadth(spaceRow?.breadth || 0);
+    setHeight(spaceRow?.height || 0);
+    setDimensions(spaceRow?.openings || []);
+    setItems(spaceRow?.deliverables || []);
+  }, [spaceRow]);
 
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -850,7 +944,7 @@ const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
           setSelectedItem(item);
           setShowEditModal(true);
         }}
-        onDelete={(id) => setItems((prev) => prev.filter((itm) => itm.id !== id))}
+        onDelete={(id) => setItems((prev) => prev.filter((itm) => itm._id !== id))}
         onAddDeliverable={() => setShowDeliverableModal(true)}
       />
 
@@ -867,7 +961,7 @@ const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
         item={selectedItem}
         onClose={() => setShowEditModal(false)}
         onSave={(updated) =>
-          setItems((prev) => prev.map((itm) => (itm.id === updated.id ? updated : itm)))
+          setItems((prev) => prev.map((itm) => (itm._id === updated._id ? updated : itm)))
         }
       />
 
