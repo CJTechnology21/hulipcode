@@ -93,6 +93,15 @@ const addSummaryToQuote = async (req, res) => {
       rows = [rows];
     }
 
+    // Remove `total` and ensure numeric fields are numbers
+    rows = rows.map(({ total, workPackages, items, amount, tax, ...rest }) => ({
+      ...rest,
+      workPackages: Number(workPackages) || 0,
+      items: Number(items) || 0,
+      amount: Number(amount) || 0,
+      tax: Number(tax) || 0,
+    }));
+
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
       { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
@@ -111,6 +120,36 @@ const addSummaryToQuote = async (req, res) => {
     res.status(500).json({ message: "Error adding summary row", error: error.message });
   }
 };
+
+// const addSummaryToQuote = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     let rows = req.body;
+//     console.log("Incoming rows:", rows); // 👈
+
+//     // Wrap single object into array
+//     if (!Array.isArray(rows)) {
+//       rows = [rows];
+//     }
+
+//     const updatedQuote = await Quote.findByIdAndUpdate(
+//       id,
+//       { $push: { summary: { $each: rows } } }, // 👈 supports multiple or single
+//       { new: true }
+//     )
+//       .populate("leadId", "id name budget contact category city")
+//       .populate("assigned", "name email");
+
+//     if (!updatedQuote) {
+//       return res.status(404).json({ message: "Quote not found" });
+//     }
+
+//     res.status(200).json(updatedQuote.summary);
+//   } catch (error) {
+//     console.error("Error adding summary row:", error);
+//     res.status(500).json({ message: "Error adding summary row", error: error.message });
+//   }
+// };
 
 // Get only summary
 const getQuoteSummary = async (req, res) => {
