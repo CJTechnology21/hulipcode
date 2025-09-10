@@ -77,13 +77,16 @@ export const fetchQuoteSummary = async (quoteId) => {
 
 // Update a single summary row (by space)
 // api service
+// services/quoteServices.js
+
+
 export const updateSummaryRow = async (quoteId, spaceId, fields) => {
   console.log("PATCH URL:", `/api/quote/${quoteId}/summary/${spaceId}`);
-  console.log("PATCH body:", { fields });
+  console.log("PATCH body:", fields);
 
   const res = await axiosInstance.patch(
     `/api/quote/${quoteId}/summary/${spaceId}`,
-    { fields },
+    fields, // ✅ send fields directly
     { headers: { "Content-Type": "application/json" } }
   );
 
@@ -112,7 +115,7 @@ export const deleteSummaryRow = async (quoteId, spaceId) => {
 //   const res = await axiosInstance.delete(
 //     `/api/quote/${quoteId}/summary/${spaceId}`,
 //     {
-//       data: { spaceId }, 
+//       data: { spaceId },
 //       headers: { "Content-Type": "application/json" },
 //     }
 //   );

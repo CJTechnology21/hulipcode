@@ -77,7 +77,7 @@ const quoteSchema = new mongoose.Schema(
     // Summary references spaceId
     summary: [
       {
-        spaceId: { type: mongoose.Schema.Types.ObjectId }, // link to spaces._id
+        spaceId: { type: mongoose.Schema.Types.ObjectId }, 
         spaceName: String, // denormalized for quick access
         workPackages: Number,
         items: Number,
