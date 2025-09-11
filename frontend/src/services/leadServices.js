@@ -43,12 +43,11 @@ export const deleteLead = async (leadId) => {
   const res = await axiosInstance.delete(`/api/leads/${leadId}`);
   return res.data;
 };
+//Get client type
 export const getClientType = async (leadId) => {
   const res = await axiosInstance.get(`/api/leads/${leadId}/client-type`)
   return res.data;
 }
-
-
 
 // Fetch architects
 export const fetchArchitects = async () => {
@@ -56,10 +55,15 @@ export const fetchArchitects = async () => {
   return res.data;
 };
 
-
 //Fetch Vendors
 export const fetchVendors = async () => {
   const res = await axiosInstance.get("/api/user/vendors");
+  return res.data;
+}
+
+//Fetch Material Suppliers 
+export const fetchMaterialSuppliers = async () => {
+  const res = await axiosInstance.get("/api/user/material-suppliers");
   return res.data;
 }
 
