@@ -83,6 +83,16 @@ const getVendors = async (req, res) => {
   }
 }
 
+const getMaterialSuppliers = async (req, res) => {
+  try {
+    const materialSup = await User.find({ role: "Material Supplier" }).select("_id email phoneNumber name role");
+    res.json(materialSup);
+  } catch (error) {
+    console.log("Errors in fetching the Material Suppliers:", err);
+    res.status(500).json({ message: "Server Error" })
+  }
+}
+
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({ role: { $in: ["architect", "client"] } })
@@ -95,7 +105,7 @@ const getUsers = async (req, res) => {
 };
 
 
- const createUser = async (req, res) => {
+const createUser = async (req, res) => {
   try {
     const { name, type } = req.body;
 
@@ -124,5 +134,6 @@ module.exports = {
   getArchitects,
   getVendors,
   getUsers,
+  getMaterialSuppliers,
   createUser,
 };

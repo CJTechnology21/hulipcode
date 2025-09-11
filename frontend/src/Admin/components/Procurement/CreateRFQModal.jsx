@@ -1,15 +1,19 @@
 import { Dialog, Transition } from "@headlessui/react";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { FaTimes, FaRegCalendarAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import SearchBar from "../../../components/SearchBar";
 import Button from "../../../components/Button";
-import allProjects from "../projects/projectsData";
 import { toast } from "react-toastify";
 
-export default function CreateRFQModal({ open, onClose }) {
+export default function CreateRFQModal({
+  open,
+  onClose,
+  projects = [],
+  loading,
+}) {
   const [searchText, setSearchText] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [date, setDate] = useState(new Date());
@@ -18,13 +22,16 @@ export default function CreateRFQModal({ open, onClose }) {
 
   const navigate = useNavigate();
 
-  const filteredProjects = allProjects.filter((proj) =>
-    proj.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+  //  Filter projects dynamically
+  const filteredProjects = useMemo(() => {
+    return projects.filter((proj) =>
+      proj.name.toLowerCase().includes(searchText.toLowerCase())
+    );
+  }, [projects, searchText]);
 
   const handleSave = () => {
     if (!selectedProject) {
-      alert("Please select a project first.");
+      toast.error("Please select a project first.");
       return;
     }
 
@@ -82,14 +89,12 @@ export default function CreateRFQModal({ open, onClose }) {
 
                   {/* RFQ ID + Calendar */}
                   <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
-                    <span className="text-indigo-600 font-medium cursor-pointer hover:underline">
-                      #12–16 ✎
-                    </span>
+                    <span className="text-indigo-600 font-medium cursor-pointer hover:underline"></span>
                     <div className="relative w-fit">
                       <DatePicker
                         selected={date}
                         onChange={(dateObj) => setDate(dateObj)}
-                        dateFormat="yyyy-MM-dd"
+                        dateFormat="dd-MM-yyyy"
                         className="pl-3 pr-10 py-2 text-sm font-medium text-red-600 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                         popperPlacement="bottom-end"
                       />
@@ -102,6 +107,7 @@ export default function CreateRFQModal({ open, onClose }) {
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">
                       PROJECT NAME <span className="text-red-500">*</span>
                     </label>
+
                     <SearchBar
                       value={
                         selectedProject ? selectedProject.name : searchText
@@ -117,9 +123,14 @@ export default function CreateRFQModal({ open, onClose }) {
                       placeholder="Search project..."
                       className="pl-3 pr-10 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
+
                     {isDropdownOpen && (
                       <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-md text-sm divide-y divide-gray-100">
-                        {filteredProjects.length > 0 ? (
+                        {loading ? (
+                          <li className="px-3 py-2 text-gray-400 italic">
+                            Loading projects...
+                          </li>
+                        ) : filteredProjects.length > 0 ? (
                           filteredProjects.map((proj) => (
                             <li
                               key={proj.id}
@@ -235,7 +246,6 @@ export default function CreateRFQModal({ open, onClose }) {
 //       return;
 //     }
 
-//     // Navigate to AddMaterialsScreen and pass data
 //     navigate("/addmaterials", {
 //       state: {
 //         project: selectedProject,
@@ -244,15 +254,14 @@ export default function CreateRFQModal({ open, onClose }) {
 //         taxType,
 //       },
 //     });
-//     toast.success("Project Selected Successfully");
 
+//     toast.success("Project Selected Successfully");
 //     onClose(); // Close modal
 //   };
 
 //   return (
 //     <Transition appear show={open} as={Fragment}>
 //       <Dialog as="div" className="relative z-50" onClose={onClose}>
-//         {/* Overlay */}
 //         <Transition.Child
 //           as={Fragment}
 //           enter="ease-out duration-300"
