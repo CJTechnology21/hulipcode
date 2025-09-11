@@ -794,93 +794,6 @@
 
 // export default QuoteItemizedSection;
 
-// import React, { useState } from "react";
-// import AreaDetails from "./AreaDetails";
-// import DeliverablesTable from "./DeliverablesTable";
-// import DeliverableModal from "./DeliverableModal";
-// import DeliverableEditModal from "./DeliverableEditModal";
-// import OpeningModal from "./OpeningModal";
-// import { initialItems } from "./initialLeads";
-
-// const QuoteItemizedSection = ({ areaName: defaultAreaName }) => {
-//   const [areaName, setAreaName] = useState(defaultAreaName || "Master Bedroom Toilet");
-//   const [category, setCategory] = useState("Toilet");
-//   const [dimensions, setDimensions] = useState([
-//     { name: "Door 1", h: 7, w: 2.5 },
-//     { name: "Door 2", h: 7, w: 3 },
-//     { name: "Window", h: 3, w: 2 },
-//   ]);
-//   const [unit, setUnit] = useState("Feet");
-//   const [length, setLength] = useState(10);
-//   const [breadth, setBreadth] = useState(12);
-//   const [height, setHeight] = useState(10);
-
-//   const [items, setItems] = useState(initialItems);
-
-//   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
-//   const [showEditModal, setShowEditModal] = useState(false);
-//   const [showOpeningModal, setShowOpeningModal] = useState(false);
-//   const [selectedItem, setSelectedItem] = useState(null);
-
-//   return (
-//     <div className="bg-white p-4 rounded shadow space-y-6">
-//       <AreaDetails
-//         areaName={areaName}
-//         setAreaName={setAreaName}
-//         category={category}
-//         setCategory={setCategory}
-//         dimensions={dimensions}
-//         setDimensions={setDimensions}
-//         unit={unit}
-//         setUnit={setUnit}
-//         length={length}
-//         setLength={setLength}
-//         breadth={breadth}
-//         setBreadth={setBreadth}
-//         height={height}
-//         setHeight={setHeight}
-//         onAddOpening={() => setShowOpeningModal(true)}
-//       />
-
-//       <DeliverablesTable
-//         items={items}
-//         onRowClick={(item) => {
-//           setSelectedItem(item);
-//           setShowEditModal(true);
-//         }}
-//         onDelete={(id) => setItems((prev) => prev.filter((itm) => itm.id !== id))}
-//         onAddDeliverable={() => setShowDeliverableModal(true)}
-//       />
-
-//       {/* Add Deliverable */}
-//       <DeliverableModal
-//         isOpen={showDeliverableModal}
-//         onClose={() => setShowDeliverableModal(false)}
-//         onSave={(newItem) => setItems((prev) => [...prev, newItem])}
-//       />
-
-//       {/* Edit Deliverable */}
-//       <DeliverableEditModal
-//         isOpen={showEditModal}
-//         item={selectedItem}
-//         onClose={() => setShowEditModal(false)}
-//         onSave={(updated) =>
-//           setItems((prev) => prev.map((itm) => (itm.id === updated.id ? updated : itm)))
-//         }
-//       />
-
-//       {/* Add Opening */}
-//       <OpeningModal
-//         isOpen={showOpeningModal}
-//         onClose={() => setShowOpeningModal(false)}
-//         onSave={(newOpening) => setDimensions((prev) => [...prev, newOpening])}
-//       />
-//     </div>
-//   );
-// };
-
-// export default QuoteItemizedSection;
-
 import React, { useState, useEffect } from "react";
 import AreaDetails from "./AreaDetails";
 import DeliverablesTable from "./DeliverablesTable";
@@ -889,7 +802,7 @@ import DeliverableEditModal from "./DeliverableEditModal";
 import OpeningModal from "./OpeningModal";
 import { initialItems } from "./initialLeads";
 
-const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip }) => {
+const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
   // useEffect so state resets when switching sections
   const [areaName, setAreaName] = useState(spaceRow?.space || "");
   const [category, setCategory] = useState(spaceRow?.category || "");
@@ -921,6 +834,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip }) => {
       <AreaDetails
         quoteId={quoteId}
         spaceId={spaceRow?._id}
+        summaryId={summaryId}
         areaName={areaName}
         setAreaName={setAreaName}
         category={category}
@@ -941,6 +855,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip }) => {
       <DeliverablesTable
         quoteId={quoteId}
         spaceId={spaceRow?._id}
+        summmaryId={summaryId}
         items={items}
         onRowClick={(item) => {
           setSelectedItem(item);
@@ -956,13 +871,21 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip }) => {
       <DeliverableModal
         isOpen={showDeliverableModal}
         onClose={() => setShowDeliverableModal(false)}
-        onSave={(newItem) => setItems((prev) => [...prev, newItem])}
+        onSave={(savedDeliverable) =>
+          setItems((prev) => [...prev, savedDeliverable])
+        }
+        quoteId={quoteId}
+        spaceId={spaceRow?._id}
       />
 
+ 
       {/* Edit Deliverable */}
       <DeliverableEditModal
         isOpen={showEditModal}
         item={selectedItem}
+        quoteId={quoteId}
+        spaceId={spaceRow?._id}
+        summaryId={summaryId}
         onClose={() => setShowEditModal(false)}
         onSave={(updated) =>
           setItems((prev) =>

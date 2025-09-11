@@ -17,6 +17,7 @@ import SideBar from "../SideBar";
 import QuoteSummary from "./QuoteSummary";
 import QuoteItemizedSection from "./QuoteOptimizedSection";
 import Modal from "../Modal";
+import AddSectionModal from "./AddSectionModal";
 import {
   fetchQuotes,
   addSummaryToQuote,
@@ -32,6 +33,7 @@ function QuoteDetail() {
   const [activeSection, setActiveSection] = useState("Summary");
 
   // modals
+  //eslint-disable-next-line
   const [showAddSpaceModal, setShowAddSpaceModal] = useState(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [showImportTemplateModal, setShowImportTemplateModal] = useState(false);
@@ -46,44 +48,44 @@ function QuoteDetail() {
   const [sections, setSections] = useState(["Summary"]); // dynamic
 
   // form state for Add Section
-  const [sectionForm, setSectionForm] = useState({
-    space: "",
-    workPackages: "",
-    items: "",
-    amount: "",
-    tax: "",
-    total: "",
-  });
+  // const [sectionForm, setSectionForm] = useState({
+  //   space: "",
+  //   workPackages: "",
+  //   items: "",
+  //   amount: "",
+  //   tax: "",
+  //   total: "",
+  // });
 
-  const handleSectionChange = (e) => {
-    const { name, value } = e.target;
-    setSectionForm((prev) => ({ ...prev, [name]: value }));
-  };
-  const handleAddSection = () => {
-    if (!sectionForm.space) {
-      toast.error("Space name is required");
-      return;
-    }
+  // const handleSectionChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setSectionForm((prev) => ({ ...prev, [name]: value }));
+  // };
+  // const handleAddSection = () => {
+  //   if (!sectionForm.space) {
+  //     toast.error("Space name is required");
+  //     return;
+  //   }
 
-    const newSection = { ...sectionForm };
+  //   const newSection = { ...sectionForm };
 
-    // Update summary locally
-    setSummary((prev) => [...prev, newSection]);
+  //   // Update summary locally
+  //   setSummary((prev) => [...prev, newSection]);
 
-    // Update sections list dynamically
-    setSections((prev) => [...prev, sectionForm.space]);
+  //   // Update sections list dynamically
+  //   setSections((prev) => [...prev, sectionForm.space]);
 
-    setShowAddSectionModal(false);
+  //   setShowAddSectionModal(false);
 
-    // Reset form
-    setSectionForm({
-      space: "",
-      workPackages: "",
-      items: "",
-      amount: "",
-      tax: "",
-    });
-  };
+  //   // Reset form
+  //   setSectionForm({
+  //     space: "",
+  //     workPackages: "",
+  //     items: "",
+  //     amount: "",
+  //     tax: "",
+  //   });
+  // };
 
   // --- Fetch client type using leadMongoId ---
   useEffect(() => {
@@ -176,7 +178,6 @@ function QuoteDetail() {
         (s) => s.space
       );
       setSections(["Summary", ...dynamicSpaces]);
-
       toast.success("Summary saved successfully");
     } catch (err) {
       console.error("Error saving summary:", err);
@@ -292,100 +293,21 @@ function QuoteDetail() {
               spaceRow={summary.find((s) => s.space === activeSection)}
               isHuelip={isHuelip}
               quoteId={quoteId}
+              summaryId= {summary.find((s) =>s.space === activeSection)?._id}
             />
           )}
         </div>
       </div>
 
       {/* Add Space Modal */}
-      <Modal
-        isOpen={showAddSpaceModal}
-        onClose={() => setShowAddSpaceModal(false)}
-        title=""
-        size="sm"
-      >
-        <h2 className="text-lg font-extrabold text-center text-red-700 mb-2">
-          Add New Space
-        </h2>
-        <div className="border-2 border-black rounded-2xl px-4 py-3 space-y-4">
-          {[
-            "Bedroom",
-            "Living Room",
-            "Toilet",
-            "Pantry",
-            "Store",
-            "Balcony",
-          ].map((space) => (
-            <div key={space} className="flex justify-between items-center">
-              <label className="font-extrabold text-[16px]">{space}</label>
-              <input
-                type="checkbox"
-                className="w-5 h-5 border-2 border-black rounded-sm accent-red-700"
-              />
-            </div>
-          ))}
-          <div className="text-center">
-            <button
-              className="bg-red-700 text-white text-sm font-semibold px-4 py-1.5 rounded-full"
-              onClick={() => setShowAddSpaceModal(false)}
-            >
-              Add Item
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Add Section Modal */}
-      <Modal
+      <AddSectionModal
         isOpen={showAddSectionModal}
         onClose={() => setShowAddSectionModal(false)}
-        title="Add Section"
-        size="md"
-      >
-        <form className="space-y-4">
-          {["space", "workPackages", "items", "amount", "tax"].map((field) => (
-            <div key={field}>
-              <label className="block font-semibold capitalize mb-1">
-                {field}
-              </label>
-              <input
-                type={
-                  field === "items" ||
-                  field === "amount" ||
-                  field === "tax" ||
-                  field === "total"
-                    ? "number"
-                    : "text"
-                }
-                name={field}
-                value={sectionForm[field]}
-                onChange={handleSectionChange}
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-              />
-            </div>
-          ))}
-          <div className="flex justify-end space-x-2">
-            <Button
-              className="bg-gray-300 text-black px-4 py-1 rounded-full"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowAddSectionModal(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-red-700 hover:bg-red-900 text-white px-4 py-1 rounded-full"
-              onClick={(e) => {
-                e.preventDefault();
-                handleAddSection();
-              }}
-            >
-              Save
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onAddSection={(newSection) => {
+          setSummary((prev) => [...prev, newSection]);
+          setSections((prev) => [...prev, newSection.space]);
+        }}
+      />
 
       {/* Import Template Modal */}
       <Modal
