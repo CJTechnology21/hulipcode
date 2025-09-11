@@ -93,6 +93,7 @@ const AreaDetails = ({ quoteId, spaceId, summaryId }) => {
 
   useEffect(() => {
     loadOpeningsData();
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteId, spaceId]);
 
   // Unit shorthand
