@@ -12,7 +12,8 @@ import {
   updateQuote,
   deleteQuote,
 } from "../../../services/quoteServices";
-import { fetchArchitects, fetchLeads } from "../../../services/leadServices";
+import { fetchArchitects } from "../../../services/userServices";
+import { fetchLeads } from "../../../services/leadServices";
 import { MdMail } from "react-icons/md";
 
 const statusOptions = ["In Review", "Shortlisted", "Approved", "Rejected"];
@@ -24,12 +25,13 @@ function Quote() {
   const [editedData, setEditedData] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  //eslint-disable-next-line
   const [filters, setFilters] = useState({});
   const [architects, setArchitects] = useState([]);
   const [showSendOptions, setShowSendOptions] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ central load function (reusable after every update)
+  //  central load function (reusable after every update)
   const loadQuotes = async () => {
     try {
       const data = await fetchQuotes(filters);
@@ -60,7 +62,9 @@ function Quote() {
 
   // Fetch quotes on mount / filter change
   useEffect(() => {
+    //eslint-disable-next-line
     loadQuotes();
+     //eslint-disable-next-line
   }, [filters]);
 
   // Fetch clients

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaGoogle, FaInstagram, FaFacebookF, FaFilePdf } from "react-icons/fa";
-import { fetchArchitects } from "../../../services/leadServices";
+import { fetchArchitects } from "../../../services/userServices";
 
 function ClientSelectionModal({
   availableClients,

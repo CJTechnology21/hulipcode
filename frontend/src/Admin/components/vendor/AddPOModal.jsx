@@ -7,7 +7,7 @@ import Select from "react-select";
 import {
   fetchVendors,
   fetchArchandClients,
-} from "../../../services/leadServices";
+} from "../../../services/userServices";
 import { fetchProjects } from "../../../services/projectServices";
 import {
   createVendorOrder,

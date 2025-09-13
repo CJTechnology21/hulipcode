@@ -16,7 +16,7 @@ import {
   patchLayout,
   deleteLayout,
 } from "../../../services/twoDServices";
-import { fetchArchitects } from "../../../services/leadServices";
+import { fetchArchitects } from "../../../services/userServices";
 
 const statusColors = {
   Approved: "bg-green-200 text-green-700",

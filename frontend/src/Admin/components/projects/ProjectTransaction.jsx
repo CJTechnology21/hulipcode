@@ -14,7 +14,7 @@ import {
   fetchTransactions,
   deleteTransaction,
 } from "../../../services/transactionServices";
-import { fetchVendors } from "../../../services/leadServices";
+import { fetchVendors } from "../../../services/userServices";
 import { fetchPartyByProject } from "../../../services/partyServices";
 import { toId, getLabel } from "../../../utils/getLabel";
 

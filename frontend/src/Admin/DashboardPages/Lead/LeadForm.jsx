@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import { createLead, fetchArchitects } from "../../../services/leadServices";
-
+import {  fetchArchitects } from "../../../services/userServices";
+import { createLead } from "../../../services/leadServices";
 const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   budget: yup.string().required("Budget is required"),

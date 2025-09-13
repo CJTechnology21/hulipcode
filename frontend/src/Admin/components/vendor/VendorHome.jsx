@@ -18,7 +18,7 @@ import ReturnItemsModal from "./ReturnedItemsModal";
 import {
   fetchVendors,
   fetchArchandClients,
-} from "../../../services/leadServices";
+} from "../../../services/userServices";
 import { fetchProjects } from "../../../services/projectServices";
 import {
   fetchVendorOrderByArchitect,

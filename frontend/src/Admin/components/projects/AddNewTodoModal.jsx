@@ -6,7 +6,7 @@ import Input from "../../../components/Input";
 import DropDown from "../../../components/DropDown";
 import { createTodo } from "../../../services/todoServices";
 import { toast } from "react-toastify";
-import { fetchArchitects } from "../../../services/leadServices";
+import { fetchArchitects } from "../../../services/userServices";
 import { fetchProjects } from "../../../services/projectServices";
 
 function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
