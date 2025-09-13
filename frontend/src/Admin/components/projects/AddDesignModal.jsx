@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import DropDown from "../../../components/DropDown";
-import { fetchArchitects } from "../../../services/userServices";
+import { fetchArchitects } from "../../../services/leadServices";
 import { createLayout, patchLayout } from "../../../services/twoDServices";
 
 // ✅ Yup schema

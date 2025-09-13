@@ -18,8 +18,19 @@ const bankDetailsSchema = new mongoose.Schema({
   bankAddress: { type: String, trim: true },
   ibanNumber: { type: String, trim: true },
   upiNumber: { type: String, trim: true },
-}, { _id: false });
-
+}, { _id: true });
+const openingBalanceSchema = new mongoose.Schema({
+  mode: {
+    type: String,
+    enum: ["pay", "receive"], // matches your frontend toggle
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+}, { _id: true });
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -76,13 +87,18 @@ const userSchema = new mongoose.Schema({
     type: [bankDetailsSchema],
     default: [],
   },
+  openingBalance: {
+    type: openingBalanceSchema,
+    default: null,
+  },
+
   // Aadhaar & PAN
   aadhaarFile: {
-    type: String, 
+    type: String,
     trim: true,
   },
   panFile: {
-    type: String, 
+    type: String,
     trim: true,
   },
 

@@ -1,37 +1,20 @@
-import axiosInstance from './axiosInstance';
+
+import axios from "axios";
+const API_BASE = process.env.REACT_APP_API_BASE;
+
+// Create axios instance for all requests
+const axiosInstance = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true,
+});
 
 
-//Get client type
-export const getClientType = async (leadId) => {
-  const res = await axiosInstance.get(`/api/leads/${leadId}/client-type`)
-  return res.data;
-}
-
-// Fetch architects
-export const fetchArchitects = async () => {
-  const res = await axiosInstance.get("/api/user/architects");
+//  Address 
+export const fetchAddresses = async (userId) => {
+  const res = await axiosInstance.get(`/api/user/${userId}/address`);
   return res.data;
 };
 
-//Fetch Vendors
-export const fetchVendors = async () => {
-  const res = await axiosInstance.get("/api/user/vendors");
-  return res.data;
-}
-
-//Fetch Material Suppliers 
-export const fetchMaterialSuppliers = async () => {
-  const res = await axiosInstance.get("/api/user/material-suppliers");
-  return res.data;
-}
-
-//Fetch Architects and Clients
-export const fetchArchandClients = async () => {
-  const res = await axiosInstance.get("/api/user/architects-clients");
-  return res.data;
-}
-
-// ----- Address -----
 export const addAddress = async (userId, addressData) => {
   const res = await axiosInstance.post(`/api/user/${userId}/address`, addressData);
   return res.data;
@@ -42,7 +25,12 @@ export const updateAddress = async (userId, addressId, addressData) => {
   return res.data;
 };
 
-// ----- Bank Detail -----
+//  Bank Detail 
+export const fetchBankDetails = async (userId) => {
+  const res = await axiosInstance.get(`/api/user/${userId}/bank`);
+  return res.data;
+};
+
 export const addBankDetail = async (userId, bankData) => {
   const res = await axiosInstance.post(`/api/user/${userId}/bank`, bankData);
   return res.data;

@@ -24,7 +24,7 @@ import {
   fetchQuoteSummary,
 } from "../../../services/quoteServices";
 import Button from "../../../components/Button";
-import { getClientType } from "../../../services/userServices";
+import { getClientType } from "../../../services/leadServices";
 
 function QuoteDetail() {
   const [sidebarOpen, setSidebarOpen] = useState(false);

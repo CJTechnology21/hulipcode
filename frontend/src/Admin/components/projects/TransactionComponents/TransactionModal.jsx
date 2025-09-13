@@ -8,7 +8,7 @@ import {
   createTransaction,
   updateTransaction,
 } from "../../../../services/transactionServices";
-import { fetchVendors } from "../../../../services/userServices";
+import { fetchVendors } from "../../../../services/leadServices";
 import { fetchPartyByProject } from "../../../../services/partyServices";
 import {
   typeColorMap,

@@ -117,6 +117,30 @@ const createUser = async (req, res) => {
 };
 
 // NEW CONTROLLERS  
+// @desc    Get all addresses OR a single address
+// @route   GET /api/user/:userId/address           -> all addresses
+// @route   GET /api/user/:userId/address/:addressId -> single address
+// @access  Private
+const getAddresses = async (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (addressId) {
+      const address = user.addresses.id(addressId);
+      if (!address) return res.status(404).json({ message: "Address not found" });
+      return res.json(address);
+    }
+
+    // if no addressId, return all addresses
+    res.json(user.addresses);
+  } catch (error) {
+    console.error("Error in fetching address:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
 // @desc    Add new address
 // @route   POST /api/user/address
@@ -169,6 +193,32 @@ const updateAddress = async (req, res) => {
     });
   } catch (err) {
     console.error("Error updating address:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+// @desc    Get all bank details OR a single bank detail
+// @route   GET /api/user/:userId/bank           -> all bank details
+// @route   GET /api/user/:userId/bank/:bankId   -> single bank detail
+// @access  Private
+const getBankDetails = async (req, res) => {
+  try {
+    const { userId, bankId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (bankId) {
+      const bankDetail = user.bankDetails.id(bankId);
+      if (!bankDetail) {
+        return res.status(404).json({ message: "Bank detail not found" });
+      }
+      return res.json(bankDetail);
+    }
+
+    // if no bankId param, return all bank details
+    res.json(user.bankDetails);
+  } catch (error) {
+    console.error("Error in fetching bank details:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -279,8 +329,10 @@ module.exports = {
   getUsers,
   getMaterialSuppliers,
   createUser,
+  getAddresses,
   addAddress,
   updateAddress,
+  getBankDetails,
   addBankDetail,
   updateBankDetail,
   uploadDocument,

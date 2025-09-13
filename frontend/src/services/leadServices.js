@@ -44,3 +44,33 @@ export const deleteLead = async (leadId) => {
   return res.data;
 };
 
+
+//Get client type
+export const getClientType = async (leadId) => {
+  const res = await axiosInstance.get(`/api/leads/${leadId}/client-type`)
+  return res.data;
+}
+
+// Fetch architects
+export const fetchArchitects = async () => {
+  const res = await axiosInstance.get("/api/user/architects");
+  return res.data;
+};
+
+//Fetch Vendors
+export const fetchVendors = async () => {
+  const res = await axiosInstance.get("/api/user/vendors");
+  return res.data;
+}
+
+//Fetch Material Suppliers 
+export const fetchMaterialSuppliers = async () => {
+  const res = await axiosInstance.get("/api/user/material-suppliers");
+  return res.data;
+}
+
+//Fetch Architects and Clients
+export const fetchArchandClients = async () => {
+  const res = await axiosInstance.get("/api/user/architects-clients");
+  return res.data;
+}

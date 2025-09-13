@@ -12,7 +12,7 @@ import {
   updateQuote,
   deleteQuote,
 } from "../../../services/quoteServices";
-import { fetchArchitects } from "../../../services/userServices";
+import { fetchArchitects } from "../../../services/leadServices";
 import { fetchLeads } from "../../../services/leadServices";
 import { MdMail } from "react-icons/md";
 

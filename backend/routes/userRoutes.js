@@ -13,7 +13,10 @@ const {
   updateAddress,
   addBankDetail,
   updateBankDetail,
-  uploadDocument,   // Aadhaar & PAN upload
+  uploadDocument,
+  gettAdresses,
+  getAddresses,
+  getBankDetails,   // Aadhaar & PAN upload
 } = require("../controllers/userController");
 
 //  USER PROFILE  
@@ -36,13 +39,21 @@ router.get("/architects-clients", protect, getUsers);
 router.post("/", protect, createUser);
 
 // ADDRESS MANAGEMENT  
+router.get("/:userId/address", getAddresses)
+//single address
+router.get("/:userId/address/:addressId", getAddresses)
 // Add new address to a user
 router.post("/:userId/address", protect, addAddress);
-
 // Update a specific address by subdocument ID
 router.put("/:userId/address/:addressId", protect, updateAddress);
 
 //  BANK DETAILS MANAGEMENT  
+// Get all bank details
+router.get("/:userId/bank", protect, getBankDetails);
+
+// Get single bank detail
+router.get("/:userId/bank/:bankId", protect, getBankDetails);
+
 // Add new bank detail to a user
 router.post("/:userId/bank", protect, addBankDetail);
 

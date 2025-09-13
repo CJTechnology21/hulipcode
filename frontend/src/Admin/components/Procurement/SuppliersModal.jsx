@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SearchBar from "../../../components/SearchBar";
 import Button from "../../../components/Button";
-import { fetchMaterialSuppliers } from "../../../services/userServices"; 
+import { fetchMaterialSuppliers } from "../../../services/leadServices"; 
 
 function SuppliersModal({ isOpen, onClose, onSelect, onCreateParty }) {
   const [searchTerm, setSearchTerm] = useState("");
