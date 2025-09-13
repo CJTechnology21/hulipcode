@@ -100,6 +100,7 @@ function Quote() {
       try {
         const data = await fetchArchitects();
         setArchitects(data || []);
+        console.log("Architects loaded:", data);
       } catch (err) {
         console.error("Failed to fetch architects:", err);
       }

@@ -14,57 +14,59 @@ const {
   addBankDetail,
   updateBankDetail,
   uploadDocument,
-  gettAdresses,
   getAddresses,
-  getBankDetails,   // Aadhaar & PAN upload
+  getBankDetails,
 } = require("../controllers/userController");
 
-//  USER PROFILE  
-// Get logged-in user's profile
-router.get("/me", protect, getUserProfile);
-
-// Get a specific user's profile by ID
-router.get("/:userId", protect, getUserProfile);
-
-//REWARD POINTS  
-router.put("/:userId/redeem", protect, redeemPoints);
-
-// ROLE-BASED FILTERS 
+// ======================
+// ROLE-BASED FILTERS (static first ✅)
+// ======================
 router.get("/architects", protect, getArchitects);
 router.get("/vendors", protect, getVendors);
 router.get("/material-suppliers", protect, getMaterialSuppliers);
 router.get("/architects-clients", protect, getUsers);
 
-// USER MANAGEMENT  
+// ======================
+// USER PROFILE
+// ======================
+router.get("/me", protect, getUserProfile);
+
+// ⚠️ Dynamic route moved LAST so it won’t block static routes
+router.get("/:userId", protect, getUserProfile);
+
+// ======================
+// REWARD POINTS
+// ======================
+router.put("/:userId/redeem", protect, redeemPoints);
+
+// ======================
+// USER MANAGEMENT
+// ======================
 router.post("/", protect, createUser);
 
-// ADDRESS MANAGEMENT  
-router.get("/:userId/address", getAddresses)
-//single address
-router.get("/:userId/address/:addressId", getAddresses)
-// Add new address to a user
+// ======================
+// ADDRESS MANAGEMENT
+// ======================
+router.get("/:userId/address", protect, getAddresses);
+router.get("/:userId/address/:addressId", protect, getAddresses);
 router.post("/:userId/address", protect, addAddress);
-// Update a specific address by subdocument ID
 router.put("/:userId/address/:addressId", protect, updateAddress);
 
-//  BANK DETAILS MANAGEMENT  
-// Get all bank details
+// ======================
+// BANK DETAILS MANAGEMENT
+// ======================
 router.get("/:userId/bank", protect, getBankDetails);
-
-// Get single bank detail
 router.get("/:userId/bank/:bankId", protect, getBankDetails);
-
-// Add new bank detail to a user
 router.post("/:userId/bank", protect, addBankDetail);
-
-// Update a specific bank detail by subdocument ID
 router.put("/:userId/bank/:bankId", protect, updateBankDetail);
 
-// DOCUMENT UPLOAD  
-// Upload Aadhaar or PAN (re-upload overwrites old file)
+// ======================
+// DOCUMENT UPLOAD
+// ======================
 router.put("/:userId/document", protect, uploadDocument);
 
 module.exports = router;
+
 
 // // routes/userRoutes.js
 // const express = require("express");

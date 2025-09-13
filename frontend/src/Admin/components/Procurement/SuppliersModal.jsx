@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import SearchBar from "../../../components/SearchBar";
 import Button from "../../../components/Button";
-import { fetchMaterialSuppliers } from "../../../services/leadServices"; 
+import { fetchMaterialSuppliers } from "../../../services/leadServices";
 
 function SuppliersModal({ isOpen, onClose, onSelect, onCreateParty }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [suppliers, setSuppliers] = useState([]); 
+  const [suppliers, setSuppliers] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,7 +20,9 @@ function SuppliersModal({ isOpen, onClose, onSelect, onCreateParty }) {
           setError(null);
           const data = await fetchMaterialSuppliers();
           setSuppliers(data || []);
+          console.log("Suppliers loaded:", data);
           setFilteredSuppliers(data || []);
+          console.log("Suppliers  fileed loaded:", data);
         } catch (err) {
           console.error("Failed to fetch suppliers:", err);
           setError("Failed to load suppliers");
@@ -87,9 +89,7 @@ function SuppliersModal({ isOpen, onClose, onSelect, onCreateParty }) {
               Loading suppliers...
             </div>
           ) : error ? (
-            <div className="text-sm text-center text-red-500 py-6">
-              {error}
-            </div>
+            <div className="text-sm text-center text-red-500 py-6">{error}</div>
           ) : filteredSuppliers.length > 0 ? (
             filteredSuppliers.map((supplier) => (
               <div
@@ -235,7 +235,6 @@ export default SuppliersModal;
 //           )}
 //         </div>
 
-      
 //         <div className="p-3 border-t flex justify-center">
 //           <Button
 //             variant="outlined"
