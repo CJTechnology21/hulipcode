@@ -22,7 +22,7 @@ const bankDetailsSchema = new mongoose.Schema({
 const openingBalanceSchema = new mongoose.Schema({
   mode: {
     type: String,
-    enum: ["pay", "receive"], // matches your frontend toggle
+    enum: ["pay", "receive"], 
     required: true,
   },
   amount: {
@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     lowercase: true,
     unique: true,
-    match: /^\S+@\S+\.\S+$/, // Basic email regex
+    match: /^\S+@\S+\.\S+$/, 
   },
   password: {
     type: String,

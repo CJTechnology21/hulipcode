@@ -1,5 +1,5 @@
 const User = require('../models/User');
-
+const bcrypt = require('bcryptjs');
 // @desc    Get logged-in user profile
 // @route   GET /api/user/me
 // @access  Private
@@ -64,7 +64,9 @@ const getArchitects = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
+// @desc    Get all architects
+// @route   GET /api/user/vendors
+// @access  Private (or Public if needed)
 const getVendors = async (req, res) => {
   try {
     const vendors = await User.find({ role: 'vendor' }).select('_id email phoneNumber name');
@@ -74,7 +76,9 @@ const getVendors = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
+// @desc    Get all material suppliers
+// @route   GET /api/user/material-suppliers
+// @access  Private (or Public if needed)
 const getMaterialSuppliers = async (req, res) => {
   try {
     const materialSup = await User.find({ role: 'Material Supplier' }).select('_id email phoneNumber name role');
@@ -84,7 +88,9 @@ const getMaterialSuppliers = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
+// @desc    Get all users
+// @route   GET /api/user/
+// @access  Private (or Public if needed)
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({ role: { $in: ['architect', 'client'] } })
@@ -95,27 +101,95 @@ const getUsers = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
+// @desc    Create all architects
+// @route   GET /api/user/
+// @access  Private (or Public if needed)
 const createUser = async (req, res) => {
   try {
-    const { name, role, phoneNumber, email, password } = req.body;
+    const {
+      name,
+      email,
+      phoneNumber,
+      role,
+      openingBalance,
+      bankDetails,
+      addresses,
+    } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+    const aadhaarFile = req.files?.aadhaar?.[0]?.filename || null;
+    const panFile = req.files?.pan?.[0]?.filename || null;
+
+    if (!name || !email || !phoneNumber || !role) {
+      return res.status(400).json({
+        message: "Name, email, phone number, and role are required",
+      });
     }
 
-    const newUser = await User.create({ name, role, phoneNumber, email, password });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // Generate default password (can be sent to user)
+    const defaultPassword = "User@123";
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    // Build opening balance if provided
+    let openingBalanceData = null;
+    if (openingBalance && openingBalance.mode && openingBalance.amount !== undefined) {
+      openingBalanceData = {
+        mode: openingBalance.mode,
+        amount: openingBalance.amount,
+      };
+    }
+
+    // Create user
+    const newUser = await User.create({
+      name,
+      email,
+      phoneNumber,
+      role,
+      password: hashedPassword,
+      addresses: addresses || [],
+      bankDetails: bankDetails || [],
+      openingBalance: openingBalanceData,
+      aadhaarFile,
+      panFile,
+    });
 
     res.status(201).json({
-      message: 'User created successfully',
+      message: "User created successfully",
       user: newUser,
     });
   } catch (err) {
-    console.error('Error in creating user:', err);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error creating user:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
+// @desc    Update user
+// @route   PUT /api/user/:userId
+// @access  Private
+const updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const updateData = req.body;
 
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Prevent password update through this endpoint
+    delete updateData.password;
+
+    Object.assign(user, updateData);
+    await user.save();
+
+    res.json({ message: "User updated successfully", user });
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 // NEW CONTROLLERS  
 // @desc    Get all addresses OR a single address
 // @route   GET /api/user/:userId/address           -> all addresses
@@ -193,6 +267,26 @@ const updateAddress = async (req, res) => {
     });
   } catch (err) {
     console.error("Error updating address:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+const deleteAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const address = user.addresses.id(addressId);
+    if (!address) return res.status(404).json({ message: "Address not found" });
+
+    address.remove();
+    await user.save();
+
+    res.json({ message: "Address deleted successfully", addresses: user.addresses });
+  } catch (err) {
+    console.error("Error deleting address:", err);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -277,6 +371,25 @@ const updateBankDetail = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+const deleteBankDetail = async (req, res) => {
+  try {
+    const { userId, bankId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const bankDetail = user.bankDetails.id(bankId);
+    if (!bankDetail) return res.status(404).json({ message: "Bank detail not found" });
+
+    bankDetail.remove();
+    await user.save();
+
+    res.json({ message: "Bank detail deleted successfully", bankDetails: user.bankDetails });
+  } catch (err) {
+    console.error("Error deleting bank detail:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
 
 // @desc    Upload or update Aadhaar/PAN file
@@ -329,12 +442,16 @@ module.exports = {
   getUsers,
   getMaterialSuppliers,
   createUser,
+  updateUser,
   getAddresses,
   addAddress,
   updateAddress,
+  deleteAddress,
   getBankDetails,
   addBankDetail,
   updateBankDetail,
+  deleteBankDetail,
+  deleteAddress,
   uploadDocument,
 };
 

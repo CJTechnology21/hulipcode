@@ -1,11 +1,21 @@
 import React, { useRef, useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import Button from "../../../components/Button";
-export default function OpeningBalanceModal({ isOpen, onClose, onSave }) {
+
+export default function OpeningBalanceModal({ isOpen, onClose, onSave, initialData }) {
   const modalRef = useRef();
   const [mode, setMode] = useState("pay"); // 'pay' or 'receive'
   const [amount, setAmount] = useState("");
 
+  // Reset form whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialData?.mode || "pay");
+      setAmount(initialData?.amount || "");
+    }
+  }, [isOpen, initialData]);
+
+  // Close modal when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -17,6 +27,15 @@ export default function OpeningBalanceModal({ isOpen, onClose, onSave }) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const handleSave = () => {
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+    onSave({ mode, amount: Number(amount) }); 
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -43,9 +62,9 @@ export default function OpeningBalanceModal({ isOpen, onClose, onSave }) {
             <Button
               color="red"
               variant="custom"
-              className="bg-red-600 hover:bg-red-700 curser-pointer text-white"
+              className="bg-red-600 hover:bg-red-700 cursor-pointer text-white"
               size="sm"
-              onClick={() => onSave({ mode, amount })}
+              onClick={handleSave}
             >
               Save
             </Button>

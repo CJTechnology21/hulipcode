@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import DropDown from "../../../components/DropDown";
+import { toast } from "react-toastify";
 
 const countryOptions = [
   { name: "India" },
@@ -12,8 +13,50 @@ const countryOptions = [
   { name: "Australia" },
 ];
 
-function AddressModal({ isOpen, onClose, onSave }) {
+function AddressModal({ isOpen, onClose, onSave, initialData }) {
+  const [formData, setFormData] = useState({
+    address: "",
+    gst: "",
+    addressLine1: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: countryOptions[0].name,
+  });
+
+  // Reset form when modal opens or initialData changes
+  useEffect(() => {
+    setFormData(
+      initialData || {
+        address: "",
+        gst: "",
+        addressLine1: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: countryOptions[0].name,
+      }
+    );
+  }, [initialData, isOpen]);
+
   if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+  const handleSave = () => {
+    if (!formData.address || !formData.city || !formData.state) {
+      toast.error("Address, City, and State are required");
+      return;
+    }
+
+    const payload = initialData?._id
+      ? { ...formData, _id: initialData._id }
+      : formData;
+
+    onSave?.(payload);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end bg-black bg-opacity-40 backdrop-blur-sm">
@@ -21,10 +64,12 @@ function AddressModal({ isOpen, onClose, onSave }) {
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">
-            <Button onClick={onClose}>
+            <button onClick={onClose}>
               <MdClose className="text-xl" />
-            </Button>
-            <h2 className="text-lg font-semibold">Add Address</h2>
+            </button>
+            <h2 className="text-lg font-semibold">
+              {initialData ? "Edit Address" : "Add Address"}
+            </h2>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="text" color="gray" size="sm" onClick={onClose}>
@@ -35,7 +80,7 @@ function AddressModal({ isOpen, onClose, onSave }) {
               size="sm"
               variant="custom"
               className="bg-red-600 hover:bg-red-700 cursor-pointer text-white"
-              onClick={onSave}
+              onClick={handleSave}
             >
               Save
             </Button>
@@ -49,10 +94,22 @@ function AddressModal({ isOpen, onClose, onSave }) {
         <div className="p-5 space-y-5">
           {/* Address */}
           <h3 className="text-sm font-semibold text-gray-800">Address</h3>
-          <Input label="Address" name="address" placeholder="Enter Address" />
+          <Input
+            label="Address"
+            name="address"
+            placeholder="Enter Address"
+            value={formData.address}
+            onChange={handleChange}
+          />
 
           {/* GST */}
-          <Input label="GST Number" name="gst" placeholder="Enter GST Number" />
+          <Input
+            label="GST Number"
+            name="gst"
+            placeholder="Enter GST Number"
+            value={formData.gst}
+            onChange={handleChange}
+          />
 
           {/* Address Details */}
           <h3 className="text-sm font-semibold text-gray-800">
@@ -62,17 +119,29 @@ function AddressModal({ isOpen, onClose, onSave }) {
             label="Address Line 1"
             name="addressLine1"
             placeholder="Enter Address Line 1"
+            value={formData.addressLine1}
+            onChange={handleChange}
           />
-          <Input label="City" name="city" placeholder="Enter City" />
+          <Input
+            label="City"
+            name="city"
+            placeholder="Enter City"
+            value={formData.city}
+            onChange={handleChange}
+          />
           <Input
             label="State / Province"
             name="state"
             placeholder="Enter State or Province"
+            value={formData.state}
+            onChange={handleChange}
           />
           <Input
             label="ZIP / Postal Code"
             name="zip"
             placeholder="Enter ZIP or Postal Code"
+            value={formData.zip}
+            onChange={handleChange}
           />
 
           {/* Country Dropdown */}
@@ -85,9 +154,9 @@ function AddressModal({ isOpen, onClose, onSave }) {
             </label>
             <DropDown
               name="country"
-              value={countryOptions[0].name}
+              value={formData.country}
               options={countryOptions.map((c) => c.name)}
-              onChange={() => {}}
+              onChange={(value) => setFormData({ ...formData, country: value })}
             />
           </div>
         </div>
