@@ -166,15 +166,15 @@ function AddMaterialsScreen() {
     try {
       toast.loading("Publishing RFQ...");
 
-      // 👇 use your publishRFQ service instead of createRFQ
+      //  use your publishRFQ service instead of createRFQ
       const created = await publishRFQ(rfqData);
 
-      // ✅ Send email with the generated text after publish succeeds
+      //  Send email with the generated text after publish succeeds
       await sendRFQEmail({
         to_email: supplier.email,
-        ...rfqData, // include full RFQ payload
-        project: project?.name || "", // override project name for readability
-        message: rfqText, // include the message text
+        ...rfqData,
+        project: project?.name || "",
+        message: rfqText,
       });
 
       toast.dismiss();
@@ -186,48 +186,6 @@ function AddMaterialsScreen() {
       toast.error("Failed to send or publish RFQ.");
     }
   };
-
-  // const handleSavePublish = async () => {
-  //   if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
-  //     toast.error("Please fill all fields before publishing.");
-  //     return;
-  //   }
-  //   if (!supplier.email) {
-  //     toast.error("Please select a supplier with a valid email.");
-  //     return;
-  //   }
-
-  //   const rfqData = buildRFQPayload("published");
-  //   const rfqText = generateRFQText({
-  //     project: project?.name || "",
-  //     deliveryLocation,
-  //     biddingStartDate,
-  //     biddingEndDate,
-  //     deliveryDate,
-  //     selectedMaterials,
-  //     terms,
-  //   });
-
-  //   try {
-  //     toast.loading("Publishing RFQ...");
-  //     await createRFQ(rfqData);
-
-  //     // Send email
-  //     await sendRFQEmail({
-  //       to_email: supplier.email,
-  //       ...rfqData,
-  //       message: rfqText,
-  //     });
-
-  //     toast.dismiss();
-  //     toast.success("RFQ sent and published successfully!");
-  //     navigate("/procurement");
-  //   } catch (error) {
-  //     toast.dismiss();
-  //     console.error("Error publishing RFQ:", error);
-  //     toast.error("Failed to send or publish RFQ.");
-  //   }
-  // };
 
   return (
     <Layout title="NEW RFQ">
@@ -369,7 +327,6 @@ function AddMaterialsScreen() {
         <MaterialLibraryDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
-          // selectedProject={project}
           selectedProject={project?._id}
           setMaterialGroups={setMaterialGroups}
         />

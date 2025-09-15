@@ -40,10 +40,15 @@ export const updateRFQ = async (rfqId, rfqData) => {
 };
 
 //publish Exisiting RFQ
-export const publishExistingRFQ = async (rfqId) => {
-  const res = await axiosInstance.put(`/api/rfq/${rfqId}/publish`);
+export const publishExistingRFQ = async (rfqId, data = {}) => {
+  const res = await axiosInstance.put(`/api/rfq/${rfqId}/publish`, data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
   return res.data;
-}
+};
+
 // Delete RFQ
 export const deleteRFQ = async (rfqId) => {
   const res = await axiosInstance.delete(`/api/rfq/${rfqId}`);
