@@ -5,12 +5,14 @@ import MaterialRequestModal from "./MaterialRequestModal";
 import CreateRFQModal from "./CreateRFQModal";
 import RFQDrawer from "./RFQDrawer";
 import { fetchProjects } from "../../../services/projectServices";
+import { fetchRFQs } from "../../../services/rfqServices"; // ✅ import RFQ API
 
 export default function RfqHome() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRFQModalOpen, setIsRFQModalOpen] = useState(false);
   const [rfqDrafts, setRfqDrafts] = useState([]);
+  const [loadingRFQs, setLoadingRFQs] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [selectedRFQ, setSelectedRFQ] = useState(null);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
@@ -19,25 +21,41 @@ export default function RfqHome() {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
 
+  // fetch RFQs from DB instead of localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("rfqDrafts");
-    if (stored) {
+    const getRFQs = async () => {
+      setLoadingRFQs(true);
       try {
-        const parsed = JSON.parse(stored);
-        setRfqDrafts(parsed);
+        const data = await fetchRFQs();
+
+        // ensure we always set an array
+        const rfqsArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        setRfqDrafts(rfqsArray);
       } catch (err) {
-        console.error("Error parsing RFQ drafts from localStorage:", err);
+        console.error("Error fetching RFQs:", err);
+        setRfqDrafts([]); // prevent filter crash
+      } finally {
+        setLoadingRFQs(false);
       }
-    }
+    };
+    getRFQs();
   }, []);
 
-  const filteredRFQs = rfqDrafts.filter(
-    (rfq) =>
-      (rfq?.project?.name || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (rfq?.rfqNo || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ✅ define filtered RFQs
+  const filteredRFQs = Array.isArray(rfqDrafts)
+    ? rfqDrafts.filter(
+        (rfq) =>
+          (rfq?.project?.name || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          (rfq?.rfqNo || "").toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   const handleRowClick = (rfq) => {
     setSelectedRFQ({
@@ -46,7 +64,7 @@ export default function RfqHome() {
     });
   };
 
-  // ✅ fetch projects when opening RFQ modal
+  // fetch projects when opening RFQ modal
   const handleOpenRFQModal = async () => {
     setLoadingProjects(true);
     try {
@@ -69,7 +87,7 @@ export default function RfqHome() {
         setSelectedMaterials={setSelectedMaterials}
       />
 
-      {/* ✅ pass projects + loading to modal */}
+      {/* pass projects + loading to modal */}
       <CreateRFQModal
         open={isRFQModalOpen}
         onClose={() => setIsRFQModalOpen(false)}
@@ -106,7 +124,7 @@ export default function RfqHome() {
               color="red"
               className="text-white bg-red-600 hover:bg-red-700 text-sm px-4 py-2 rounded-lg font-semibold"
               variant="custom"
-              onClick={handleOpenRFQModal} // ✅ fetch projects before opening modal
+              onClick={handleOpenRFQModal}
             >
               + New RFQ
             </Button>
@@ -127,23 +145,42 @@ export default function RfqHome() {
               </tr>
             </thead>
             <tbody>
-              {filteredRFQs.length > 0 ? (
+              {loadingRFQs ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="text-center px-4 py-6 text-gray-500"
+                  >
+                    Loading RFQs...
+                  </td>
+                </tr>
+              ) : filteredRFQs.length > 0 ? (
                 filteredRFQs.map((rfq, index) => (
-                  <React.Fragment key={index}>
+                  <React.Fragment key={rfq._id || index}>
                     <tr
                       className="border-t border-gray-200 cursor-pointer hover:bg-gray-100"
                       onClick={() => handleRowClick(rfq, index)}
                     >
-                      <td className="px-4 py-2">{`#RFQ-${index + 1}`}</td>
-                      <td className="px-4 py-2">{rfq?.supplier?.name || "--"}</td>
-                      <td className="px-4 py-2">{rfq?.materials?.length || 0}</td>
+                      <td className="px-4 py-2">
+                        {rfq?.rfqNo || `#RFQ-${index + 1}`}
+                      </td>
+                      <td className="px-4 py-2">
+                        {rfq?.supplier?.name || "--"}
+                      </td>
+                      <td className="px-4 py-2">
+                        {rfq?.materials?.length || 0}
+                      </td>
                       <td className="px-4 py-2">
                         {rfq?.deliveryLocation || "--"}
                       </td>
                       <td className="px-4 py-2">
                         <div className="text-xs">
-                          <div>Start: {rfq?.biddingStartDate?.slice(0, 10)}</div>
-                          <div>End: {rfq?.biddingEndDate?.slice(0, 10)}</div>
+                          <div>
+                            Start: {rfq?.biddingStartDate?.slice(0, 10) || "--"}
+                          </div>
+                          <div>
+                            End: {rfq?.biddingEndDate?.slice(0, 10) || "--"}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-2">
@@ -157,8 +194,7 @@ export default function RfqHome() {
                         <td colSpan={6} className="px-4 py-4">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <strong>Document ID:</strong>{" "}
-                              {rfq?.rfqNo || "--"}
+                              <strong>Document ID:</strong> {rfq?.rfqNo || "--"}
                             </div>
                             <div>
                               <strong>Document Date:</strong>{" "}
@@ -215,6 +251,7 @@ export default function RfqHome() {
 // import MaterialRequestModal from "./MaterialRequestModal";
 // import CreateRFQModal from "./CreateRFQModal";
 // import RFQDrawer from "./RFQDrawer";
+// import { fetchProjects } from "../../../services/projectServices";
 
 // export default function RfqHome() {
 //   const [searchTerm, setSearchTerm] = useState("");
@@ -224,6 +261,10 @@ export default function RfqHome() {
 //   const [expandedIndex, setExpandedIndex] = useState(null);
 //   const [selectedRFQ, setSelectedRFQ] = useState(null);
 //   const [selectedMaterials, setSelectedMaterials] = useState([]);
+
+//   // state for projects
+//   const [projects, setProjects] = useState([]);
+//   const [loadingProjects, setLoadingProjects] = useState(false);
 
 //   useEffect(() => {
 //     const stored = localStorage.getItem("rfqDrafts");
@@ -245,11 +286,25 @@ export default function RfqHome() {
 //       (rfq?.rfqNo || "").toLowerCase().includes(searchTerm.toLowerCase())
 //   );
 
-//   const handleRowClick = (rfq, index) => {
+//   const handleRowClick = (rfq) => {
 //     setSelectedRFQ({
 //       ...rfq,
 //       suppliers: rfq?.suppliers || [],
 //     });
+//   };
+
+//   //  fetch projects when opening RFQ modal
+//   const handleOpenRFQModal = async () => {
+//     setLoadingProjects(true);
+//     try {
+//       const data = await fetchProjects();
+//       setProjects(data || []);
+//       setIsRFQModalOpen(true);
+//     } catch (err) {
+//       console.error("Failed to fetch projects:", err);
+//     } finally {
+//       setLoadingProjects(false);
+//     }
 //   };
 
 //   return (
@@ -261,9 +316,12 @@ export default function RfqHome() {
 //         setSelectedMaterials={setSelectedMaterials}
 //       />
 
+//       {/* ✅ pass projects + loading to modal */}
 //       <CreateRFQModal
 //         open={isRFQModalOpen}
 //         onClose={() => setIsRFQModalOpen(false)}
+//         projects={projects}
+//         loading={loadingProjects}
 //       />
 
 //       <div className="flex flex-col gap-4 p-2">
@@ -295,7 +353,7 @@ export default function RfqHome() {
 //               color="red"
 //               className="text-white bg-red-600 hover:bg-red-700 text-sm px-4 py-2 rounded-lg font-semibold"
 //               variant="custom"
-//               onClick={() => setIsRFQModalOpen(true)}
+//               onClick={handleOpenRFQModal} // ✅ fetch projects before opening modal
 //             >
 //               + New RFQ
 //             </Button>
@@ -326,7 +384,9 @@ export default function RfqHome() {
 //                       <td className="px-4 py-2">{`#RFQ-${index + 1}`}</td>
 //                       <td className="px-4 py-2">{rfq?.supplier?.name || "--"}</td>
 //                       <td className="px-4 py-2">{rfq?.materials?.length || 0}</td>
-//                       <td className="px-4 py-2">{rfq?.deliveryLocation || "--"}</td>
+//                       <td className="px-4 py-2">
+//                         {rfq?.deliveryLocation || "--"}
+//                       </td>
 //                       <td className="px-4 py-2">
 //                         <div className="text-xs">
 //                           <div>Start: {rfq?.biddingStartDate?.slice(0, 10)}</div>
@@ -344,16 +404,20 @@ export default function RfqHome() {
 //                         <td colSpan={6} className="px-4 py-4">
 //                           <div className="grid grid-cols-2 gap-4 text-sm">
 //                             <div>
-//                               <strong>Document ID:</strong> {rfq?.rfqNo || "--"}
+//                               <strong>Document ID:</strong>{" "}
+//                               {rfq?.rfqNo || "--"}
 //                             </div>
 //                             <div>
-//                               <strong>Document Date:</strong> {rfq?.createdAt?.slice(0, 10) || "--"}
+//                               <strong>Document Date:</strong>{" "}
+//                               {rfq?.createdAt?.slice(0, 10) || "--"}
 //                             </div>
 //                             <div>
-//                               <strong>Delivery Location:</strong> {rfq?.deliveryLocation || "--"}
+//                               <strong>Delivery Location:</strong>{" "}
+//                               {rfq?.deliveryLocation || "--"}
 //                             </div>
 //                             <div>
-//                               <strong>Project:</strong> {rfq?.project?.name || "--"}
+//                               <strong>Project:</strong>{" "}
+//                               {rfq?.project?.name || "--"}
 //                             </div>
 //                             <div className="col-span-2 mt-2">
 //                               <strong>Materials:</strong>
@@ -373,7 +437,10 @@ export default function RfqHome() {
 //                 ))
 //               ) : (
 //                 <tr>
-//                   <td colSpan={6} className="text-center px-4 py-6 text-gray-500">
+//                   <td
+//                     colSpan={6}
+//                     className="text-center px-4 py-6 text-gray-500"
+//                   >
 //                     No RFQ drafts found.
 //                   </td>
 //                 </tr>

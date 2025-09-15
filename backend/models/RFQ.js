@@ -9,10 +9,10 @@ const RFQSchema = new mongoose.Schema(
     },
 
     date: { type: Date, default: Date.now },
-    taxType: { 
-      type: String, 
+    taxType: {
+      type: String,
       enum: ["GST", "VAT", "NONE", "item"], // added "item" for your sample data
-      default: "GST" 
+      default: "GST"
     },
     deliveryLocation: { type: String, required: true },
 
@@ -24,10 +24,11 @@ const RFQSchema = new mongoose.Schema(
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Product", 
+          ref: "Product",
           required: true,
         },
-        hsn: { type: String, trim: true }, 
+        name: { type: String, required: true, trim: true },
+        hsn: { type: String, trim: true },
         quantity: { type: Number, required: true },
         unit: { type: String, default: "pcs" },
         deliveryDate: { type: Date, required: true },
@@ -38,17 +39,17 @@ const RFQSchema = new mongoose.Schema(
 
     supplier: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
+      ref: "User",
       required: true,
     },
 
     status: {
-      type: String, 
-      enum: ["draft", "published"], 
+      type: String,
+      enum: ["draft", "published"],
       default: "draft"
     },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("RFQ", RFQSchema);

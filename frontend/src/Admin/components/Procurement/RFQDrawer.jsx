@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { MdClose } from "react-icons/md";
 import Button from "../../../components/Button";
 import { FiDownload, FiSend } from "react-icons/fi";
-
+import { formatDate } from "../../../utils/dateFormatter";
 export default function RFQDetailDrawer({ rfq, onClose }) {
   const [activeTab, setActiveTab] = useState("detail");
 
@@ -116,7 +116,9 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
                           <td className="p-2">
                             {item.quantity} {item.unit || ""}
                           </td>
-                          <td className="p-2">{item.deliveryDate || "--"}</td>
+                          <td className="p-2">
+                            {formatDate(item?.deliveryDate) || "--"}
+                          </td>
                         </tr>
                       ))
                     ) : (

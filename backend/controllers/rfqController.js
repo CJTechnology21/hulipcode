@@ -110,4 +110,165 @@ const deleteRFQ = async (req, res) => {
     }
 };
 
-module.exports = { createRFQ, getRFQs, getRFQById, updateRFQ, deleteRFQ }
+// MATERIAL CONTROLLERS  
+
+// Add one or multiple materials to an RFQ
+// Add one or multiple materials to an RFQ
+const addMaterialsToRFQ = async (req, res) => {
+    try {
+        const { id } = req.params; // RFQ ID
+        const materials = Array.isArray(req.body) ? req.body : [req.body];
+
+        // Ensure each material includes the product name
+        const materialsWithName = materials.map((m) => ({
+            ...m,
+            name: m.name || (m.productName || ""), // use provided name or fallback
+        }));
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        rfq.materials.push(...materialsWithName);
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Materials added successfully",
+            data: rfq.materials,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error adding materials",
+            error: error.message,
+        });
+    }
+};
+
+// const addMaterialsToRFQ = async (req, res) => {
+//     try {
+//         const { id } = req.params; // RFQ ID
+//         const materials = Array.isArray(req.body) ? req.body : [req.body];
+
+//         const rfq = await RFQ.findById(id);
+//         if (!rfq) {
+//             return res.status(404).json({ success: false, message: "RFQ not found" });
+//         }
+
+//         rfq.materials.push(...materials);
+//         await rfq.save();
+
+//         res.status(200).json({
+//             success: true,
+//             message: "Materials added successfully",
+//             data: rfq.materials,
+//         });
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: "Error adding materials",
+//             error: error.message,
+//         });
+//     }
+// };
+
+// Update a specific material inside RFQ
+const updateMaterialInRFQ = async (req, res) => {
+    try {
+        const { id, materialId } = req.params;
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        const material = rfq.materials.id(materialId);
+        if (!material) {
+            return res.status(404).json({ success: false, message: "Material not found" });
+        }
+
+        Object.assign(material, req.body); // shallow merge updates
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Material updated successfully",
+            data: material,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error updating material",
+            error: error.message,
+        });
+    }
+};
+
+// Delete a specific material inside RFQ
+const deleteMaterialFromRFQ = async (req, res) => {
+    try {
+        const { id, materialId } = req.params;
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        const material = rfq.materials.id(materialId);
+        if (!material) {
+            return res.status(404).json({ success: false, message: "Material not found" });
+        }
+
+        material.remove();
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Material deleted successfully",
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error deleting material",
+            error: error.message,
+        });
+    }
+};
+
+// Fetch all materials of a given RFQ
+const getMaterialsOfRFQ = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const rfq = await RFQ.findById(id).populate("materials.product", "name hsn unit");
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: rfq.materials.length,
+            data: rfq.materials,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching materials",
+            error: error.message,
+        });
+    }
+};
+
+
+module.exports = {
+    createRFQ,
+    getRFQs,
+    getRFQById,
+    updateRFQ,
+    deleteRFQ,
+    addMaterialsToRFQ,
+    updateMaterialInRFQ,
+    deleteMaterialFromRFQ,
+    getMaterialsOfRFQ,
+}
