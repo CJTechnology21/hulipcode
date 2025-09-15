@@ -20,6 +20,62 @@ const createRFQ = async (req, res) => {
     }
 };
 
+//publish directly 
+const createAndPublishRFQ = async (req, res) => {
+    try {
+        // Force status to "published" no matter what frontend sends
+        const rfq = new RFQ({ ...req.body, status: "published" });
+        await rfq.save();
+
+        res.status(201).json({
+            success: true,
+            message: "RFQ created and published successfully",
+            data: rfq,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error creating & publishing RFQ",
+            error: error.message,
+        });
+    }
+};
+
+// Publish an existing draft RFQ
+const publishExistingRFQ = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        if (rfq.status === "published") {
+            return res.status(400).json({ success: false, message: "RFQ is already published" });
+        }
+
+        // Flip to published + allow optional updates from req.body
+        rfq.status = "published";
+        Object.assign(rfq, req.body); // optional: update dates, terms, etc.
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "RFQ published successfully",
+            data: rfq,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error publishing RFQ",
+            error: error.message,
+        });
+    }
+};
+
+
+
 // Get all RFQs
 const getRFQs = async (req, res) => {
     try {
@@ -271,4 +327,6 @@ module.exports = {
     updateMaterialInRFQ,
     deleteMaterialFromRFQ,
     getMaterialsOfRFQ,
+    createAndPublishRFQ,
+    publishExistingRFQ,
 }

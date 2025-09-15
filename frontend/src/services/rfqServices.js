@@ -21,6 +21,15 @@ export const createRFQ = async (rfqData) => {
   });
   return res.data;
 };
+//publish an RFQ
+export const publishRFQ = async (rfqData) => {
+  const res = await axiosInstance.post('/api/rfq/publish', rfqData, {
+    headers: {
+      "Content-Type": "application/json"
+    },
+  });
+  return res.data
+}
 
 // Update RFQ
 export const updateRFQ = async (rfqId, rfqData) => {
@@ -30,6 +39,11 @@ export const updateRFQ = async (rfqId, rfqData) => {
   return res.data;
 };
 
+//publish Exisiting RFQ
+export const publishExistingRFQ = async (rfqId) => {
+  const res = await axiosInstance.put(`/api/rfq/${rfqId}/publish`);
+  return res.data;
+}
 // Delete RFQ
 export const deleteRFQ = async (rfqId) => {
   const res = await axiosInstance.delete(`/api/rfq/${rfqId}`);

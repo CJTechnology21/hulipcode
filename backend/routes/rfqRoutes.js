@@ -10,6 +10,8 @@ const {
   updateMaterialInRFQ,
   deleteMaterialFromRFQ,
   getMaterialsOfRFQ,
+  createAndPublishRFQ,
+  publishExistingRFQ,
 } = require('../controllers/rfqController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -23,6 +25,12 @@ router.get('/:id', getRFQById);
 
 // Create RFQ
 router.post('/', protect, createRFQ);
+
+//publish rfq  directly
+router.post('/publish', protect, createAndPublishRFQ)
+
+//publish exisiting draft
+router.put("/:id/publish", protect, publishExistingRFQ)
 
 // Update RFQ
 router.put('/:id', protect, updateRFQ);

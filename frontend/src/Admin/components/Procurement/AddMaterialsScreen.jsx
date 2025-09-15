@@ -17,7 +17,7 @@ import { generateRFQText } from "../../../utils/generateRFQText";
 import { sendRFQEmail } from "../../../utils/emailHelpers";
 
 //  Import services
-import { createRFQ } from "../../../services/rfqServices";
+import { createRFQ, publishRFQ } from "../../../services/rfqServices";
 
 function AddMaterialsScreen() {
   const navigate = useNavigate();
@@ -139,7 +139,6 @@ function AddMaterialsScreen() {
       toast.error("Failed to save draft.");
     }
   };
-
   const handleSavePublish = async () => {
     if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
       toast.error("Please fill all fields before publishing.");
@@ -150,7 +149,10 @@ function AddMaterialsScreen() {
       return;
     }
 
+    // 👇 build your payload with status: "published"
     const rfqData = buildRFQPayload("published");
+
+    // 👇 text used in email
     const rfqText = generateRFQText({
       project: project?.name || "",
       deliveryLocation,
@@ -163,13 +165,16 @@ function AddMaterialsScreen() {
 
     try {
       toast.loading("Publishing RFQ...");
-      await createRFQ(rfqData);
 
-      // Send email
+      // 👇 use your publishRFQ service instead of createRFQ
+      const created = await publishRFQ(rfqData);
+
+      // ✅ Send email with the generated text after publish succeeds
       await sendRFQEmail({
         to_email: supplier.email,
-        ...rfqData,
-        message: rfqText,
+        ...rfqData, // include full RFQ payload
+        project: project?.name || "", // override project name for readability
+        message: rfqText, // include the message text
       });
 
       toast.dismiss();
@@ -181,6 +186,48 @@ function AddMaterialsScreen() {
       toast.error("Failed to send or publish RFQ.");
     }
   };
+
+  // const handleSavePublish = async () => {
+  //   if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+  //     toast.error("Please fill all fields before publishing.");
+  //     return;
+  //   }
+  //   if (!supplier.email) {
+  //     toast.error("Please select a supplier with a valid email.");
+  //     return;
+  //   }
+
+  //   const rfqData = buildRFQPayload("published");
+  //   const rfqText = generateRFQText({
+  //     project: project?.name || "",
+  //     deliveryLocation,
+  //     biddingStartDate,
+  //     biddingEndDate,
+  //     deliveryDate,
+  //     selectedMaterials,
+  //     terms,
+  //   });
+
+  //   try {
+  //     toast.loading("Publishing RFQ...");
+  //     await createRFQ(rfqData);
+
+  //     // Send email
+  //     await sendRFQEmail({
+  //       to_email: supplier.email,
+  //       ...rfqData,
+  //       message: rfqText,
+  //     });
+
+  //     toast.dismiss();
+  //     toast.success("RFQ sent and published successfully!");
+  //     navigate("/procurement");
+  //   } catch (error) {
+  //     toast.dismiss();
+  //     console.error("Error publishing RFQ:", error);
+  //     toast.error("Failed to send or publish RFQ.");
+  //   }
+  // };
 
   return (
     <Layout title="NEW RFQ">
