@@ -33,6 +33,7 @@ const createAndPublishRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
+        console.log("Error in publishing :", error)
         res.status(400).json({
             success: false,
             message: "Error creating & publishing RFQ",
@@ -66,6 +67,7 @@ const publishExistingRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
+        console.log("Error in publishing draft :", error)
         res.status(400).json({
             success: false,
             message: "Error publishing RFQ",
