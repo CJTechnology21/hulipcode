@@ -149,10 +149,10 @@ function AddMaterialsScreen() {
       return;
     }
 
-    // 👇 build your payload with status: "published"
+    //  build your payload with status: "published"
     const rfqData = buildRFQPayload("published");
 
-    // 👇 text used in email
+    //  text used in email
     const rfqText = generateRFQText({
       project: project?.name || "",
       deliveryLocation,
