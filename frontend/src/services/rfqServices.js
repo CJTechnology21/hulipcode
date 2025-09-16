@@ -28,7 +28,7 @@ export const publishRFQ = async (rfqData) => {
       "Content-Type": "application/json"
     },
   });
-  return res.data
+  return res.data.data;
 }
 
 // Update RFQ
@@ -82,5 +82,21 @@ export const deleteMaterialFromRFQ = async (rfqId, materialId) => {
 // Get all materials of a specific RFQ
 export const getMaterialsOfRFQ = async (rfqId) => {
   const res = await axiosInstance.get(`/api/rfq/${rfqId}/materials`);
+  return res.data;
+};
+
+// ---------------- RESPONSE SERVICES ----------------
+
+// Add response(s) to an RFQ
+export const addResponseToRFQ = async (rfqId, responses) => {
+  const res = await axiosInstance.post(`/api/rfq/${rfqId}/responses`, responses, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
+};
+
+// Get all responses of a specific RFQ
+export const getResponsesOfRFQ = async (rfqId) => {
+  const res = await axiosInstance.get(`/api/rfq/${rfqId}/responses`);
   return res.data;
 };

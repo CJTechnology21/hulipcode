@@ -139,53 +139,118 @@ function AddMaterialsScreen() {
       toast.error("Failed to save draft.");
     }
   };
-  const handleSavePublish = async () => {
-    if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
-      toast.error("Please fill all fields before publishing.");
-      return;
-    }
-    if (!supplier.email) {
-      toast.error("Please select a supplier with a valid email.");
-      return;
+
+const handleSavePublish = async () => {
+  if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+    toast.error("Please fill all fields before publishing.");
+    return;
+  }
+  if (!supplier.email) {
+    toast.error("Please select a supplier with a valid email.");
+    return;
+  }
+
+  // Build payload with status "published"
+  const rfqData = buildRFQPayload("published");
+
+  // Generate RFQ text for email
+  const rfqText = generateRFQText({
+    project: project?.name || "",
+    deliveryLocation,
+    biddingStartDate,
+    biddingEndDate,
+    deliveryDate,
+    selectedMaterials,
+    terms,
+  });
+
+  try {
+    toast.loading("Publishing RFQ...");
+
+    // Publish RFQ via service → returns the RFQ object (with _id)
+    const createdRFQ = await publishRFQ(rfqData);
+
+    if (!createdRFQ?._id) {
+      console.error("Publish response:", createdRFQ);
+      throw new Error("RFQ did not return an ID after publish.");
     }
 
-    //  build your payload with status: "published"
-    const rfqData = buildRFQPayload("published");
+    // Build link to the published RFQ
+    const rfqLink = `https://first-task-alpha.vercel.app/responses`;
 
-    //  text used in email
-    const rfqText = generateRFQText({
+    // Send email with the RFQ link included
+    await sendRFQEmail({
+      to_email: supplier.email,
       project: project?.name || "",
       deliveryLocation,
       biddingStartDate,
       biddingEndDate,
       deliveryDate,
       selectedMaterials,
+      materials: rfqData.materials, // in case email helper uses this
       terms,
+      rfqId: createdRFQ._id,        // ✅ pass RFQ ID
+      rfqLink,                      // ✅ pass link for email
+      message: `${rfqText}\n\n👉 Add your response by clicking this link: ${rfqLink}`,
     });
 
-    try {
-      toast.loading("Publishing RFQ...");
+    toast.dismiss();
+    toast.success("RFQ sent and published successfully!");
+    navigate("/procurement");
+  } catch (error) {
+    toast.dismiss();
+    console.error("Error publishing RFQ:", error);
+    toast.error("Failed to send or publish RFQ.");
+  }
+};
 
-      //  use your publishRFQ service instead of createRFQ
-      const created = await publishRFQ(rfqData);
+  // const handleSavePublish = async () => {
+  //   if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+  //     toast.error("Please fill all fields before publishing.");
+  //     return;
+  //   }
+  //   if (!supplier.email) {
+  //     toast.error("Please select a supplier with a valid email.");
+  //     return;
+  //   }
 
-      //  Send email with the generated text after publish succeeds
-      await sendRFQEmail({
-        to_email: supplier.email,
-        ...rfqData,
-        project: project?.name || "",
-        message: rfqText,
-      });
+  //   //  build your payload with status: "published"
+  //   const rfqData = buildRFQPayload("published");
 
-      toast.dismiss();
-      toast.success("RFQ sent and published successfully!");
-      navigate("/procurement");
-    } catch (error) {
-      toast.dismiss();
-      console.error("Error publishing RFQ:", error);
-      toast.error("Failed to send or publish RFQ.");
-    }
-  };
+  //   //  text used in email
+  //   const rfqText = generateRFQText({
+  //     project: project?.name || "",
+  //     deliveryLocation,
+  //     biddingStartDate,
+  //     biddingEndDate,
+  //     deliveryDate,
+  //     selectedMaterials,
+  //     terms,
+  //   });
+
+  //   try {
+  //     toast.loading("Publishing RFQ...");
+
+  //     //  use your publishRFQ service instead of createRFQ
+  //     const created = await publishRFQ(rfqData);
+
+  //     //  Send email with the generated text after publish succeeds
+  //     await sendRFQEmail({
+  //       to_email: supplier.email,
+  //       ...rfqData,
+  //       project: project?.name || "",
+  //       message: rfqText,
+  //     });
+
+  //     toast.dismiss();
+  //     toast.success("RFQ sent and published successfully!");
+  //     navigate("/procurement");
+  //   } catch (error) {
+  //     toast.dismiss();
+  //     console.error("Error publishing RFQ:", error);
+  //     toast.error("Failed to send or publish RFQ.");
+  //   }
+  // };
 
   return (
     <Layout title="NEW RFQ">

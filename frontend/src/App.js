@@ -99,6 +99,7 @@ import PostStyleOne from "./client/components/BlogComponents/PostStyleOne";
 import PostStyleTwo from "./client/components/BlogComponents/PostStyleTwo";
 import CategoryOne from "./client/components/BlogComponents/CategoryOne";
 import LeadInfo from "./Admin/DashboardPages/Lead/LeadInfo";
+import QuoteResponsePage from "./Admin/components/Procurement/QuoteResponsePage";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -196,6 +197,7 @@ function App() {
         {/* Procurement Routes */}
         <Route path="/procurement" element={<Procurement />} />
         <Route path="/addmaterials" element={<AddMaterialsScreen />} />
+         <Route path="/responses" element={<QuoteResponsePage />} />
         {/* Finance Routes */}
         <Route path="/finance" element={<FinanceHome />} />
         {/* product-routes */}

@@ -12,7 +12,7 @@ const createRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
-        console.log("Error in saving draft:",error)
+        console.log("Error in saving draft:", error)
         res.status(400).json({
             success: false,
             message: "Error creating RFQ",
@@ -45,36 +45,36 @@ const createAndPublishRFQ = async (req, res) => {
 
 // Publish an existing draft RFQ
 const publishExistingRFQ = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
 
-    const rfq = await RFQ.findById(id);
-    if (!rfq) {
-      return res.status(404).json({ success: false, message: "RFQ not found" });
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        if (rfq.status === "published") {
+            return res.status(400).json({ success: false, message: "RFQ is already published" });
+        }
+
+        // Flip to published + allow optional updates from req.body
+        rfq.status = "published";
+        Object.assign(rfq, req.body); // optional: update dates, terms, etc.
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "RFQ published successfully",
+            data: rfq,
+        });
+    } catch (error) {
+        console.log("Error in publishing draft :", error)
+        res.status(400).json({
+            success: false,
+            message: "Error publishing RFQ",
+            error: error.message,
+        });
     }
-
-    if (rfq.status === "published") {
-      return res.status(400).json({ success: false, message: "RFQ is already published" });
-    }
-
-    // Flip to published + allow optional updates from req.body
-    rfq.status = "published";
-    Object.assign(rfq, req.body); // optional: update dates, terms, etc.
-    await rfq.save();
-
-    res.status(200).json({
-      success: true,
-      message: "RFQ published successfully",
-      data: rfq,
-    });
-  } catch (error) {
-    console.log("Error in publishing draft :", error)
-    res.status(400).json({
-      success: false,
-      message: "Error publishing RFQ",
-      error: error.message,
-    });
-  }
 };
 
 
@@ -290,6 +290,59 @@ const getMaterialsOfRFQ = async (req, res) => {
         });
     }
 };
+// ---------------------- RESPONSE CONTROLLERS ----------------------
+
+// Add one or multiple responses to an RFQ
+const addResponseToRFQ = async (req, res) => {
+    try {
+        const { id } = req.params; // RFQ ID
+        const responses = Array.isArray(req.body) ? req.body : [req.body];
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        rfq.responses.push(...responses);
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Responses added successfully",
+            data: rfq.responses,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error adding responses",
+            error: error.message,
+        });
+    }
+};
+
+// Get all responses for a given RFQ
+const getResponsesOfRFQ = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const rfq = await RFQ.findById(id).populate("responses.supplier", "name email phone");
+
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: rfq.responses.length,
+            data: rfq.responses,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching responses",
+            error: error.message,
+        });
+    }
+};
 
 
 module.exports = {
@@ -304,4 +357,6 @@ module.exports = {
     getMaterialsOfRFQ,
     createAndPublishRFQ,
     publishExistingRFQ,
+    addResponseToRFQ,
+    getResponsesOfRFQ,
 }
