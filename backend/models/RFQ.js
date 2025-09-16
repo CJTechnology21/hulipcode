@@ -11,7 +11,7 @@ const RFQSchema = new mongoose.Schema(
     date: { type: Date, default: Date.now },
     taxType: {
       type: String,
-      enum: ["GST", "VAT", "NONE", "item"], // added "item" for your sample data
+      enum: ["GST", "VAT", "NONE", "item","bill"], // added "item" for your sample data
       default: "GST"
     },
     deliveryLocation: { type: String, required: true },
