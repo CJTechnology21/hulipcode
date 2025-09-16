@@ -77,40 +77,6 @@ const publishExistingRFQ = async (req, res) => {
   }
 };
 
-// const publishExistingRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-
-//         const rfq = await RFQ.findById(id);
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         if (rfq.status === "published") {
-//             return res.status(400).json({ success: false, message: "RFQ is already published" });
-//         }
-
-//         // Flip to published + allow optional updates from req.body
-//         rfq.status = "published";
-//         Object.assign(rfq, req.body); // optional: update dates, terms, etc.
-//         await rfq.save();
-
-//         res.status(200).json({
-//             success: true,
-//             message: "RFQ published successfully",
-//             data: rfq,
-//         });
-//     } catch (error) {
-//         console.log("Error in publishing draft :", error)
-//         res.status(400).json({
-//             success: false,
-//             message: "Error publishing RFQ",
-//             error: error.message,
-//         });
-//     }
-// };
-
-
 
 // Get all RFQs
 const getRFQs = async (req, res) => {
@@ -205,7 +171,6 @@ const deleteRFQ = async (req, res) => {
 // MATERIAL CONTROLLERS  
 
 // Add one or multiple materials to an RFQ
-// Add one or multiple materials to an RFQ
 const addMaterialsToRFQ = async (req, res) => {
     try {
         const { id } = req.params; // RFQ ID
@@ -239,32 +204,6 @@ const addMaterialsToRFQ = async (req, res) => {
     }
 };
 
-// const addMaterialsToRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params; // RFQ ID
-//         const materials = Array.isArray(req.body) ? req.body : [req.body];
-
-//         const rfq = await RFQ.findById(id);
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         rfq.materials.push(...materials);
-//         await rfq.save();
-
-//         res.status(200).json({
-//             success: true,
-//             message: "Materials added successfully",
-//             data: rfq.materials,
-//         });
-//     } catch (error) {
-//         res.status(400).json({
-//             success: false,
-//             message: "Error adding materials",
-//             error: error.message,
-//         });
-//     }
-// };
 
 // Update a specific material inside RFQ
 const updateMaterialInRFQ = async (req, res) => {

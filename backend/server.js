@@ -36,6 +36,7 @@ const staffRoutes = require('./routes/staffRoutes')
 const subConRoutes = require("./routes/subConRoutes")
 const siteRoutes = require('./routes/siteMeasurementsRoutes')
 const rfqRoutes = require('./routes/rfqRoutes');
+const pendingMaterialRoutes = require('./routes/pendingMaterialRoutes')
 // Load environment variables
 dotenv.config();
 
@@ -99,6 +100,7 @@ app.use("/api/staff", staffRoutes)
 app.use("/api/subcon", subConRoutes)
 app.use('/api/site', siteRoutes)
 app.use('/api/rfq', rfqRoutes)
+app.use('/api/pending-materials',pendingMaterialRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

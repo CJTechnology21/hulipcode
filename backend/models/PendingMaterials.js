@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const RFQSchema = new mongoose.Schema(
+const PendingMaterialSchema = new mongoose.Schema(
   {
     project: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,17 +8,11 @@ const RFQSchema = new mongoose.Schema(
       required: true,
     },
 
-    date: { type: Date, default: Date.now },
-    taxType: {
-      type: String,
-      enum: ["GST", "VAT", "NONE", "item","bill"], 
-      default: "GST"
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true, // who’s adding these pending materials
     },
-    deliveryLocation: { type: String, required: true },
-
-    biddingStartDate: { type: Date, required: true },
-    biddingEndDate: { type: Date, required: true },
-    deliveryDate: { type: Date, required: true },
 
     materials: [
       {
@@ -35,22 +29,13 @@ const RFQSchema = new mongoose.Schema(
       },
     ],
 
-    terms: { type: String },
-
-    supplier: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
     status: {
       type: String,
-      enum: ["draft", "published"],
-      default: "draft"
+      enum: ["pending", "converted","approved","rejected"],
+      default: "pending",
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("RFQ", RFQSchema);
-
+module.exports = mongoose.model("PendingMaterial", PendingMaterialSchema);

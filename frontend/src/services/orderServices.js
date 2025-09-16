@@ -8,18 +8,18 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// ✅ Place Order
+//  Place Order
 export const placeOrderAPI = async (orderData) => {
   const res = await axiosInstance.post("/api/orders", orderData);
   return res.data;
 };
 
-// ✅ Clear Cart
+// Clear Cart
 export const clearCartAPI = async () => {
   return axiosInstance.delete("/api/cart/clear");
 };
 
-// ✅ Get Current User's Orders
+//  Get Current User's Orders
 export const getOrdersAPI = async () => {
   const res = await axiosInstance.get("/api/orders/my");
   return res.data;
