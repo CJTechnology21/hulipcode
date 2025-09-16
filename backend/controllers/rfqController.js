@@ -12,6 +12,7 @@ const createRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
+        console.log("Error in saving draft:",error)
         res.status(400).json({
             success: false,
             message: "Error creating RFQ",

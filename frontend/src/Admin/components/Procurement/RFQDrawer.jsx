@@ -75,68 +75,6 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
       toast.error("Failed to publish RFQ.");
     }
   };
-
-  // const handlePublishDraft = async () => {
-  //   // figure out supplier email
-  //   // case 1: rfq.suppliers is an array
-  //   let supplierEmail = null;
-
-  //   if (Array.isArray(rfq?.suppliers) && rfq.suppliers.length > 0) {
-  //     supplierEmail = rfq.suppliers[0].email; // or index you actually want
-  //   }
-
-  //   // case 2: maybe rfq.supplier is a single object
-  //   if (!supplierEmail && rfq?.supplier?.email) {
-  //     supplierEmail = rfq.supplier.email;
-  //   }
-
-  //   if (!supplierEmail) {
-  //     toast.error("No supplier email found for this RFQ.");
-  //     return;
-  //   }
-
-  //   const rfqPayload = {
-  //     ...rfq,
-  //     status: "published",
-  //   };
-
-  //   // build email body
-  //   const rfqText = generateRFQText({
-  //     project: rfq?.project?.name || "",
-  //     deliveryLocation: rfq?.deliveryLocation,
-  //     biddingStartDate: rfq?.biddingStartDate,
-  //     biddingEndDate: rfq?.biddingEndDate,
-  //     deliveryDate: rfq?.deliveryDate,
-  //     selectedMaterials: rfq?.materials,
-  //     terms: rfq?.terms,
-  //   });
-
-  //   try {
-  //     toast.loading("Publishing RFQ...");
-  //     await publishExistingRFQ(rfqPayload);
-
-  //     await sendRFQEmail({
-  //       to_email: supplierEmail,
-  //       project: rfq?.project?.name || "",
-  //       deliveryLocation: rfq?.deliveryLocation,
-  //       biddingStartDate: rfq?.biddingStartDate,
-  //       biddingEndDate: rfq?.biddingEndDate,
-  //       deliveryDate: rfq?.deliveryDate,
-  //       selectedMaterials: rfq?.materials,
-  //       terms: rfq?.terms,
-  //       message: rfqText,
-  //     });
-
-  //     toast.dismiss();
-  //     toast.success("RFQ published and email sent!");
-  //     onClose();
-  //   } catch (err) {
-  //     toast.dismiss();
-  //     console.error("Error publishing RFQ:", err);
-  //     toast.error("Failed to publish RFQ.");
-  //   }
-  // };
-
   if (!rfq) return null;
 
   return (

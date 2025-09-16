@@ -42,8 +42,7 @@ export const generateRFQText = ({
 📦 *Materials Required:*
 ${materialList}
 
-📝 *Terms & Conditions:*
-${terms || "Standard site terms apply."}
+📝 *Terms & Conditions:* ${terms || "Standard site terms apply."}
 
 Please send your best quotation by *${formatDate(biddingEndDate)}*.  
 Include all applicable taxes, transport charges, and delivery timelines.
