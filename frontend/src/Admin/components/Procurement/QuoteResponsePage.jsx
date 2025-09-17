@@ -5,13 +5,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../Header";
 import { useAuth } from "../../../context/AuthContext";
-import {
-  addResponseToRFQ,
-  getResponsesOfRFQ,
-} from "../../../services/rfqServices";
+import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
 
 function QuoteResponsePage() {
-  const { id } = useParams();
+  const { id } = useParams(); // RFQ ID from URL
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -69,19 +66,20 @@ function QuoteResponsePage() {
               price: i.price,
             }))
           );
-        } else {
-          setResponses(
-            res.rfq.materials.map((m) => ({
-              materialId: m._id,
-              name: m.name,
-              quantity: m.quantity,
-              unit: m.unit,
-              price: "",
-            }))
-          );
+        } else if (res.rfq?.materials?.length) {
+          // Initialize blank responses from RFQ materials
+          const blankResponses = res.rfq.materials.map((m) => ({
+            materialId: m._id,
+            name: m.name,
+            quantity: m.quantity,
+            unit: m.unit,
+            price: "",
+          }));
+          setResponses(blankResponses);
+          console.log("Initialized blank responses:", blankResponses);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching RFQ:", err);
         toast.error("Failed to load RFQ details");
       } finally {
         setLoading(false);
@@ -101,29 +99,25 @@ function QuoteResponsePage() {
   };
 
   // ------------------------------
-  // Submit handler with debug logs
+  // Submit handler
   // ------------------------------
   const handleSubmit = async () => {
+    console.log("Submitting responses:", responses);
     if (!responses.every((r) => r.price !== "")) {
       toast.error("Please fill prices for all items.");
       return;
     }
 
-    console.log("Submitting RFQ response for RFQ ID:", id);
-    console.log("Supplier ID:", user._id);
-    console.log("Responses payload:", responses);
-
     try {
-      const result = await addResponseToRFQ(id, {
+      await addResponseToRFQ(id, {
         supplierId: user._id,
         responses,
       });
-      console.log("API response after submit:", result);
-
       toast.success("Response submitted successfully!");
+      console.log("Response submitted successfully:", responses);
       navigate("/thank-you");
     } catch (err) {
-      console.error("Error submitting RFQ response:", err);
+      console.error("Error submitting response:", err);
       toast.error("Failed to submit response");
     }
   };
@@ -175,7 +169,7 @@ function QuoteResponsePage() {
         </div>
 
         {/* Response Table */}
-        <div className="bg-white border rounded-lg shadow-sm overflow-x-auto">
+        <div className="bg-white border rounded-lg shadow-sm">
           <div className="grid grid-cols-4 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
             <span>Item</span>
             <span>Qty</span>
@@ -183,7 +177,7 @@ function QuoteResponsePage() {
             <span>Price</span>
           </div>
           <div className="divide-y divide-gray-200">
-            {responses.length > 0 ? (
+            {responses?.length > 0 ? (
               responses.map((r, idx) => (
                 <div
                   key={r.materialId || idx}
@@ -194,7 +188,7 @@ function QuoteResponsePage() {
                   <span>{r.unit}</span>
                   <input
                     type="number"
-                    className="border rounded px-2 py-1 w-full"
+                    className="border rounded px-2 py-1"
                     placeholder="Price"
                     value={r.price}
                     onChange={(e) =>
@@ -212,7 +206,7 @@ function QuoteResponsePage() {
         </div>
 
         {/* Submit Button */}
-        {responses.length > 0 && (
+        {responses?.length > 0 && (
           <div className="flex justify-end">
             <Button
               color="red"
@@ -230,6 +224,7 @@ function QuoteResponsePage() {
 }
 
 export default QuoteResponsePage;
+
 
 // import React, { useEffect, useState } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
