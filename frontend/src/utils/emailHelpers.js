@@ -35,7 +35,7 @@ export const sendRFQEmail = async ({
       : "No materials listed";
 
   // Response link
-  const responseLink = `https://first-task-alpha.vercel.app/responses${rfqId}`;
+  const responseLink = `https://first-task-alpha.vercel.app/responses/${rfqId}`;
 
   // Full RFQ message for text-only templates
   const rfqMessage = `

@@ -197,7 +197,7 @@ function App() {
         {/* Procurement Routes */}
         <Route path="/procurement" element={<Procurement />} />
         <Route path="/addmaterials" element={<AddMaterialsScreen />} />
-         <Route path="/responses" element={<QuoteResponsePage />} />
+         <Route path="/responses/:id" element={<QuoteResponsePage />} />
         {/* Finance Routes */}
         <Route path="/finance" element={<FinanceHome />} />
         {/* product-routes */}
