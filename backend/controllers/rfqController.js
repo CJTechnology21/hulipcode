@@ -290,13 +290,12 @@ const getMaterialsOfRFQ = async (req, res) => {
         });
     }
 };
-// ---------------------- RESPONSE CONTROLLERS ----------------------
-
+//  RESPONSE CONTROLLERS 
 // Add one or multiple responses to an RFQ
 const addResponseToRFQ = async (req, res) => {
   try {
     const { id } = req.params; // RFQ ID
-    const { supplierId, responses } = req.body; // supplier + items
+    const { supplierId, responses } = req.body; 
 
     if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
       return res.status(400).json({
@@ -312,7 +311,7 @@ const addResponseToRFQ = async (req, res) => {
 
     // Convert incoming responses into schema-compatible structure
     const quotes = responses.map((item) => ({
-      material: item.materialId, // maps to Product ref
+      material: item.materialId, 
       productName: item.name,
       price: item.price,
       quantity: item.quantity,
@@ -347,33 +346,6 @@ const addResponseToRFQ = async (req, res) => {
     });
   }
 };
-
-// const addResponseToRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params; // RFQ ID
-//         const responses = Array.isArray(req.body) ? req.body : [req.body];
-
-//         const rfq = await RFQ.findById(id);
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         rfq.responses.push(...responses);
-//         await rfq.save();
-
-//         res.status(200).json({
-//             success: true,
-//             message: "Responses added successfully",
-//             data: rfq.responses,
-//         });
-//     } catch (error) {
-//         res.status(400).json({
-//             success: false,
-//             message: "Error adding responses",
-//             error: error.message,
-//         });
-//     }
-// };
 
 // Get all responses for a given RFQ
 const getResponsesOfRFQ = async (req, res) => {

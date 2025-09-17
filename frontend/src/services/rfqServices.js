@@ -86,31 +86,25 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 };
 
 // ---------------- RESPONSE SERVICES ----------------
-
-// Add response(s) to an RFQ
 // Add response to RFQ
-// rfqServices.js
 export const addResponseToRFQ = async (rfqId, supplierId, items) => {
-  // ✅ Transform each item into the backend's expected schema
+  //  Transform each item into the backend's expected schema
   const quotes = items.map(item => ({
-    material: item.materialId,      // backend expects `material`
-    productName: item.name,         // store product name
+    material: item.materialId,     
+    productName: item.name,       
     price: Number(item.price),
     quantity: Number(item.quantity),
-    totalAmount: Number(item.price) * Number(item.quantity), // required per item
+    totalAmount: Number(item.price) * Number(item.quantity), 
   }));
 
-  // ✅ Calculate grand total for all items
+  // Calculate grand total for all items
   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
 
   const payload = {
     supplierId,
-    responses: quotes,   // ✅ quotes array (per-material response)
-    totalAmount,         // ✅ required at root level
+    responses: quotes, 
+    totalAmount,        
   };
-
-  console.log("📦 Final payload being sent:", JSON.stringify(payload, null, 2));
-
   const res = await axiosInstance.post(
     `/api/rfq/${rfqId}/responses`,
     payload,
@@ -119,13 +113,6 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 
   return res.data;
 };
-
-// export const addResponseToRFQ = async (rfqId, responses) => {
-//   const res = await axiosInstance.post(`/api/rfq/${rfqId}/responses`, responses, {
-//     headers: { "Content-Type": "application/json" },
-//   });
-//   return res.data;
-// };
 
 // Get all responses of a specific RFQ
 export const getResponsesOfRFQ = async (rfqId) => {
