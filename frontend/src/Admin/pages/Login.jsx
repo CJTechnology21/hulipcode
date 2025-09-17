@@ -3,16 +3,16 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Input from "../../components/Input";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import logo from "../images/logo.jpg";
 import homeImage from "../images/Home.png";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { useGoogleLogin } from "@react-oauth/google";
-import { requestFirebaseNotificationPermission } from "../../services/firebase";
-import { storeVendorToken } from "../../services/authServices";
-import { useAuth } from "../../context/AuthContext"; 
+// import { requestFirebaseNotificationPermission } from "../../services/firebase";
+// import { storeVendorToken } from "../../services/authServices";
+import { useAuth } from "../../context/AuthContext";
 
 const schema = yup.object().shape({
   emailOrPhone: yup
@@ -31,7 +31,8 @@ const schema = yup.object().shape({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, googleLogin } = useAuth(); 
+  const location = useLocation(); // ✅ to capture redirect from responses
+  const { login, googleLogin } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -39,6 +40,29 @@ const Login = () => {
     handleSubmit,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
+
+  const redirectAfterLogin = (user) => {
+    // ✅ If supplier, always redirect to responses page
+    if (user.role === "Material Supplier") {
+      // If we came from /responses/:id redirect back
+      const fromResponses = location.state?.from;
+      if (fromResponses) {
+        navigate(fromResponses, { replace: true });
+      } else {
+        navigate("/responses"); // default responses page
+      }
+      return;
+    }
+
+    // ✅ Other roles
+    if (user.role === "vendor") {
+      navigate("/vendordashboard");
+    } else if (user.role === "architect") {
+      navigate("/architectdashboard");
+    } else {
+      navigate("/ecom");
+    }
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -52,17 +76,7 @@ const Login = () => {
 
       toast.success("Login successful");
 
-      if (user.role === "vendor") {
-        // const fcmToken = await requestFirebaseNotificationPermission();
-        // if (fcmToken) {
-        //   await storeVendorToken(user._id, fcmToken);
-        // }
-        navigate("/vendordashboard");
-      } else if (user.role === "architect") {
-        navigate("/architectdashboard");
-      } else {
-        navigate("/ecom");
-      }
+      redirectAfterLogin(user);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Login failed");
     } finally {
@@ -82,17 +96,7 @@ const Login = () => {
         localStorage.setItem("crm_user_id", user.id || user._id);
         localStorage.setItem("crm_role", user.role);
 
-        if (user?.role === "vendor") {
-          // const fcmToken = await requestFirebaseNotificationPermission();
-          // if (fcmToken) {
-          //   await storeVendorToken(user._id, fcmToken);
-          // }
-          navigate("/vendordashboard");
-        } else if (user?.role === "architect") {
-          navigate("/architectdashboard");
-        } else {
-          navigate("/ecom");
-        }
+        redirectAfterLogin(user);
       } catch (err) {
         toast.error(err?.response?.data?.message || "Google login failed");
       }
@@ -201,11 +205,8 @@ export default Login;
 // import { FaApple } from "react-icons/fa";
 // import { useGoogleLogin } from "@react-oauth/google";
 // import { requestFirebaseNotificationPermission } from "../../services/firebase";
-// import {
-//   loginUser,
-//   googleLoginUser,
-//   storeVendorToken,
-// } from "../../services/authServices";
+// import { storeVendorToken } from "../../services/authServices";
+// import { useAuth } from "../../context/AuthContext"; 
 
 // const schema = yup.object().shape({
 //   emailOrPhone: yup
@@ -224,6 +225,7 @@ export default Login;
 
 // const Login = () => {
 //   const navigate = useNavigate();
+//   const { login, googleLogin } = useAuth(); 
 //   const [loading, setLoading] = useState(false);
 
 //   const {
@@ -236,20 +238,19 @@ export default Login;
 //     try {
 //       setLoading(true);
 
-//       const res = await loginUser(data.emailOrPhone, data.password);
-//       const { user, token } = res;
+//       const res = await login(data.emailOrPhone, data.password);
+//       const { user } = res;
 
-//       // localStorage.setItem("crm_token", token);
-//       localStorage.setItem("crm_user_id", user.id);
+//       localStorage.setItem("crm_user_id", user.id || user._id);
 //       localStorage.setItem("crm_role", user.role);
 
 //       toast.success("Login successful");
 
 //       if (user.role === "vendor") {
-//         const fcmToken = await requestFirebaseNotificationPermission();
-//         if (fcmToken) {
-//           await storeVendorToken(user._id, fcmToken);
-//         }
+//         // const fcmToken = await requestFirebaseNotificationPermission();
+//         // if (fcmToken) {
+//         //   await storeVendorToken(user._id, fcmToken);
+//         // }
 //         navigate("/vendordashboard");
 //       } else if (user.role === "architect") {
 //         navigate("/architectdashboard");
@@ -263,19 +264,25 @@ export default Login;
 //     }
 //   };
 
-//   const googleLogin = useGoogleLogin({
+//   const googleLoginHandler = useGoogleLogin({
 //     flow: "auth-code",
 //     onSuccess: async (codeResponse) => {
 //       try {
-//         const res = await googleLoginUser(codeResponse.code);
+//         const res = await googleLogin(codeResponse.code); // ✅ use context
+//         const { user } = res;
+
 //         toast.success("Signed in with Google!");
 
-//         localStorage.setItem("crm_token", res.token);
-//         localStorage.setItem("crm_user_id", res.user.id);
+//         localStorage.setItem("crm_user_id", user.id || user._id);
+//         localStorage.setItem("crm_role", user.role);
 
-//         if (res.user?.role === "vendor") {
+//         if (user?.role === "vendor") {
+//           // const fcmToken = await requestFirebaseNotificationPermission();
+//           // if (fcmToken) {
+//           //   await storeVendorToken(user._id, fcmToken);
+//           // }
 //           navigate("/vendordashboard");
-//         } else if (res.user?.role === "architect") {
+//         } else if (user?.role === "architect") {
 //           navigate("/architectdashboard");
 //         } else {
 //           navigate("/ecom");
@@ -357,7 +364,7 @@ export default Login;
 //           </div>
 
 //           <button
-//             onClick={googleLogin}
+//             onClick={googleLoginHandler}
 //             className="w-full flex items-center justify-center p-3 border border-gray-300 rounded-md mb-3 text-sm hover:bg-gray-50"
 //           >
 //             <FcGoogle size={20} className="mr-2" />
