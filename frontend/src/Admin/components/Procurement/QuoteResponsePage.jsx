@@ -5,7 +5,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../Header";
 import { useAuth } from "../../../context/AuthContext";
-import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
+import {
+  addResponseToRFQ,
+  getResponsesOfRFQ,
+} from "../../../services/rfqServices";
 
 function QuoteResponsePage() {
   const { id } = useParams(); // RFQ ID from URL
@@ -29,21 +32,22 @@ function QuoteResponsePage() {
     }
   }, [user, id, navigate]);
 
-  // ✅ Fetch RFQ + existing responses
+  // Fetch RFQ + existing responses
   useEffect(() => {
     const fetchResponses = async () => {
       try {
         const res = await getResponsesOfRFQ(id);
 
-        if (!res?.data?.rfq) {
+        if (!res?.rfq || !res?.rfq?.materials?.length) {
           toast.error("RFQ not found or has no materials.");
+          setLoading(false);
           return;
         }
 
-        setRFQ(res.data.rfq);
+        setRFQ(res.rfq); // ✅ use res.rfq directly
 
-        // If supplier already submitted, prefill values
-        const existing = res.data.responses?.find(
+        // Prefill if supplier already responded
+        const existing = res.responses?.find(
           (r) => r.supplier?._id === user?._id
         );
 
@@ -58,9 +62,8 @@ function QuoteResponsePage() {
             }))
           );
         } else {
-          // ✅ Init blank responses only if materials exist
           setResponses(
-            (res.data.rfq.materials || []).map((m) => ({
+            (res.rfq.materials || []).map((m) => ({
               materialId: m._id,
               name: m.name,
               quantity: m.quantity,
@@ -86,7 +89,7 @@ function QuoteResponsePage() {
     setResponses(updated);
   };
 
-  // ✅ Submit handler
+  //  Submit handler
   const handleSubmit = async () => {
     if (!responses.every((r) => r.price)) {
       toast.error("Please fill prices for all items.");
