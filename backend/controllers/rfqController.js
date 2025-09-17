@@ -296,11 +296,8 @@ const getMaterialsOfRFQ = async (req, res) => {
 const addResponseToRFQ = async (req, res) => {
   try {
     const { id } = req.params; // RFQ ID
-    const { supplierId, responses } = req.body;
+    const { supplierId, responses } = req.body; // supplier + items
 
-    console.log("📥 Controller received payload:", req.body);
-
-    // Validate
     if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
       return res.status(400).json({
         success: false,
@@ -313,10 +310,26 @@ const addResponseToRFQ = async (req, res) => {
       return res.status(404).json({ success: false, message: "RFQ not found" });
     }
 
-    // Save supplier + responses as one entry
+    // Convert incoming responses into schema-compatible structure
+    const quotes = responses.map((item) => ({
+      material: item.materialId, // maps to Product ref
+      productName: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      remarks: item.remarks || "",
+    }));
+
+    // Calculate totalAmount at supplier-response level
+    const totalAmount = responses.reduce(
+      (sum, item) => sum + (item.price * item.quantity),
+      0
+    );
+
+    // Push new response into RFQ
     rfq.responses.push({
       supplier: supplierId,
-      items: responses,
+      quotes,
+      totalAmount,
     });
 
     await rfq.save();
@@ -327,7 +340,6 @@ const addResponseToRFQ = async (req, res) => {
       data: rfq.responses,
     });
   } catch (error) {
-    console.error("❌ Controller error:", error.message);
     res.status(400).json({
       success: false,
       message: "Error adding responses",
