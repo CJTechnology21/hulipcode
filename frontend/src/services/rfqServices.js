@@ -89,10 +89,13 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 
 // Add response(s) to an RFQ
 // Add response to RFQ
+// rfqServices.js
 export const addResponseToRFQ = async (rfqId, supplierId, items) => {
   const responses = items.map(item => ({
     ...item,
-    totalAmount: Number(item.price) * Number(item.quantity), // ✅ required by backend schema
+    price: Number(item.price),
+    quantity: Number(item.quantity),
+    totalAmount: Number(item.price) * Number(item.quantity), // ✅ REQUIRED by backend
   }));
 
   const payload = {
@@ -100,7 +103,7 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
     responses,
   };
 
-  console.log("📦 Service payload being sent:", payload);
+  console.log("📦 Final payload being sent:", payload);
 
   const res = await axiosInstance.post(
     `/api/rfq/${rfqId}/responses`,
