@@ -16,7 +16,9 @@ function QuoteResponsePage() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ------------------------------
   // Auth + role check
+  // ------------------------------
   useEffect(() => {
     if (!user) {
       navigate("/login", { state: { from: `/responses/${id}` } });
@@ -29,7 +31,9 @@ function QuoteResponsePage() {
     }
   }, [user, id, navigate]);
 
+  // ------------------------------
   // Fetch RFQ + existing responses
+  // ------------------------------
   useEffect(() => {
     const fetchResponses = async () => {
       try {
@@ -48,10 +52,7 @@ function QuoteResponsePage() {
         const existing = res.responses?.find(r => r.supplier?._id === user?._id);
         console.log("Existing response for this supplier:", existing);
 
-        const initializedResponses = (existing?.items?.length
-          ? existing.items
-          : res.rfq.materials
-        ).map((m, idx) => ({
+        const initializedResponses = (res.rfq.materials || []).map((m, idx) => ({
           materialId: m._id || m.product || idx,
           name: m.name,
           quantity: m.quantity,
@@ -73,12 +74,18 @@ function QuoteResponsePage() {
     if (id && user) fetchResponses();
   }, [id, user]);
 
+  // ------------------------------
+  // Update response value
+  // ------------------------------
   const updateResponse = (index, field, value) => {
     const updated = [...responses];
     updated[index][field] = value;
     setResponses(updated);
   };
 
+  // ------------------------------
+  // Submit handler
+  // ------------------------------
   const handleSubmit = async () => {
     console.log("Submitting responses:", responses);
 
@@ -100,26 +107,36 @@ function QuoteResponsePage() {
     }
   };
 
+  // ------------------------------
+  // Loading / no RFQ UI
+  // ------------------------------
   if (loading) {
     return (
-      <Header title="Supplier Response">
+      <>
+        <Header title="Supplier Response" />
         <div className="p-6">Loading RFQ...</div>
-      </Header>
+      </>
     );
   }
 
   if (!rfq) {
     return (
-      <Header title="Supplier Response">
+      <>
+        <Header title="Supplier Response" />
         <div className="p-6">No RFQ found.</div>
-      </Header>
+      </>
     );
   }
 
+  // ------------------------------
+  // Main UI
+  // ------------------------------
   return (
-    <Header title="Supplier Response">
-      <ToastContainer />
+    <>
+      <Header title="Supplier Response" />
       <div className="p-6 bg-gray-100 min-h-screen space-y-6">
+        <ToastContainer />
+
         {/* RFQ Info */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-2">
@@ -163,12 +180,16 @@ function QuoteResponsePage() {
                     className="border rounded px-2 py-1"
                     placeholder="Price"
                     value={r.price}
-                    onChange={(e) => updateResponse(idx, "price", e.target.value)}
+                    onChange={(e) =>
+                      updateResponse(idx, "price", e.target.value)
+                    }
                   />
                 </div>
               ))
             ) : (
-              <div className="px-6 py-3 text-gray-500 text-sm">No materials available.</div>
+              <div className="px-6 py-3 text-gray-500 text-sm">
+                No materials available.
+              </div>
             )}
           </div>
         </div>
@@ -187,7 +208,7 @@ function QuoteResponsePage() {
           </div>
         )}
       </div>
-    </Header>
+    </>
   );
 }
 
