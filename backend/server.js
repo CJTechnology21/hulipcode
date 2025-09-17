@@ -50,6 +50,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://first-task-alpha.vercel.app',
   'https://first-task-1pscijvoq-coyipo7369-wenkuucoms-projects.vercel.app',
+  'https://first-task-9ud7w7v0t-coyipo7369-wenkuucoms-projects.vercel.app',
 ];
 app.use(cookieParser());
 
@@ -100,7 +101,7 @@ app.use("/api/staff", staffRoutes)
 app.use("/api/subcon", subConRoutes)
 app.use('/api/site', siteRoutes)
 app.use('/api/rfq', rfqRoutes)
-app.use('/api/pending-materials',pendingMaterialRoutes)
+app.use('/api/pending-materials', pendingMaterialRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

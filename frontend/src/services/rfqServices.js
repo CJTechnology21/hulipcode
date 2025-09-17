@@ -89,10 +89,15 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 
 // Add response(s) to an RFQ
 // Add response to RFQ
-export const addResponseToRFQ = async (rfqId, supplierId, responses) => {
+export const addResponseToRFQ = async (rfqId, supplierId, items) => {
+  const responses = items.map(item => ({
+    ...item,
+    totalAmount: Number(item.price) * Number(item.quantity), // ✅ required by backend schema
+  }));
+
   const payload = {
     supplierId,
-    responses, // 👈 keep responses here
+    responses,
   };
 
   console.log("📦 Service payload being sent:", payload);
