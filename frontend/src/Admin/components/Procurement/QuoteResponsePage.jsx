@@ -25,7 +25,7 @@ function QuoteResponsePage() {
       return;
     }
     if (user.role !== "Material Supplier") {
-      toast.error("❌ Access denied. Only suppliers can respond.");
+      toast.error(" Access denied. Only suppliers can respond.");
       navigate("/");
     }
   }, [user, id, navigate]);
@@ -36,7 +36,7 @@ function QuoteResponsePage() {
         const res = await getResponsesOfRFQ(id);
 
         if (!res?.rfq || !res.rfq?.materials?.length) {
-          toast.error("⚠️ RFQ not found or has no materials.");
+          toast.error(" RFQ not found or has no materials.");
           setLoading(false);
           return;
         }
@@ -63,7 +63,7 @@ function QuoteResponsePage() {
 
         setResponses(initializedResponses);
       } catch (err) {
-        toast.error("❌ Failed to load RFQ details.");
+        toast.error(" Failed to load RFQ details.");
       } finally {
         setLoading(false);
       }
@@ -89,35 +89,60 @@ function QuoteResponsePage() {
     (sum, r) => sum + (parseFloat(r.totalAmount) || 0),
     0
   );
-
   const handleSubmit = async () => {
-    if (!responses.every((r) => r.price !== "")) {
-      toast.error("⚠️ Please fill prices for all items.");
+    if (
+      !responses.every((r) => r.price !== "" && !isNaN(r.price) && r.price > 0)
+    ) {
+      toast.error(" Please fill valid prices for all items.");
       return;
     }
 
     try {
       const supplierId = user?._id || user?.id || user?.userId;
       if (!supplierId) {
-        toast.error("❌ Supplier ID is missing. Please log in again.");
+        toast.error(" Supplier ID is missing. Please log in again.");
         return;
       }
 
-      const quotes = responses.map((r) => ({
-        material: r.materialId,
-        productName: r.name,
-        price: parseFloat(r.price),
-        quantity: r.quantity,
-      }));
+      // Directly pass responses; service will format payload correctly
+      await addResponseToRFQ(id, supplierId, responses);
 
-      await addResponseToRFQ(id, supplierId, quotes);
-
-      toast.success("✅ Response submitted successfully!");
+      toast.success(" Response submitted successfully!");
       setTimeout(() => navigate("/thankyou"), 1200);
     } catch (err) {
-      toast.error("❌ Failed to submit response.");
+      console.error(err.response?.data || err.message);
+      toast.error(" Failed to submit response.");
     }
   };
+
+  // const handleSubmit = async () => {
+  //   if (!responses.every((r) => r.price !== "")) {
+  //     toast.error("⚠️ Please fill prices for all items.");
+  //     return;
+  //   }
+
+  //   try {
+  //     const supplierId = user?._id || user?.id || user?.userId;
+  //     if (!supplierId) {
+  //       toast.error("❌ Supplier ID is missing. Please log in again.");
+  //       return;
+  //     }
+
+  //     const quotes = responses.map((r) => ({
+  //       material: r.materialId,
+  //       productName: r.name,
+  //       price: parseFloat(r.price),
+  //       quantity: r.quantity,
+  //     }));
+
+  //     await addResponseToRFQ(id, supplierId, quotes);
+
+  //     toast.success("✅ Response submitted successfully!");
+  //     setTimeout(() => navigate("/thankyou"), 1200);
+  //   } catch (err) {
+  //     toast.error("❌ Failed to submit response.");
+  //   }
+  // };
 
   if (loading) {
     return (

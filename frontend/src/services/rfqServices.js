@@ -88,7 +88,6 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 // ---------------- RESPONSE SERVICES ----------------
 // Add response to RFQ
 export const addResponseToRFQ = async (rfqId, supplierId, items) => {
-  //  Transform each item into the backend's expected schema
   const quotes = items.map(item => ({
     material: item.materialId,     
     productName: item.name,       
@@ -97,14 +96,19 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
     totalAmount: Number(item.price) * Number(item.quantity), 
   }));
 
-  // Calculate grand total for all items
   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
 
   const payload = {
     supplierId,
-    responses: quotes, 
-    totalAmount,        
+    responses: {
+      supplier: supplierId,
+      quotes,
+      totalAmount
+    }
   };
+
+  console.log("📦 Payload being sent:", payload);
+
   const res = await axiosInstance.post(
     `/api/rfq/${rfqId}/responses`,
     payload,
@@ -113,6 +117,33 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 
   return res.data;
 };
+
+// export const addResponseToRFQ = async (rfqId, supplierId, items) => {
+//   //  Transform each item into the backend's expected schema
+//   const quotes = items.map(item => ({
+//     material: item.materialId,     
+//     productName: item.name,       
+//     price: Number(item.price),
+//     quantity: Number(item.quantity),
+//     totalAmount: Number(item.price) * Number(item.quantity), 
+//   }));
+
+//   // Calculate grand total for all items
+//   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
+
+//   const payload = {
+//     supplierId,
+//     responses: quotes, 
+//     totalAmount,        
+//   };
+//   const res = await axiosInstance.post(
+//     `/api/rfq/${rfqId}/responses`,
+//     payload,
+//     { headers: { "Content-Type": "application/json" } }
+//   );
+
+//   return res.data;
+// };
 
 // Get all responses of a specific RFQ
 export const getResponsesOfRFQ = async (rfqId) => {
