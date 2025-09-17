@@ -293,32 +293,72 @@ const getMaterialsOfRFQ = async (req, res) => {
 // ---------------------- RESPONSE CONTROLLERS ----------------------
 
 // Add one or multiple responses to an RFQ
-const addResponseToRFQ = async (req, res) => {
-    try {
-        const { id } = req.params; // RFQ ID
-        const responses = Array.isArray(req.body) ? req.body : [req.body];
+ const addResponseToRFQ = async (req, res) => {
+  try {
+    const { id } = req.params; // RFQ ID
+    const { supplierId, responses } = req.body; // supplier + items
 
-        const rfq = await RFQ.findById(id);
-        if (!rfq) {
-            return res.status(404).json({ success: false, message: "RFQ not found" });
-        }
-
-        rfq.responses.push(...responses);
-        await rfq.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Responses added successfully",
-            data: rfq.responses,
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: "Error adding responses",
-            error: error.message,
-        });
+    // Validate
+    if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "SupplierId and at least one response item are required",
+      });
     }
+
+    const rfq = await RFQ.findById(id);
+    if (!rfq) {
+      return res.status(404).json({ success: false, message: "RFQ not found" });
+    }
+
+    // Save supplier + responses as one entry
+    rfq.responses.push({
+      supplier: supplierId,
+      items: responses,
+    });
+
+    await rfq.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Responses added successfully",
+      data: rfq.responses,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "Error adding responses",
+      error: error.message,
+    });
+  }
 };
+
+// const addResponseToRFQ = async (req, res) => {
+//     try {
+//         const { id } = req.params; // RFQ ID
+//         const responses = Array.isArray(req.body) ? req.body : [req.body];
+
+//         const rfq = await RFQ.findById(id);
+//         if (!rfq) {
+//             return res.status(404).json({ success: false, message: "RFQ not found" });
+//         }
+
+//         rfq.responses.push(...responses);
+//         await rfq.save();
+
+//         res.status(200).json({
+//             success: true,
+//             message: "Responses added successfully",
+//             data: rfq.responses,
+//         });
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: "Error adding responses",
+//             error: error.message,
+//         });
+//     }
+// };
 
 // Get all responses for a given RFQ
 const getResponsesOfRFQ = async (req, res) => {

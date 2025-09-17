@@ -88,12 +88,28 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 // ---------------- RESPONSE SERVICES ----------------
 
 // Add response(s) to an RFQ
-export const addResponseToRFQ = async (rfqId, responses) => {
-  const res = await axiosInstance.post(`/api/rfq/${rfqId}/responses`, responses, {
-    headers: { "Content-Type": "application/json" },
-  });
+// Add response to RFQ
+export const addResponseToRFQ = async (rfqId, supplierId, items) => {
+  const payload = {
+    supplierId,
+    responses: items, // array of { materialId, name, quantity, unit, price }
+  };
+
+  const res = await axiosInstance.post(
+    `/api/rfq/${rfqId}/responses`,
+    payload,
+    { headers: { "Content-Type": "application/json" } }
+  );
+
   return res.data;
 };
+
+// export const addResponseToRFQ = async (rfqId, responses) => {
+//   const res = await axiosInstance.post(`/api/rfq/${rfqId}/responses`, responses, {
+//     headers: { "Content-Type": "application/json" },
+//   });
+//   return res.data;
+// };
 
 // Get all responses of a specific RFQ
 export const getResponsesOfRFQ = async (rfqId) => {
