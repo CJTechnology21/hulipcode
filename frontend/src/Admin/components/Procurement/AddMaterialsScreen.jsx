@@ -23,7 +23,7 @@ function AddMaterialsScreen() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { project, date, taxType, deliveryLocation } = location.state || {};
+  const { project, taxType, deliveryLocation } = location.state || {};
 
   const [biddingStartDate, setBiddingStartDate] = useState(null);
   const [biddingEndDate, setBiddingEndDate] = useState(null);
@@ -176,7 +176,7 @@ const handleSavePublish = async () => {
     }
 
     // Build link to the published RFQ
-    const rfqLink = `https://first-task-alpha.vercel.app/responses`;
+    const rfqLink = `https://first-task-alpha.vercel.app/responses/${createdRFQ._id}`;
 
     // Send email with the RFQ link included
     await sendRFQEmail({
@@ -189,8 +189,8 @@ const handleSavePublish = async () => {
       selectedMaterials,
       materials: rfqData.materials, // in case email helper uses this
       terms,
-      rfqId: createdRFQ._id,        // ✅ pass RFQ ID
-      rfqLink,                      // ✅ pass link for email
+      rfqId: createdRFQ._id,        //  pass RFQ ID
+      rfqLink,                      //  pass link for email
       message: `${rfqText}\n\n👉 Add your response by clicking this link: ${rfqLink}`,
     });
 

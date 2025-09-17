@@ -33,6 +33,24 @@ const getPendingMaterialsByProject = async (req, res) => {
       .json({ success: false, message: "Error fetching pending materials", error: error.message });
   }
 };
+//Get pending materials by its id 
+const getPendingMaterialById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const material = await PendingMaterial.findById(id).populate("product", "name hsn unit");
+    if (!material) {
+      return res.status(404).json({ success: false, message: "Pending material not found" });
+    }
+    res.status(200).json({ success: true, data: material });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching pending material",
+      error: error.message,
+    });
+  }
+};
+
 
 /**
  * Approve & move all pending materials to an RFQ
@@ -82,6 +100,26 @@ const movePendingToRFQ = async (req, res) => {
       .json({ success: false, message: "Error moving materials", error: error.message });
   }
 };
+//update pending materials
+const updatePendingMaterial = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const material = await PendingMaterial.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!material) {
+      return res.status(404).json({ success: false, message: "Pending material not found" });
+    }
+    res.status(200).json({ success: true, data: material });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "Error updating pending material",
+      error: error.message,
+    });
+  }
+};
 
 /**
  * Delete a pending material (if user cancels before RFQ)
@@ -104,6 +142,8 @@ const deletePendingMaterial = async (req, res) => {
 module.exports = {
   addPendingMaterial,
   getPendingMaterialsByProject,
+  getPendingMaterialById,
+  updatePendingMaterial,
   movePendingToRFQ,
   deletePendingMaterial,
 };

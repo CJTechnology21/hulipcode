@@ -1,40 +1,84 @@
-import React, { useState } from "react";
-import Layout from "../Layout";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Button from "../../../components/Button";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Header from "../Header";
+import {useAuth} from "../../../context/AuthContext";
+import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
 
 function QuoteResponsePage() {
-  // just hard-code some RFQ and materials for demo
-  const rfq = {
-    project: { name: "Demo Project" },
-    deliveryLocation: "Hyderabad",
-    biddingStartDate: "2025-09-01",
-    biddingEndDate: "2025-09-10",
-  };
+  const { id } = useParams(); // RFQ ID from URL
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const [responses, setResponses] = useState([
-    {
-      materialId: "m1",
-      name: "Cement",
-      quantity: 100,
-      unit: "Bags",
-      price: "",
-      remarks: "",
-      deliveryDate: new Date(),
-    },
-    {
-      materialId: "m2",
-      name: "Steel",
-      quantity: 50,
-      unit: "Tons",
-      price: "",
-      remarks: "",
-      deliveryDate: new Date(),
-    },
-  ]);
+  const [rfq, setRFQ] = useState(null);
+  const [responses, setResponses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Auth + role check
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { state: { from: `/responses/${id}` } });
+      return;
+    }
+    if (user.role !== "Material Supplier") {
+      toast.error("Access denied. Only suppliers can respond.");
+      navigate("/");
+      return;
+    }
+  }, [user, id, navigate]);
+
+  // ✅ Fetch RFQ + existing responses
+  useEffect(() => {
+    const fetchResponses = async () => {
+      try {
+        const res = await getResponsesOfRFQ(id);
+
+        if (!res?.data) {
+          toast.error("RFQ not found or has no materials.");
+          return;
+        }
+
+        setRFQ(res.data.rfq);
+
+        // If supplier already submitted, prefill values
+        const existing = res.data.responses?.find(
+          (r) => r.supplier?._id === user?._id
+        );
+
+        if (existing) {
+          setResponses(
+            existing.items.map((i) => ({
+              materialId: i.materialId,
+              name: i.name,
+              quantity: i.quantity,
+              unit: i.unit,
+              price: i.price,
+            }))
+          );
+        } else {
+          // Init blank responses from RFQ materials
+          setResponses(
+            res.data.rfq.materials.map((m) => ({
+              materialId: m._id,
+              name: m.name,
+              quantity: m.quantity,
+              unit: m.unit,
+              price: "",
+            }))
+          );
+        }
+      } catch (err) {
+        toast.error("Failed to load RFQ details");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id && user) fetchResponses();
+  }, [id, user]);
 
   const updateResponse = (index, field, value) => {
     const updated = [...responses];
@@ -42,18 +86,47 @@ function QuoteResponsePage() {
     setResponses(updated);
   };
 
-  const handleSubmit = () => {
+  // ✅ Submit handler
+  const handleSubmit = async () => {
     if (!responses.every((r) => r.price)) {
       toast.error("Please fill prices for all items.");
       return;
     }
-    toast.success("This is a static demo. Response submitted!");
+
+    try {
+      await addResponseToRFQ(id, {
+        supplierId: user._id,
+        responses,
+      });
+      toast.success("Response submitted successfully!");
+      navigate("/thank-you");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to submit response");
+    }
   };
 
+  if (loading) {
+    return (
+      <Header title="Supplier Response">
+        <div className="p-6">Loading RFQ...</div>
+      </Header>
+    );
+  }
+
+  if (!rfq) {
+    return (
+      <Header title="Supplier Response">
+        <div className="p-6">No RFQ found.</div>
+      </Header>
+    );
+  }
+
   return (
-    <Layout title={"Supplier Response"}>
+    <Header title={"Supplier Response"}>
       <ToastContainer />
       <div className="p-6 bg-gray-100 min-h-screen space-y-6">
+        {/* RFQ Info */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-2">
             RFQ for {rfq.project?.name}
@@ -68,20 +141,19 @@ function QuoteResponsePage() {
           </p>
         </div>
 
+        {/* Response Table */}
         <div className="bg-white border rounded-lg shadow-sm">
-          <div className="grid grid-cols-6 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
+          <div className="grid grid-cols-4 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
             <span>Item</span>
             <span>Qty</span>
             <span>Unit</span>
             <span>Price</span>
-            <span>Delivery Date</span>
-            <span>Remarks</span>
           </div>
           <div className="divide-y divide-gray-200">
             {responses.map((r, idx) => (
               <div
                 key={r.materialId}
-                className="grid grid-cols-6 gap-3 px-6 py-3 items-center text-sm"
+                className="grid grid-cols-4 gap-3 px-6 py-3 items-center text-sm"
               >
                 <span>{r.name}</span>
                 <span>{r.quantity}</span>
@@ -93,24 +165,12 @@ function QuoteResponsePage() {
                   value={r.price}
                   onChange={(e) => updateResponse(idx, "price", e.target.value)}
                 />
-                <DatePicker
-                  selected={r.deliveryDate}
-                  onChange={(date) => updateResponse(idx, "deliveryDate", date)}
-                  dateFormat="dd/MM/yyyy"
-                  className="border rounded px-2 py-1 w-full"
-                />
-                <input
-                  type="text"
-                  className="border rounded px-2 py-1"
-                  placeholder="Remarks"
-                  value={r.remarks}
-                  onChange={(e) => updateResponse(idx, "remarks", e.target.value)}
-                />
               </div>
             ))}
           </div>
         </div>
 
+        {/* Submit Button */}
         <div className="flex justify-end">
           <Button
             color="red"
@@ -122,19 +182,136 @@ function QuoteResponsePage() {
           </Button>
         </div>
       </div>
-    </Layout>
+    </Header>
   );
 }
 
 export default QuoteResponsePage;
 
-// import React from "react";
-// import Layout from "../Layout";
+// import React, { useState } from "react";
+// import DatePicker from "react-datepicker";
+// import "react-datepicker/dist/react-datepicker.css";
+// import Button from "../../../components/Button";
+// import { ToastContainer, toast } from "react-toastify";
+// import "react-toastify/dist/ReactToastify.css";
+// import Header from "../Header";
+
 // function QuoteResponsePage() {
+//   const rfq = {
+//     project: { name: "Demo Project" },
+//     deliveryLocation: "Hyderabad",
+//     biddingStartDate: "2025-09-01",
+//     biddingEndDate: "2025-09-10",
+//   };
+
+//   const [responses, setResponses] = useState([
+//     {
+//       materialId: "m1",
+//       name: "Cement",
+//       quantity: 100,
+//       unit: "Bags",
+//       price: "",
+//       remarks: "",
+//       deliveryDate: new Date(),
+//     },
+//     {
+//       materialId: "m2",
+//       name: "Steel",
+//       quantity: 50,
+//       unit: "Tons",
+//       price: "",
+//       remarks: "",
+//       deliveryDate: new Date(),
+//     },
+//   ]);
+
+//   const updateResponse = (index, field, value) => {
+//     const updated = [...responses];
+//     updated[index][field] = value;
+//     setResponses(updated);
+//   };
+
+//   const handleSubmit = () => {
+//     if (!responses.every((r) => r.price)) {
+//       toast.error("Please fill prices for all items.");
+//       return;
+//     }
+//     toast.success("This is a static demo. Response submitted!");
+//   };
+
 //   return (
-//     <Layout title={"Add Responses"}>
-//       <div>QuoteResponsePage</div>
-//     </Layout>
+//     <Header title={"Supplier Response"}>
+//       <ToastContainer />
+//       <div className="p-6 bg-gray-100 min-h-screen space-y-6">
+//         <div className="bg-white border rounded-lg shadow-sm p-4">
+//           <h2 className="text-lg font-semibold mb-2">
+//             RFQ for {rfq.project?.name}
+//           </h2>
+//           <p className="text-sm text-gray-600">
+//             Delivery Location: {rfq.deliveryLocation}
+//           </p>
+//           <p className="text-sm text-gray-600">
+//             Bidding:{" "}
+//             {new Date(rfq.biddingStartDate).toLocaleDateString()} -{" "}
+//             {new Date(rfq.biddingEndDate).toLocaleDateString()}
+//           </p>
+//         </div>
+
+//         <div className="bg-white border rounded-lg shadow-sm">
+//           <div className="grid grid-cols-6 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
+//             <span>Item</span>
+//             <span>Qty</span>
+//             <span>Unit</span>
+//             <span>Price</span>
+//             <span>Delivery Date</span>
+//             <span>Remarks</span>
+//           </div>
+//           <div className="divide-y divide-gray-200">
+//             {responses.map((r, idx) => (
+//               <div
+//                 key={r.materialId}
+//                 className="grid grid-cols-6 gap-3 px-6 py-3 items-center text-sm"
+//               >
+//                 <span>{r.name}</span>
+//                 <span>{r.quantity}</span>
+//                 <span>{r.unit}</span>
+//                 <input
+//                   type="number"
+//                   className="border rounded px-2 py-1"
+//                   placeholder="Price"
+//                   value={r.price}
+//                   onChange={(e) => updateResponse(idx, "price", e.target.value)}
+//                 />
+//                 <DatePicker
+//                   selected={r.deliveryDate}
+//                   onChange={(date) => updateResponse(idx, "deliveryDate", date)}
+//                   dateFormat="dd/MM/yyyy"
+//                   className="border rounded px-2 py-1 w-full"
+//                 />
+//                 <input
+//                   type="text"
+//                   className="border rounded px-2 py-1"
+//                   placeholder="Remarks"
+//                   value={r.remarks}
+//                   onChange={(e) => updateResponse(idx, "remarks", e.target.value)}
+//                 />
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+
+//         <div className="flex justify-end">
+//           <Button
+//             color="red"
+//             variant="custom"
+//             className="bg-red-600 hover:bg-red-700 text-white mt-4"
+//             onClick={handleSubmit}
+//           >
+//             Submit Response
+//           </Button>
+//         </div>
+//       </div>
+//     </Header>
 //   );
 // }
 

@@ -23,7 +23,7 @@ export const generateRFQText = ({
           .join("\n")
       : "No materials listed";
 
-  const responseLink = `https://first-task-alpha.vercel.app/responses`;
+  const responseLink = `https://first-task-alpha.vercel.app/responses${rfqId}`;
 
   return `
 📄 *Request for Quotation (RFQ)*

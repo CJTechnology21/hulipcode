@@ -6,7 +6,11 @@
 // import AddNewMaterialModal from "./AddNewMaterialModal";
 // import { fetchProductsByCategory } from "../../../services/productServices";
 // import { ClipLoader } from "react-spinners";
-// import { addMaterialsToRFQ, getMaterialsOfRFQ } from "../../../services/rfqServices"; 
+// import { useDispatch, useSelector } from "react-redux";
+// import {
+//   setSelectedMaterials,
+// } from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
+// import { toast } from "react-toastify";
 
 // const categories = [
 //   { name: "Kitchen" },
@@ -24,9 +28,8 @@
 //   isOpen,
 //   onClose,
 //   selectedProject,
-//   rfqId,                     
-//   setMaterialGroups         
 // }) {
+//   const dispatch = useDispatch();
 //   const [category, setCategory] = useState("");
 //   const [searchText, setSearchText] = useState("");
 //   const [materials, setMaterials] = useState([]);
@@ -37,34 +40,25 @@
 
 //   const handleMaterialSave = (newMaterial) => {
 //     setMaterials((prev) => [...prev, newMaterial]);
+//     toast.success("Material added to library");
 //   };
 
-//   // fetch product list by category
 //   useEffect(() => {
 //     const getMaterials = async () => {
 //       if (!category) return;
 //       setLoading(true);
-//       const data = await fetchProductsByCategory(category);
-//       setMaterials(data);
-//       setLoading(false);
+//       try {
+//         const data = await fetchProductsByCategory(category);
+//         setMaterials(data);
+//       } catch (err) {
+//         console.error(err);
+//         toast.error("Failed to load materials");
+//       } finally {
+//         setLoading(false);
+//       }
 //     };
 //     getMaterials();
 //   }, [category]);
-
-//   // Optionally fetch already added RFQ materials when drawer opens
-//   useEffect(() => {
-//     if (!rfqId) return;
-//     const fetchExisting = async () => {
-//       try {
-//         const data = await getMaterialsOfRFQ(rfqId);
-//         // let parent have them
-//         setMaterialGroups(data);
-//       } catch (err) {
-//         console.error("Failed to fetch RFQ materials", err);
-//       }
-//     };
-//     if (isOpen) fetchExisting();
-//   }, [rfqId, isOpen, setMaterialGroups]);
 
 //   const filteredMaterials = useMemo(() => {
 //     return materials.filter((item) =>
@@ -72,7 +66,7 @@
 //     );
 //   }, [materials, searchText]);
 
-//   const handleNext = async () => {
+//   const handleNext = () => {
 //     const selected = materials.filter((item) => checked[item._id]);
 
 //     const enriched = selected.map((m) => ({
@@ -80,7 +74,7 @@
 //       quantity: quantities[m._id] || "",
 //       deliveryDate: null,
 //       projectName: selectedProject,
-//       status: "Pending", // default status
+//       status: "Pending",
 //     }));
 
 //     const hasInvalidQty = enriched.some(
@@ -88,38 +82,38 @@
 //     );
 
 //     if (hasInvalidQty) {
-//       alert("Please enter quantity for all selected materials.");
+//       toast.error("Please enter quantity for all selected materials.");
 //       return;
 //     }
 
-//     try {
-//       //  send to backend
-//       await addMaterialsToRFQ(rfqId, enriched);
+//     // group into structure {project, items} like modal expects
+//     const newGroup = { project: selectedProject, items: enriched };
 
-//       // Optimistic update: merge into parent state
-//       setMaterialGroups((prev) => {
-//         const existingGroup = prev.find(
-//           (group) => group.project === selectedProject
-//         );
+//     dispatch(
+//       setSelectedMaterials((prev) => {
+//         // prev is array of groups
+//         const existingGroup = Array.isArray(prev)
+//           ? prev.find((g) => g.project === selectedProject)
+//           : null;
+//         let updatedGroups;
 //         if (existingGroup) {
-//           return prev.map((group) =>
-//             group.project === selectedProject
-//               ? { ...group, items: [...group.items, ...enriched] }
-//               : group
+//           updatedGroups = prev.map((g) =>
+//             g.project === selectedProject
+//               ? { ...g, items: [...g.items, ...enriched] }
+//               : g
 //           );
 //         } else {
-//           return [...prev, { project: selectedProject, items: enriched }];
+//           updatedGroups = [...(Array.isArray(prev) ? prev : []), newGroup];
 //         }
-//       });
+//         return updatedGroups;
+//       })
+//     );
 
-//       // Reset UI
-//       setChecked({});
-//       setQuantities({});
-//       onClose();
-//     } catch (err) {
-//       console.error("Error adding materials to RFQ:", err);
-//       alert("Failed to add materials. Please try again.");
-//     }
+//     toast.success("Materials added to request");
+//     // reset
+//     setChecked({});
+//     setQuantities({});
+//     onClose();
 //   };
 
 //   return (
@@ -349,6 +343,7 @@ export default function MaterialLibraryDrawer({
     if (saved.length > 0) {
       setMaterialGroups(saved);
     }
+    //eslint-disable-next-line
   }, []);
 
   const filteredMaterials = useMemo(() => {

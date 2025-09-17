@@ -4,27 +4,35 @@
 // import Button from "../../../components/Button";
 // import { FaTimes } from "react-icons/fa";
 // import { useNavigate } from "react-router-dom";
+// import { useDispatch, useSelector } from "react-redux";
 // import {
-//   getMaterialsOfRFQ,
-//   updateMaterialInRFQ,
-// } from "../../../services/rfqServices";
+//   setSelectedMaterials,
+//   clearSelectedMaterials,
+//   updateMaterialStatus,
+// } from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
+// import { updateMaterialInRFQAPI } from "../../../services/pendingMaterialServices";
+// import { toast } from "react-toastify";
 
 // const TABS = ["Pending", "Approved", "Ordered", "Rejected"];
 
 // function MaterialRequestModal({
 //   open,
 //   onClose,
-//   rfqId,                    // ✅ pass RFQ id
-//   selectedMaterials = [],
-//   setSelectedMaterials = () => {},
+//   mode = "local", // "local" or "api"
+//   projectId, // needed for api mode
 // }) {
+//   const dispatch = useDispatch();
+//   const selectedMaterials = useSelector(
+//     (state) => state.pendingMaterials.selectedMaterials
+//   );
+
 //   const [selectedIndex, setSelectedIndex] = useState(0);
 //   const [dropdownIndex, setDropdownIndex] = useState(null);
 //   const [selectedGroup, setSelectedGroup] = useState(null);
 //   const [groupedItems, setGroupedItems] = useState({});
 //   const navigate = useNavigate();
 
-//   // flatten + group
+//   // flatten materials by project
 //   const flattenMaterials = (materials) => {
 //     const flat = [];
 //     for (const group of materials) {
@@ -36,65 +44,67 @@
 //             status: item.status || "Pending",
 //           });
 //         }
+//       } else if (!group.items && group.projectName) {
+//         // direct items (procurement)
+//         flat.push(group);
 //       }
 //     }
 //     return flat;
 //   };
 
-//   const buildGroupedItems = (flatMaterials) => {
+//   // group by status
+//   const buildGroupedItems = (materials) => {
+//     const flatMaterials = flattenMaterials(materials);
 //     return TABS.reduce((acc, status) => {
 //       acc[status] = flatMaterials.filter((item) => item.status === status);
 //       return acc;
 //     }, {});
 //   };
 
-//   // ✅ Load from backend instead of localStorage
 //   useEffect(() => {
-//     if (!rfqId) return;
-//     const fetchMaterials = async () => {
-//       try {
-//         const res = await getMaterialsOfRFQ(rfqId);
-//         // res.data = [{project:'Project X', items:[...]}, ...]
-//         const flat = flattenMaterials(res);
-//         setSelectedMaterials(flat); // keep parent in sync
-//         setGroupedItems(buildGroupedItems(flat));
-//       } catch (err) {
-//         console.error("Error fetching RFQ materials:", err);
-//       }
-//     };
-//     fetchMaterials();
-//   }, [rfqId, open]); // reload when modal opens
+//     setGroupedItems(buildGroupedItems(selectedMaterials));
+//   }, [selectedMaterials]);
 
 //   const handleStatusClick = (index) => {
 //     setDropdownIndex(index === dropdownIndex ? null : index);
 //   };
 
-//   // ✅ Optimistic update
 //   const moveItemToStatus = async (itemIndex, currentStatus, newStatus) => {
-//     const itemToMove = {
-//       ...groupedItems[currentStatus][itemIndex],
-//       status: newStatus,
-//     };
-
-//     // optimistic UI update
-//     const updated = { ...groupedItems };
-//     updated[currentStatus] = updated[currentStatus].filter(
-//       (_, idx) => idx !== itemIndex
-//     );
-//     updated[newStatus] = [...updated[newStatus], itemToMove];
-//     setGroupedItems(updated);
-//     setSelectedMaterials(Object.values(updated).flat());
-//     setDropdownIndex(null);
-
-//     // call API to persist
 //     try {
-//       await updateMaterialInRFQ(rfqId, itemToMove._id, { status: newStatus });
+//       const itemToMove = {
+//         ...groupedItems[currentStatus][itemIndex],
+//         status: newStatus,
+//       };
+
+//       // API mode – call backend to update status
+//       if (mode === "api" && itemToMove._id) {
+//         await updateMaterialInRFQAPI(itemToMove._id, { status: newStatus });
+//         toast.success("Material status updated");
+//       } else {
+//         dispatch(updateMaterialStatus({ itemIndex, currentStatus, newStatus }));
+//       }
+
+//       // update UI instantly (optimistic)
+//       const updated = { ...groupedItems };
+//       updated[currentStatus] = updated[currentStatus].filter(
+//         (_, idx) => idx !== itemIndex
+//       );
+//       updated[newStatus] = [...updated[newStatus], itemToMove];
+//       setGroupedItems(updated);
+//       setDropdownIndex(null);
 //     } catch (err) {
-//       console.error("Failed to update material status:", err);
-//       // revert UI on error
-//       const reverted = { ...groupedItems };
-//       setGroupedItems(reverted);
+//       console.error(err);
+//       toast.error("Failed to update status");
 //     }
+//   };
+
+//   const clearAll = async () => {
+//     if (mode === "api") {
+//       // optionally delete all from API or refresh list
+//       toast.info("Clearing pending materials…");
+//     }
+//     dispatch(clearSelectedMaterials());
+//     setGroupedItems({});
 //   };
 
 //   return (
@@ -226,9 +236,8 @@
 //                                     const approvedItems = items.filter(
 //                                       (item) => item.status === "Approved"
 //                                     );
-
 //                                     if (approvedItems.length === 0) {
-//                                       alert(
+//                                       toast.info(
 //                                         "No approved materials to request for this project."
 //                                       );
 //                                       return;
@@ -246,6 +255,11 @@
 //                                 </Button>
 //                               </div>
 //                             )}
+
+//                             {projectIndex !==
+//                               Object.keys(groupedItems[tab]).length - 1 && (
+//                               <hr className="my-4 border-t border-gray-300" />
+//                             )}
 //                           </div>
 //                         ))
 //                       ) : (
@@ -257,6 +271,15 @@
 //                   ))}
 //                 </Tab.Panels>
 //               </Tab.Group>
+
+//               <div className="px-4 mt-4">
+//                 <button
+//                   onClick={clearAll}
+//                   className="text-xs text-red-500 hover:underline"
+//                 >
+//                   Clear Saved Requests
+//                 </button>
+//               </div>
 //             </div>
 //           </Transition.Child>
 //         </Dialog>
@@ -267,14 +290,16 @@
 //         setSelectedGroup={setSelectedGroup}
 //         items={groupedItems}
 //         setItems={(updated) => {
+//           const allUpdated = Object.values(updated).flat();
 //           setGroupedItems(updated);
-//           setSelectedMaterials(Object.values(updated).flat());
+//           dispatch(setSelectedMaterials(allUpdated));
 //         }}
 //         TABS={TABS}
 //       />
 //     </>
 //   );
 // }
+
 // export default MaterialRequestModal;
 
 import { Dialog, Tab, Transition } from "@headlessui/react";
@@ -346,7 +371,11 @@ function MaterialRequestModal({
       setSelectedMaterials(materialsToUse);
     }
     setGroupedItems(buildGroupedItems(materialsToUse));
-  }, [selectedMaterials]);
+
+    //eslint-disable-next-line
+  },
+    //eslint-disable-next-line
+  [selectedMaterials]);
 
   const handleStatusClick = (index) => {
     setDropdownIndex(index === dropdownIndex ? null : index);
