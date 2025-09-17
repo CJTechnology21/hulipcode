@@ -324,7 +324,8 @@ const addResponseToRFQ = async (req, res) => {
 const getResponsesOfRFQ = async (req, res) => {
     try {
         const { id } = req.params;
-        const rfq = await RFQ.findById(id).populate("responses.supplier", "name email phone");
+        const rfq = await RFQ.findById(id)
+            .populate("responses.supplier", "name email phone");
 
         if (!rfq) {
             return res.status(404).json({ success: false, message: "RFQ not found" });
@@ -332,8 +333,8 @@ const getResponsesOfRFQ = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            count: rfq.responses.length,
-            data: rfq.responses,
+            rfq, // include the whole RFQ
+            responses: rfq.responses,
         });
     } catch (error) {
         res.status(500).json({
@@ -343,6 +344,29 @@ const getResponsesOfRFQ = async (req, res) => {
         });
     }
 };
+
+// const getResponsesOfRFQ = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const rfq = await RFQ.findById(id).populate("responses.supplier", "name email phone");
+
+//         if (!rfq) {
+//             return res.status(404).json({ success: false, message: "RFQ not found" });
+//         }
+
+//         res.status(200).json({
+//             success: true,
+//             count: rfq.responses.length,
+//             data: rfq.responses,
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false,
+//             message: "Error fetching responses",
+//             error: error.message,
+//         });
+//     }
+// };
 
 
 module.exports = {
