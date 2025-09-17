@@ -86,25 +86,18 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 };
 
 // ---------------- RESPONSE SERVICES ----------------
-// Add response to RFQ
+// 0Add response to RFQ
 export const addResponseToRFQ = async (rfqId, supplierId, items) => {
-  const quotes = items.map(item => ({
-    material: item.materialId,     
-    productName: item.name,       
-    price: Number(item.price),
-    quantity: Number(item.quantity),
-    totalAmount: Number(item.price) * Number(item.quantity), 
-  }));
-
-  const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
-
+  // Each item must have: materialId, name, price, quantity
   const payload = {
     supplierId,
-    responses: {
-      supplier: supplierId,
-      quotes,
-      totalAmount
-    }
+    responses: items.map(item => ({
+      materialId: item.materialId,
+      name: item.name,
+      price: Number(item.price),
+      quantity: Number(item.quantity),
+      remarks: item.remarks || ""
+    }))
   };
 
   console.log("📦 Payload being sent:", payload);
@@ -117,6 +110,36 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 
   return res.data;
 };
+// export const addResponseToRFQ = async (rfqId, supplierId, items) => {
+//   const quotes = items.map(item => ({
+//     material: item.materialId,     
+//     productName: item.name,       
+//     price: Number(item.price),
+//     quantity: Number(item.quantity),
+//     totalAmount: Number(item.price) * Number(item.quantity), 
+//   }));
+
+//   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
+
+//   const payload = {
+//     supplierId,
+//     responses: {
+//       supplier: supplierId,
+//       quotes,
+//       totalAmount
+//     }
+//   };
+
+//   console.log("📦 Payload being sent:", payload);
+
+//   const res = await axiosInstance.post(
+//     `/api/rfq/${rfqId}/responses`,
+//     payload,
+//     { headers: { "Content-Type": "application/json" } }
+//   );
+
+//   return res.data;
+// };
 
 // export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 //   //  Transform each item into the backend's expected schema
