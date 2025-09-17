@@ -89,11 +89,13 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 
 // Add response(s) to an RFQ
 // Add response to RFQ
-export const addResponseToRFQ = async (rfqId, supplierId, items) => {
+export const addResponseToRFQ = async (rfqId, supplierId, responses) => {
   const payload = {
     supplierId,
-    responses: items, // array of { materialId, name, quantity, unit, price }
+    responses, // 👈 keep responses here
   };
+
+  console.log("📦 Service payload being sent:", payload);
 
   const res = await axiosInstance.post(
     `/api/rfq/${rfqId}/responses`,

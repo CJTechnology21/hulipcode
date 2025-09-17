@@ -293,10 +293,12 @@ const getMaterialsOfRFQ = async (req, res) => {
 // ---------------------- RESPONSE CONTROLLERS ----------------------
 
 // Add one or multiple responses to an RFQ
- const addResponseToRFQ = async (req, res) => {
+const addResponseToRFQ = async (req, res) => {
   try {
     const { id } = req.params; // RFQ ID
-    const { supplierId, responses } = req.body; // supplier + items
+    const { supplierId, responses } = req.body;
+
+    console.log("📥 Controller received payload:", req.body);
 
     // Validate
     if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
@@ -325,6 +327,7 @@ const getMaterialsOfRFQ = async (req, res) => {
       data: rfq.responses,
     });
   } catch (error) {
+    console.error("❌ Controller error:", error.message);
     res.status(400).json({
       success: false,
       message: "Error adding responses",

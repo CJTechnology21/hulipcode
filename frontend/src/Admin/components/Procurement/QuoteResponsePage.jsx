@@ -5,7 +5,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../Header";
 import { useAuth } from "../../../context/AuthContext";
-import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
+import {
+  addResponseToRFQ,
+  getResponsesOfRFQ,
+} from "../../../services/rfqServices";
 
 function QuoteResponsePage() {
   const { id } = useParams();
@@ -16,9 +19,8 @@ function QuoteResponsePage() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ------------------------------
+  
   // Auth + role check
-  // ------------------------------
   useEffect(() => {
     if (!user) {
       navigate("/login", { state: { from: `/responses/${id}` } });
@@ -31,9 +33,8 @@ function QuoteResponsePage() {
     }
   }, [user, id, navigate]);
 
-  // ------------------------------
+  
   // Fetch RFQ + existing responses
-  // ------------------------------
   useEffect(() => {
     const fetchResponses = async () => {
       try {
@@ -49,16 +50,20 @@ function QuoteResponsePage() {
         setRFQ(res.rfq);
 
         // Prefill if supplier already submitted
-        const existing = res.responses?.find((r) => r.supplier?._id === user?._id);
+        const existing = res.responses?.find(
+          (r) => r.supplier?._id === user?._id
+        );
         console.log("Existing response for this supplier:", existing);
 
-        const initializedResponses = (res.rfq.materials || []).map((m, idx) => ({
-          materialId: m._id || m.product || idx,
-          name: m.name,
-          quantity: m.quantity,
-          unit: m.unit,
-          price: existing?.items?.[idx]?.price || "",
-        }));
+        const initializedResponses = (res.rfq.materials || []).map(
+          (m, idx) => ({
+            materialId: m._id || m.product || idx,
+            name: m.name,
+            quantity: m.quantity,
+            unit: m.unit,
+            price: existing?.items?.[idx]?.price || "",
+          })
+        );
 
         console.log("Initialized responses:", initializedResponses);
         setResponses(initializedResponses);
@@ -73,20 +78,18 @@ function QuoteResponsePage() {
     if (id && user) fetchResponses();
   }, [id, user]);
 
-  // ------------------------------
+  
   // Update response value
-  // ------------------------------
   const updateResponse = (index, field, value) => {
     const updated = [...responses];
     updated[index][field] = value;
     setResponses(updated);
   };
 
-  // ------------------------------
+  
   // Submit handler
-  // ------------------------------
   const handleSubmit = async () => {
-    console.log("Submitting responses:", responses);
+    console.log("📝 Submitting responses:", responses);
 
     if (!responses.every((r) => r.price !== "")) {
       toast.error("Please fill prices for all items.");
@@ -94,25 +97,26 @@ function QuoteResponsePage() {
     }
 
     try {
-      console.log("Payload being sent:", {
-        rfqId: id,
+      const payload = {
         supplierId: user._id,
         responses,
-      });
+      };
+      console.log("📤 Payload being sent from frontend:", payload);
 
       await addResponseToRFQ(id, user._id, responses);
 
       toast.success("Response submitted successfully!");
       navigate("/thank-you");
     } catch (err) {
-      console.error("Error submitting response:", err.response?.data || err.message);
+      console.error(
+        " Error submitting response:",
+        err.response?.data || err.message
+      );
       toast.error("Failed to submit response");
     }
   };
 
-  // ------------------------------
   // Loading / no RFQ UI
-  // ------------------------------
   if (loading) {
     return (
       <>
@@ -131,9 +135,7 @@ function QuoteResponsePage() {
     );
   }
 
-  // ------------------------------
-  // Main UI
-  // ------------------------------
+     
   return (
     <>
       <Header title="Supplier Response" />
