@@ -35,7 +35,6 @@ function QuoteResponsePage() {
       try {
         const res = await getResponsesOfRFQ(id);
         console.log("RFQ fetch response:", res);
-        console.log("RFQ materials:", res.rfq.materials);
 
         if (!res?.rfq || !res.rfq?.materials?.length) {
           toast.error("RFQ not found or has no materials.");
@@ -49,31 +48,20 @@ function QuoteResponsePage() {
         const existing = res.responses?.find(r => r.supplier?._id === user?._id);
         console.log("Existing response for this supplier:", existing);
 
-        if (existing?.items?.length) {
-          setResponses(
-            existing.items.map(i => ({
-              materialId: i.materialId,
-              name: i.name,
-              quantity: i.quantity,
-              unit: i.unit,
-              price: i.price,
-            }))
-          );
-        } else {
-          // Initialize blank responses from RFQ materials
-          const blankResponses = (res.rfq.materials || []).map(m => {
-            console.log("Mapping material:", m);
-            return {
-              materialId: m._id,
-              name: m.name,
-              quantity: m.quantity,
-              unit: m.unit,
-              price: "",
-            };
-          });
-          console.log("Initialized blank responses:", blankResponses);
-          setResponses(blankResponses);
-        }
+        const initializedResponses = (existing?.items?.length
+          ? existing.items
+          : res.rfq.materials
+        ).map((m, idx) => ({
+          materialId: m._id || m.product || idx,
+          name: m.name,
+          quantity: m.quantity,
+          unit: m.unit,
+          price: existing?.items?.[idx]?.price || "",
+        }));
+
+        console.log("Initialized responses:", initializedResponses);
+        setResponses(initializedResponses);
+
       } catch (err) {
         console.error(err);
         toast.error("Failed to load RFQ details");
@@ -93,6 +81,7 @@ function QuoteResponsePage() {
 
   const handleSubmit = async () => {
     console.log("Submitting responses:", responses);
+
     if (!responses.every(r => r.price !== "")) {
       toast.error("Please fill prices for all items.");
       return;
@@ -134,7 +123,7 @@ function QuoteResponsePage() {
         {/* RFQ Info */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-2">
-            RFQ for {rfq.project?.name || "Unnamed Project"}
+            RFQ for Project: {rfq.project || "Unknown Project"}
           </h2>
           <p className="text-sm text-gray-600">
             Delivery Location: {rfq.deliveryLocation || "N/A"}
@@ -152,7 +141,7 @@ function QuoteResponsePage() {
         </div>
 
         {/* Response Table */}
-        <div className="bg-white border rounded-lg shadow-sm">
+        <div className="bg-white border rounded-lg shadow-sm min-h-[100px]">
           <div className="grid grid-cols-4 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
             <span>Item</span>
             <span>Qty</span>
