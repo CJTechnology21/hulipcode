@@ -8,7 +8,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
 
 function QuoteResponsePage() {
-  const { id } = useParams(); // RFQ ID from URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -16,9 +16,7 @@ function QuoteResponsePage() {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ------------------------------
   // Auth + role check
-  // ------------------------------
   useEffect(() => {
     if (!user) {
       navigate("/login", { state: { from: `/responses/${id}` } });
@@ -31,16 +29,13 @@ function QuoteResponsePage() {
     }
   }, [user, id, navigate]);
 
-  // ------------------------------
   // Fetch RFQ + existing responses
-  // ------------------------------
   useEffect(() => {
     const fetchResponses = async () => {
       try {
         const res = await getResponsesOfRFQ(id);
-
         console.log("RFQ fetch response:", res);
-        console.log("RFQ materials:", res?.rfq?.materials);
+        console.log("RFQ materials:", res.rfq.materials);
 
         if (!res?.rfq || !res.rfq?.materials?.length) {
           toast.error("RFQ not found or has no materials.");
@@ -51,14 +46,12 @@ function QuoteResponsePage() {
         setRFQ(res.rfq);
 
         // Prefill if supplier already submitted
-        const existing = res.responses?.find(
-          (r) => r.supplier?._id === user?._id
-        );
+        const existing = res.responses?.find(r => r.supplier?._id === user?._id);
         console.log("Existing response for this supplier:", existing);
 
         if (existing?.items?.length) {
           setResponses(
-            existing.items.map((i) => ({
+            existing.items.map(i => ({
               materialId: i.materialId,
               name: i.name,
               quantity: i.quantity,
@@ -66,20 +59,23 @@ function QuoteResponsePage() {
               price: i.price,
             }))
           );
-        } else if (res.rfq?.materials?.length) {
+        } else {
           // Initialize blank responses from RFQ materials
-          const blankResponses = res.rfq.materials.map((m) => ({
-            materialId: m._id,
-            name: m.name,
-            quantity: m.quantity,
-            unit: m.unit,
-            price: "",
-          }));
-          setResponses(blankResponses);
+          const blankResponses = (res.rfq.materials || []).map(m => {
+            console.log("Mapping material:", m);
+            return {
+              materialId: m._id,
+              name: m.name,
+              quantity: m.quantity,
+              unit: m.unit,
+              price: "",
+            };
+          });
           console.log("Initialized blank responses:", blankResponses);
+          setResponses(blankResponses);
         }
       } catch (err) {
-        console.error("Error fetching RFQ:", err);
+        console.error(err);
         toast.error("Failed to load RFQ details");
       } finally {
         setLoading(false);
@@ -89,21 +85,15 @@ function QuoteResponsePage() {
     if (id && user) fetchResponses();
   }, [id, user]);
 
-  // ------------------------------
-  // Update response value
-  // ------------------------------
   const updateResponse = (index, field, value) => {
     const updated = [...responses];
     updated[index][field] = value;
     setResponses(updated);
   };
 
-  // ------------------------------
-  // Submit handler
-  // ------------------------------
   const handleSubmit = async () => {
     console.log("Submitting responses:", responses);
-    if (!responses.every((r) => r.price !== "")) {
+    if (!responses.every(r => r.price !== "")) {
       toast.error("Please fill prices for all items.");
       return;
     }
@@ -114,17 +104,13 @@ function QuoteResponsePage() {
         responses,
       });
       toast.success("Response submitted successfully!");
-      console.log("Response submitted successfully:", responses);
       navigate("/thank-you");
     } catch (err) {
-      console.error("Error submitting response:", err);
+      console.error(err);
       toast.error("Failed to submit response");
     }
   };
 
-  // ------------------------------
-  // Loading / no RFQ UI
-  // ------------------------------
   if (loading) {
     return (
       <Header title="Supplier Response">
@@ -141,9 +127,6 @@ function QuoteResponsePage() {
     );
   }
 
-  // ------------------------------
-  // Main UI
-  // ------------------------------
   return (
     <Header title="Supplier Response">
       <ToastContainer />
@@ -151,18 +134,18 @@ function QuoteResponsePage() {
         {/* RFQ Info */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-2">
-            RFQ for {rfq?.project?.name || "Unnamed Project"}
+            RFQ for {rfq.project?.name || "Unnamed Project"}
           </h2>
           <p className="text-sm text-gray-600">
-            Delivery Location: {rfq?.deliveryLocation || "N/A"}
+            Delivery Location: {rfq.deliveryLocation || "N/A"}
           </p>
           <p className="text-sm text-gray-600">
             Bidding:{" "}
-            {rfq?.biddingStartDate
+            {rfq.biddingStartDate
               ? new Date(rfq.biddingStartDate).toLocaleDateString()
               : "N/A"}{" "}
             -{" "}
-            {rfq?.biddingEndDate
+            {rfq.biddingEndDate
               ? new Date(rfq.biddingEndDate).toLocaleDateString()
               : "N/A"}
           </p>
@@ -177,7 +160,7 @@ function QuoteResponsePage() {
             <span>Price</span>
           </div>
           <div className="divide-y divide-gray-200">
-            {responses?.length > 0 ? (
+            {responses.length > 0 ? (
               responses.map((r, idx) => (
                 <div
                   key={r.materialId || idx}
@@ -191,22 +174,18 @@ function QuoteResponsePage() {
                     className="border rounded px-2 py-1"
                     placeholder="Price"
                     value={r.price}
-                    onChange={(e) =>
-                      updateResponse(idx, "price", e.target.value)
-                    }
+                    onChange={(e) => updateResponse(idx, "price", e.target.value)}
                   />
                 </div>
               ))
             ) : (
-              <div className="px-6 py-3 text-gray-500 text-sm">
-                No materials available.
-              </div>
+              <div className="px-6 py-3 text-gray-500 text-sm">No materials available.</div>
             )}
           </div>
         </div>
 
         {/* Submit Button */}
-        {responses?.length > 0 && (
+        {responses.length > 0 && (
           <div className="flex justify-end">
             <Button
               color="red"
@@ -224,7 +203,6 @@ function QuoteResponsePage() {
 }
 
 export default QuoteResponsePage;
-
 
 // import React, { useEffect, useState } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
