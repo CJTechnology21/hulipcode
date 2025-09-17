@@ -88,33 +88,40 @@ function QuoteResponsePage() {
 
   
   // Submit handler
-  const handleSubmit = async () => {
-    console.log("📝 Submitting responses:", responses);
+ const handleSubmit = async () => {
+  console.log("📝 Submitting responses:", responses);
 
-    if (!responses.every((r) => r.price !== "")) {
-      toast.error("Please fill prices for all items.");
+  if (!responses.every((r) => r.price !== "")) {
+    toast.error("Please fill prices for all items.");
+    return;
+  }
+
+  try {
+    const supplierId = user?._id || user?.id || user?.userId; //  make sure we grab the right one
+    if (!supplierId) {
+      console.error(" SupplierId missing in user object:", user);
+      toast.error("Supplier ID is missing. Please log in again.");
       return;
     }
 
-    try {
-      const payload = {
-        supplierId: user._id,
-        responses,
-      };
-      console.log("📤 Payload being sent from frontend:", payload);
+    const payload = {
+      supplierId,
+      responses,
+    };
+    console.log("Payload being sent from frontend:", payload);
 
-      await addResponseToRFQ(id, user._id, responses);
+    await addResponseToRFQ(id, supplierId, responses);
 
-      toast.success("Response submitted successfully!");
-      navigate("/thank-you");
-    } catch (err) {
-      console.error(
-        " Error submitting response:",
-        err.response?.data || err.message
-      );
-      toast.error("Failed to submit response");
-    }
-  };
+    toast.success("Response submitted successfully!");
+    navigate("/thank-you");
+  } catch (err) {
+    console.error(
+      "Error submitting response:",
+      err.response?.data || err.message
+    );
+    toast.error("Failed to submit response");
+  }
+};
 
   // Loading / no RFQ UI
   if (loading) {
