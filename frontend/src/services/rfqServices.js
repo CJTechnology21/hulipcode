@@ -46,8 +46,18 @@ export const publishExistingRFQ = async (rfqId, data = {}) => {
       "Content-Type": "application/json",
     },
   });
-  return res.data;
+  //  unwrap response so component gets the actual RFQ object
+  return res.data.data;
 };
+
+// export const publishExistingRFQ = async (rfqId, data = {}) => {
+//   const res = await axiosInstance.put(`/api/rfq/${rfqId}/publish`, data, {
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+//   return res.data;
+// };
 
 // Delete RFQ
 export const deleteRFQ = async (rfqId) => {
