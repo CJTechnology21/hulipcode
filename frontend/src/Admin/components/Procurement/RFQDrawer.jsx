@@ -7,11 +7,12 @@ import { publishExistingRFQ } from "../../../services/rfqServices";
 import { generateRFQText } from "../../../utils/generateRFQText";
 import { sendRFQEmail } from "../../../utils/emailHelpers";
 import { toast } from "react-toastify";
+import SupplierResponses from "./SupplierResponses";
+
 export default function RFQDetailDrawer({ rfq, onClose }) {
   const [activeTab, setActiveTab] = useState("detail");
 
   const handlePublishDraft = async () => {
-    // figure out supplier email
     let supplierEmail = null;
 
     if (Array.isArray(rfq?.suppliers) && rfq.suppliers.length > 0) {
@@ -27,7 +28,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
       return;
     }
 
-    // build email body
+    // Build email body text (without link yet)
     const rfqText = generateRFQText({
       project: rfq?.project?.name || "",
       deliveryLocation: rfq?.deliveryLocation,
@@ -41,10 +42,9 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
     try {
       toast.loading("Publishing RFQ...");
 
-      // ✅ call with rfq._id and optional data
-      await publishExistingRFQ(rfq._id, {
+      // ✅ Publish existing RFQ and get updated object
+      const updatedRFQ = await publishExistingRFQ(rfq._id, {
         status: "published",
-        // include any fields you want updated at publish time:
         deliveryLocation: rfq.deliveryLocation,
         biddingStartDate: rfq.biddingStartDate,
         biddingEndDate: rfq.biddingEndDate,
@@ -53,7 +53,14 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
         materials: rfq.materials,
       });
 
-      // send email
+      if (!updatedRFQ?._id) {
+        throw new Error("Published RFQ did not return an ID.");
+      }
+
+      // ✅ Build response link
+      const rfqLink = `https://first-task-alpha.vercel.app/responses/${updatedRFQ._id}`;
+
+      // ✅ Send email with the RFQ link included
       await sendRFQEmail({
         to_email: supplierEmail,
         project: rfq?.project?.name || "",
@@ -63,7 +70,9 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
         deliveryDate: rfq?.deliveryDate,
         selectedMaterials: rfq?.materials,
         terms: rfq?.terms,
-        message: rfqText,
+        rfqId: updatedRFQ._id,
+        rfqLink,
+        message: `${rfqText}\n\n👉 Add your response here: ${rfqLink}`,
       });
 
       toast.dismiss();
@@ -75,6 +84,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
       toast.error("Failed to publish RFQ.");
     }
   };
+
   if (!rfq) return null;
 
   return (
@@ -208,6 +218,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
                   </tbody>
                 </table>
               </div>
+
               {/* Terms & Conditions */}
               {rfq?.terms && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border text-sm text-gray-700 leading-relaxed">
@@ -239,88 +250,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
           )}
 
           {activeTab === "supplier" && (
-            <div className="space-y-4 text-sm">
-              <h3 className="font-semibold text-base">
-                Supplier Quotations Summary
-              </h3>
-              {console.log("RFQ Supplier Data:", rfq?.suppliers)}
-              {console.log("RFQ Materials:", rfq?.materials)}
-              {rfq?.suppliers?.length > 0 ? (
-                rfq.suppliers.map((supplier, idx) => (
-                  <div
-                    key={idx}
-                    className="border border-purple-300 rounded-lg p-4 bg-white shadow-sm space-y-3"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h4 className="font-semibold text-purple-700 text-lg">
-                          {supplier.name}
-                        </h4>
-                        <span className="text-xs text-gray-500">
-                          Status: {supplier.status}
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="text-purple-600 border-purple-600"
-                      >
-                        Punch Quotation
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Subtotal:</strong> ₹ {supplier.subtotal || 0}
-                      </div>
-                      <div>
-                        <strong>Tax:</strong> ₹ {supplier.tax || 0}
-                      </div>
-                      <div>
-                        <strong>Discount:</strong> ₹ {supplier.discount || 0}
-                      </div>
-                      <div>
-                        <strong>Total:</strong> ₹ {supplier.total || 0}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h5 className="mt-4 font-semibold">Item Details</h5>
-                      <ul className="divide-y divide-gray-200 mt-2">
-                        {rfq?.materials?.map((item, matIdx) => {
-                          const quote =
-                            supplier.quotedItems?.find(
-                              (q) => q.itemId === item.id
-                            ) || {};
-                          return (
-                            <li key={matIdx} className="py-2">
-                              <div className="flex justify-between items-start">
-                                <div className="text-gray-700">
-                                  <div>
-                                    <strong>{item.name}</strong>
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    Requested: {item.quantity} {item.unit}
-                                  </div>
-                                </div>
-                                <div className="text-right text-gray-600 text-sm">
-                                  <div>Qty: {quote.quantity || "-"}</div>
-                                  <div>Price: ₹ {quote.price || "0"}</div>
-                                  <div>Tax: ₹ {quote.tax || "0"}</div>
-                                </div>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500">
-                  No supplier entries found.
-                </div>
-              )}
-            </div>
+            <SupplierResponses rfqId={rfq._id} materials={rfq.materials} />
           )}
         </div>
       </div>
@@ -328,14 +258,84 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
   );
 }
 
+
 // import React, { useState } from "react";
 // import { MdClose, MdOutlinePublish } from "react-icons/md";
 // import Button from "../../../components/Button";
 // import { FiDownload, FiSend } from "react-icons/fi";
 // import { formatDate } from "../../../utils/dateFormatter";
+// import { publishExistingRFQ } from "../../../services/rfqServices";
+// import { generateRFQText } from "../../../utils/generateRFQText";
+// import { sendRFQEmail } from "../../../utils/emailHelpers";
+// import { toast } from "react-toastify";
+// import SupplierResponses from "./SupplierResponses";
 // export default function RFQDetailDrawer({ rfq, onClose }) {
 //   const [activeTab, setActiveTab] = useState("detail");
 
+//   const handlePublishDraft = async () => {
+//     let supplierEmail = null;
+
+//     if (Array.isArray(rfq?.suppliers) && rfq.suppliers.length > 0) {
+//       supplierEmail = rfq.suppliers[0].email;
+//     }
+
+//     if (!supplierEmail && rfq?.supplier?.email) {
+//       supplierEmail = rfq.supplier.email;
+//     }
+
+//     if (!supplierEmail) {
+//       toast.error("No supplier email found for this RFQ.");
+//       return;
+//     }
+
+//     // build email body
+//     const rfqText = generateRFQText({
+//       project: rfq?.project?.name || "",
+//       deliveryLocation: rfq?.deliveryLocation,
+//       biddingStartDate: rfq?.biddingStartDate,
+//       biddingEndDate: rfq?.biddingEndDate,
+//       deliveryDate: rfq?.deliveryDate,
+//       selectedMaterials: rfq?.materials,
+//       terms: rfq?.terms,
+//     });
+
+//     try {
+//       toast.loading("Publishing RFQ...");
+
+//       // call with rfq._id and optional data
+//       await publishExistingRFQ(rfq._id, {
+//         status: "published",
+//         // include any fields you want updated at publish time:
+//         deliveryLocation: rfq.deliveryLocation,
+//         biddingStartDate: rfq.biddingStartDate,
+//         biddingEndDate: rfq.biddingEndDate,
+//         deliveryDate: rfq.deliveryDate,
+//         terms: rfq.terms,
+//         materials: rfq.materials,
+//       });
+
+//       // send email
+//       await sendRFQEmail({
+//         to_email: supplierEmail,
+//         project: rfq?.project?.name || "",
+//         deliveryLocation: rfq?.deliveryLocation,
+//         biddingStartDate: rfq?.biddingStartDate,
+//         biddingEndDate: rfq?.biddingEndDate,
+//         deliveryDate: rfq?.deliveryDate,
+//         selectedMaterials: rfq?.materials,
+//         terms: rfq?.terms,
+//         message: rfqText,
+//       });
+
+//       toast.dismiss();
+//       toast.success("RFQ published and email sent!");
+//       onClose();
+//     } catch (err) {
+//       toast.dismiss();
+//       console.error("Error publishing RFQ:", err);
+//       toast.error("Failed to publish RFQ.");
+//     }
+//   };
 //   if (!rfq) return null;
 
 //   return (
@@ -490,6 +490,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
 //                 <Button
 //                   variant="custom"
 //                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
+//                   onClick={handlePublishDraft}
 //                 >
 //                   <MdOutlinePublish className="text-lg" />
 //                   Publish Draft
@@ -499,88 +500,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
 //           )}
 
 //           {activeTab === "supplier" && (
-//             <div className="space-y-4 text-sm">
-//               <h3 className="font-semibold text-base">
-//                 Supplier Quotations Summary
-//               </h3>
-//               {console.log("RFQ Supplier Data:", rfq?.suppliers)}
-//               {console.log("RFQ Materials:", rfq?.materials)}
-//               {rfq?.suppliers?.length > 0 ? (
-//                 rfq.suppliers.map((supplier, idx) => (
-//                   <div
-//                     key={idx}
-//                     className="border border-purple-300 rounded-lg p-4 bg-white shadow-sm space-y-3"
-//                   >
-//                     <div className="flex justify-between items-center">
-//                       <div>
-//                         <h4 className="font-semibold text-purple-700 text-lg">
-//                           {supplier.name}
-//                         </h4>
-//                         <span className="text-xs text-gray-500">
-//                           Status: {supplier.status}
-//                         </span>
-//                       </div>
-//                       <Button
-//                         variant="outline"
-//                         className="text-purple-600 border-purple-600"
-//                       >
-//                         Punch Quotation
-//                       </Button>
-//                     </div>
-
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-//                       <div>
-//                         <strong>Subtotal:</strong> ₹ {supplier.subtotal || 0}
-//                       </div>
-//                       <div>
-//                         <strong>Tax:</strong> ₹ {supplier.tax || 0}
-//                       </div>
-//                       <div>
-//                         <strong>Discount:</strong> ₹ {supplier.discount || 0}
-//                       </div>
-//                       <div>
-//                         <strong>Total:</strong> ₹ {supplier.total || 0}
-//                       </div>
-//                     </div>
-
-//                     <div>
-//                       <h5 className="mt-4 font-semibold">Item Details</h5>
-//                       <ul className="divide-y divide-gray-200 mt-2">
-//                         {rfq?.materials?.map((item, matIdx) => {
-//                           const quote =
-//                             supplier.quotedItems?.find(
-//                               (q) => q.itemId === item.id
-//                             ) || {};
-//                           return (
-//                             <li key={matIdx} className="py-2">
-//                               <div className="flex justify-between items-start">
-//                                 <div className="text-gray-700">
-//                                   <div>
-//                                     <strong>{item.name}</strong>
-//                                   </div>
-//                                   <div className="text-xs text-gray-500">
-//                                     Requested: {item.quantity} {item.unit}
-//                                   </div>
-//                                 </div>
-//                                 <div className="text-right text-gray-600 text-sm">
-//                                   <div>Qty: {quote.quantity || "-"}</div>
-//                                   <div>Price: ₹ {quote.price || "0"}</div>
-//                                   <div>Tax: ₹ {quote.tax || "0"}</div>
-//                                 </div>
-//                               </div>
-//                             </li>
-//                           );
-//                         })}
-//                       </ul>
-//                     </div>
-//                   </div>
-//                 ))
-//               ) : (
-//                 <div className="text-center text-gray-500">
-//                   No supplier entries found.
-//                 </div>
-//               )}
-//             </div>
+//             <SupplierResponses rfqId={rfq._id} materials={rfq.materials} />
 //           )}
 //         </div>
 //       </div>

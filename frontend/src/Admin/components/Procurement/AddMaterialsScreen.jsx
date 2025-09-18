@@ -204,53 +204,6 @@ const handleSavePublish = async () => {
   }
 };
 
-  // const handleSavePublish = async () => {
-  //   if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
-  //     toast.error("Please fill all fields before publishing.");
-  //     return;
-  //   }
-  //   if (!supplier.email) {
-  //     toast.error("Please select a supplier with a valid email.");
-  //     return;
-  //   }
-
-  //   //  build your payload with status: "published"
-  //   const rfqData = buildRFQPayload("published");
-
-  //   //  text used in email
-  //   const rfqText = generateRFQText({
-  //     project: project?.name || "",
-  //     deliveryLocation,
-  //     biddingStartDate,
-  //     biddingEndDate,
-  //     deliveryDate,
-  //     selectedMaterials,
-  //     terms,
-  //   });
-
-  //   try {
-  //     toast.loading("Publishing RFQ...");
-
-  //     //  use your publishRFQ service instead of createRFQ
-  //     const created = await publishRFQ(rfqData);
-
-  //     //  Send email with the generated text after publish succeeds
-  //     await sendRFQEmail({
-  //       to_email: supplier.email,
-  //       ...rfqData,
-  //       project: project?.name || "",
-  //       message: rfqText,
-  //     });
-
-  //     toast.dismiss();
-  //     toast.success("RFQ sent and published successfully!");
-  //     navigate("/procurement");
-  //   } catch (error) {
-  //     toast.dismiss();
-  //     console.error("Error publishing RFQ:", error);
-  //     toast.error("Failed to send or publish RFQ.");
-  //   }
-  // };
 
   return (
     <Layout title="NEW RFQ">
