@@ -25,10 +25,16 @@ export const fetchVendorOrderById = async (orderId) => {
 };
 
 //get vendororders by architectId
+// get vendor orders by architectId
 export const fetchVendorOrderByArchitect = async (architectId) => {
-  const res = await axiosInstance.get(`/api/vendorOrders?architectId=${architectId}`)
+  const res = await axiosInstance.get(`/api/vendorOrders/by-architect?architectId=${architectId}`);
   return res.data;
-}
+};
+
+// export const fetchVendorOrderByArchitect = async (architectId) => {
+//   const res = await axiosInstance.get(`/api/vendorOrders?architectId=${architectId}`)
+//   return res.data;
+// }
 
 // Create a new vendor order
 export const createVendorOrder = async (orderData) => {
