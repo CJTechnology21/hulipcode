@@ -8,7 +8,7 @@ export const store = configureStore({
     products: productReducer,
     auth: authReducer,
     cart: cartReducer,
-    PendingMaterials: pendingMaterialsReducer
+    pendingMaterials: pendingMaterialsReducer
   },
 });
 

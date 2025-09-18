@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Layout from "../Layout";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -19,12 +19,27 @@ import { sendRFQEmail } from "../../../utils/emailHelpers";
 //  Import services
 import { createRFQ, publishRFQ } from "../../../services/rfqServices";
 
+// Redux
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setSelectedMaterials,
+  clearSelectedMaterials,
+} from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
+
 function AddMaterialsScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   const { project, taxType, deliveryLocation } = location.state || {};
 
+  //   now from Redux
+  const selectedMaterials = useSelector(
+    (state) => state.pendingMaterials.selectedMaterials
+  );
+
+  // ADD THIS 
+  const [materialGroups, setMaterialGroups] = useState([]);
   const [biddingStartDate, setBiddingStartDate] = useState(null);
   const [biddingEndDate, setBiddingEndDate] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState(null);
@@ -35,12 +50,6 @@ function AddMaterialsScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [isAddPartyModalOpen, setIsAddPartyModalOpen] = useState(false);
-  const [materialGroups, setMaterialGroups] = useState([]);
-
-  const selectedMaterials = useMemo(() => {
-    const group = materialGroups.find((g) => g.project === project?._id);
-    return group?.items || [];
-  }, [materialGroups, project]);
 
   const openModal = (field) => {
     setModalField(field);
@@ -73,17 +82,12 @@ function AddMaterialsScreen() {
     if (modalField === "bidding_end_date") setBiddingEndDate(tempDate);
     if (modalField === "delivery_date") {
       setDeliveryDate(tempDate);
-      const updated = materialGroups.map((group) => {
-        if (group.project === project?._id) {
-          const updatedItems = group.items.map((item) => ({
-            ...item,
-            deliveryDate: tempDate,
-          }));
-          return { ...group, items: updatedItems };
-        }
-        return group;
-      });
-      setMaterialGroups(updated);
+      // update all selected materials with delivery date
+      const updatedItems = selectedMaterials.map((item) => ({
+        ...item,
+        deliveryDate: tempDate,
+      }));
+      dispatch(setSelectedMaterials(updatedItems));
     }
 
     closeModal();
@@ -132,6 +136,7 @@ function AddMaterialsScreen() {
 
       toast.dismiss();
       toast.success("Draft saved successfully!");
+      dispatch(clearSelectedMaterials());
       navigate("/procurement");
     } catch (error) {
       toast.dismiss();
@@ -140,70 +145,70 @@ function AddMaterialsScreen() {
     }
   };
 
-const handleSavePublish = async () => {
-  if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
-    toast.error("Please fill all fields before publishing.");
-    return;
-  }
-  if (!supplier.email) {
-    toast.error("Please select a supplier with a valid email.");
-    return;
-  }
-
-  // Build payload with status "published"
-  const rfqData = buildRFQPayload("published");
-
-  // Generate RFQ text for email
-  const rfqText = generateRFQText({
-    project: project?.name || "",
-    deliveryLocation,
-    biddingStartDate,
-    biddingEndDate,
-    deliveryDate,
-    selectedMaterials,
-    terms,
-  });
-
-  try {
-    toast.loading("Publishing RFQ...");
-
-    // Publish RFQ via service → returns the RFQ object (with _id)
-    const createdRFQ = await publishRFQ(rfqData);
-
-    if (!createdRFQ?._id) {
-      console.error("Publish response:", createdRFQ);
-      throw new Error("RFQ did not return an ID after publish.");
+  const handleSavePublish = async () => {
+    if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+      toast.error("Please fill all fields before publishing.");
+      return;
+    }
+    if (!supplier.email) {
+      toast.error("Please select a supplier with a valid email.");
+      return;
     }
 
-    // Build link to the published RFQ
-    const rfqLink = `https://first-task-alpha.vercel.app/responses/${createdRFQ._id}`;
+    // Build payload with status "published"
+    const rfqData = buildRFQPayload("published");
 
-    // Send email with the RFQ link included
-    await sendRFQEmail({
-      to_email: supplier.email,
+    // Generate RFQ text for email
+    const rfqText = generateRFQText({
       project: project?.name || "",
       deliveryLocation,
       biddingStartDate,
       biddingEndDate,
       deliveryDate,
       selectedMaterials,
-      materials: rfqData.materials, // in case email helper uses this
       terms,
-      rfqId: createdRFQ._id,        //  pass RFQ ID
-      rfqLink,                      //  pass link for email
-      message: `${rfqText}\n\n👉 Add your response by clicking this link: ${rfqLink}`,
     });
 
-    toast.dismiss();
-    toast.success("RFQ sent and published successfully!");
-    navigate("/procurement");
-  } catch (error) {
-    toast.dismiss();
-    console.error("Error publishing RFQ:", error);
-    toast.error("Failed to send or publish RFQ.");
-  }
-};
+    try {
+      toast.loading("Publishing RFQ...");
 
+      // Publish RFQ via service → returns the RFQ object (with _id)
+      const createdRFQ = await publishRFQ(rfqData);
+
+      if (!createdRFQ?._id) {
+        console.error("Publish response:", createdRFQ);
+        throw new Error("RFQ did not return an ID after publish.");
+      }
+
+      // Build link to the published RFQ
+      const rfqLink = `https://first-task-alpha.vercel.app/responses/${createdRFQ._id}`;
+
+      // Send email with the RFQ link included
+      await sendRFQEmail({
+        to_email: supplier.email,
+        project: project?.name || "",
+        deliveryLocation,
+        biddingStartDate,
+        biddingEndDate,
+        deliveryDate,
+        selectedMaterials,
+        materials: rfqData.materials, // in case email helper uses this
+        terms,
+        rfqId: createdRFQ._id,
+        rfqLink,
+        message: `${rfqText}\n\n👉 Add your response by clicking this link: ${rfqLink}`,
+      });
+
+      toast.dismiss();
+      toast.success("RFQ sent and published successfully!");
+      dispatch(clearSelectedMaterials());
+      navigate("/procurement");
+    } catch (error) {
+      toast.dismiss();
+      console.error("Error publishing RFQ:", error);
+      toast.error("Failed to send or publish RFQ.");
+    }
+  };
 
   return (
     <Layout title="NEW RFQ">
@@ -249,18 +254,12 @@ const handleSavePublish = async () => {
                       className="border border-gray-300 rounded px-2 py-1 text-sm w-24"
                       value={material.quantity}
                       onChange={(e) => {
-                        const updated = materialGroups.map((group) => {
-                          if (group.project === project?._id) {
-                            const updatedItems = group.items.map((item, i) =>
-                              i === idx
-                                ? { ...item, quantity: e.target.value }
-                                : item
-                            );
-                            return { ...group, items: updatedItems };
-                          }
-                          return group;
-                        });
-                        setMaterialGroups(updated);
+                        const updatedItems = selectedMaterials.map((item, i) =>
+                          i === idx
+                            ? { ...item, quantity: e.target.value }
+                            : item
+                        );
+                        dispatch(setSelectedMaterials(updatedItems));
                       }}
                     />
                     <span className="text-gray-500 text-xs">
@@ -275,16 +274,10 @@ const handleSavePublish = async () => {
                           : null
                       }
                       onChange={(date) => {
-                        const updated = materialGroups.map((group) => {
-                          if (group.project === project?._id) {
-                            const updatedItems = group.items.map((item, i) =>
-                              i === idx ? { ...item, deliveryDate: date } : item
-                            );
-                            return { ...group, items: updatedItems };
-                          }
-                          return group;
-                        });
-                        setMaterialGroups(updated);
+                        const updatedItems = selectedMaterials.map((item, i) =>
+                          i === idx ? { ...item, deliveryDate: date } : item
+                        );
+                        dispatch(setSelectedMaterials(updatedItems));
                       }}
                       dateFormat="dd/MM/yyyy"
                       placeholderText="dd-MM-yyyy"
@@ -292,16 +285,10 @@ const handleSavePublish = async () => {
                     />
                     <Button
                       onClick={() => {
-                        const updated = materialGroups.map((group) => {
-                          if (group.project === project?._id) {
-                            const updatedItems = group.items.filter(
-                              (_, i) => i !== idx
-                            );
-                            return { ...group, items: updatedItems };
-                          }
-                          return group;
-                        });
-                        setMaterialGroups(updated);
+                        const updatedItems = selectedMaterials.filter(
+                          (_, i) => i !== idx
+                        );
+                        dispatch(setSelectedMaterials(updatedItems));
                       }}
                       variant="outline"
                       className="text-red-500 hover:text-red-700"
@@ -341,12 +328,12 @@ const handleSavePublish = async () => {
             </div>
           </div>
         </div>
-
         <MaterialLibraryDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           selectedProject={project?._id}
-          setMaterialGroups={setMaterialGroups}
+          source="procurement"
+          setMaterialGroups={setMaterialGroups} // still needed so your table updates
         />
 
         {/* Terms & Supplier */}
@@ -459,7 +446,7 @@ const handleSavePublish = async () => {
 
 export default AddMaterialsScreen;
 
-// import React, { useState, useEffect, useMemo } from "react";
+// import React, { useState, useMemo } from "react";
 // import Layout from "../Layout";
 // import DatePicker from "react-datepicker";
 // import "react-datepicker/dist/react-datepicker.css";
@@ -475,14 +462,16 @@ export default AddMaterialsScreen;
 // import SuppliersModal from "./SuppliersModal";
 // import AddPartyModal from "./AddPartyModal";
 // import { generateRFQText } from "../../../utils/generateRFQText";
-// import { saveRFQToLocalStorage } from "../../../utils/storageHelpers";
 // import { sendRFQEmail } from "../../../utils/emailHelpers";
+
+// //  Import services
+// import { createRFQ, publishRFQ } from "../../../services/rfqServices";
 
 // function AddMaterialsScreen() {
 //   const navigate = useNavigate();
 //   const location = useLocation();
 
-//   const { project, date, taxType, deliveryLocation } = location.state || {};
+//   const { project, taxType, deliveryLocation } = location.state || {};
 
 //   const [biddingStartDate, setBiddingStartDate] = useState(null);
 //   const [biddingEndDate, setBiddingEndDate] = useState(null);
@@ -497,7 +486,7 @@ export default AddMaterialsScreen;
 //   const [materialGroups, setMaterialGroups] = useState([]);
 
 //   const selectedMaterials = useMemo(() => {
-//     const group = materialGroups.find((g) => g.project === project);
+//     const group = materialGroups.find((g) => g.project === project?._id);
 //     return group?.items || [];
 //   }, [materialGroups, project]);
 
@@ -533,7 +522,7 @@ export default AddMaterialsScreen;
 //     if (modalField === "delivery_date") {
 //       setDeliveryDate(tempDate);
 //       const updated = materialGroups.map((group) => {
-//         if (group.project === project) {
+//         if (group.project === project?._id) {
 //           const updatedItems = group.items.map((item) => ({
 //             ...item,
 //             deliveryDate: tempDate,
@@ -548,36 +537,120 @@ export default AddMaterialsScreen;
 //     closeModal();
 //   };
 
-//   const handleSaveDraft = () => {
+//   const buildRFQPayload = (status = "draft") => {
+//     return {
+//       project: project?._id,
+//       date: new Date().toISOString(),
+//       taxType: taxType || "GST",
+//       deliveryLocation,
+//       biddingStartDate: biddingStartDate
+//         ? new Date(biddingStartDate).toISOString()
+//         : null,
+//       biddingEndDate: biddingEndDate
+//         ? new Date(biddingEndDate).toISOString()
+//         : null,
+//       deliveryDate: deliveryDate ? new Date(deliveryDate).toISOString() : null,
+//       materials: selectedMaterials.map((m) => ({
+//         product: m._id,
+//         name: m.name,
+//         hsn: m.hsn || "",
+//         quantity: Number(m.quantity) || 0,
+//         unit: m.unit || "pcs",
+//         deliveryDate: m.deliveryDate
+//           ? new Date(m.deliveryDate).toISOString()
+//           : null,
+//       })),
+//       terms,
+//       supplier: supplier?._id,
+//       status,
+//     };
+//   };
+
+//   const handleSaveDraft = async () => {
 //     if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
 //       toast.error("Please fill all fields before saving the draft.");
 //       return;
 //     }
 
-//     const draftData = {
-//       project,
-//       date,
-//       taxType,
+//     const draftData = buildRFQPayload("draft");
+
+//     try {
+//       toast.loading("Saving draft...");
+//       await createRFQ(draftData);
+
+//       toast.dismiss();
+//       toast.success("Draft saved successfully!");
+//       navigate("/procurement");
+//     } catch (error) {
+//       toast.dismiss();
+//       console.error("Error saving draft:", error);
+//       toast.error("Failed to save draft.");
+//     }
+//   };
+
+// const handleSavePublish = async () => {
+//   if (!biddingStartDate || !biddingEndDate || !deliveryDate || !supplier) {
+//     toast.error("Please fill all fields before publishing.");
+//     return;
+//   }
+//   if (!supplier.email) {
+//     toast.error("Please select a supplier with a valid email.");
+//     return;
+//   }
+
+//   // Build payload with status "published"
+//   const rfqData = buildRFQPayload("published");
+
+//   // Generate RFQ text for email
+//   const rfqText = generateRFQText({
+//     project: project?.name || "",
+//     deliveryLocation,
+//     biddingStartDate,
+//     biddingEndDate,
+//     deliveryDate,
+//     selectedMaterials,
+//     terms,
+//   });
+
+//   try {
+//     toast.loading("Publishing RFQ...");
+
+//     // Publish RFQ via service → returns the RFQ object (with _id)
+//     const createdRFQ = await publishRFQ(rfqData);
+
+//     if (!createdRFQ?._id) {
+//       console.error("Publish response:", createdRFQ);
+//       throw new Error("RFQ did not return an ID after publish.");
+//     }
+
+//     // Build link to the published RFQ
+//     const rfqLink = `https://first-task-alpha.vercel.app/responses/${createdRFQ._id}`;
+
+//     // Send email with the RFQ link included
+//     await sendRFQEmail({
+//       to_email: supplier.email,
+//       project: project?.name || "",
 //       deliveryLocation,
 //       biddingStartDate,
 //       biddingEndDate,
 //       deliveryDate,
-//       materials: selectedMaterials,
+//       selectedMaterials,
+//       materials: rfqData.materials, // in case email helper uses this
 //       terms,
-//       supplier,
-//       createdAt: new Date().toISOString(),
-//       status: "draft",
-//     };
+//       rfqId: createdRFQ._id,        //  pass RFQ ID
+//       rfqLink,                      //  pass link for email
+//       message: `${rfqText}\n\n👉 Add your response by clicking this link: ${rfqLink}`,
+//     });
 
-//     const existingDrafts = JSON.parse(
-//       localStorage.getItem("rfqDrafts") || "[]"
-//     );
-//     existingDrafts.push(draftData);
-//     localStorage.setItem("rfqDrafts", JSON.stringify(existingDrafts));
-
-//     toast.success("Draft saved successfully!");
+//     toast.dismiss();
+//     toast.success("RFQ sent and published successfully!");
 //     navigate("/procurement");
-//   };
+//   } catch (error) {
+//     toast.dismiss();
+//     console.error("Error publishing RFQ:", error);
+//     toast.error("Failed to send or publish RFQ.");
+//   }
+// };
 
 //   return (
 //     <Layout title="NEW RFQ">
@@ -594,6 +667,7 @@ export default AddMaterialsScreen;
 //           deliveryLocation={deliveryLocation}
 //         />
 
+//         {/* Materials Table */}
 //         <div className="bg-white border border-gray-300 rounded-lg shadow-sm">
 //           <div className="grid grid-cols-5 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
 //             <span>S.No.</span>
@@ -623,7 +697,7 @@ export default AddMaterialsScreen;
 //                       value={material.quantity}
 //                       onChange={(e) => {
 //                         const updated = materialGroups.map((group) => {
-//                           if (group.project === project) {
+//                           if (group.project === project?._id) {
 //                             const updatedItems = group.items.map((item, i) =>
 //                               i === idx
 //                                 ? { ...item, quantity: e.target.value }
@@ -649,7 +723,7 @@ export default AddMaterialsScreen;
 //                       }
 //                       onChange={(date) => {
 //                         const updated = materialGroups.map((group) => {
-//                           if (group.project === project) {
+//                           if (group.project === project?._id) {
 //                             const updatedItems = group.items.map((item, i) =>
 //                               i === idx ? { ...item, deliveryDate: date } : item
 //                             );
@@ -666,7 +740,7 @@ export default AddMaterialsScreen;
 //                     <Button
 //                       onClick={() => {
 //                         const updated = materialGroups.map((group) => {
-//                           if (group.project === project) {
+//                           if (group.project === project?._id) {
 //                             const updatedItems = group.items.filter(
 //                               (_, i) => i !== idx
 //                             );
@@ -718,10 +792,11 @@ export default AddMaterialsScreen;
 //         <MaterialLibraryDrawer
 //           isOpen={isDrawerOpen}
 //           onClose={() => setIsDrawerOpen(false)}
-//           selectedProject={project}
+//           selectedProject={project?._id}
 //           setMaterialGroups={setMaterialGroups}
 //         />
 
+//         {/* Terms & Supplier */}
 //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //           <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
 //             <label className="text-sm font-semibold text-gray-700 mb-1 block">
@@ -779,6 +854,7 @@ export default AddMaterialsScreen;
 //           </div>
 //         </div>
 
+//         {/* Actions */}
 //         <div className="flex justify-end gap-4">
 //           <Button color="red" variant="outlined" onClick={handleSaveDraft}>
 //             Save Draft
@@ -787,56 +863,7 @@ export default AddMaterialsScreen;
 //             color="red"
 //             variant="custom"
 //             className="bg-red-600 hover:bg-red-700 text-white"
-//             onClick={async () => {
-//               if (!supplier || !supplier.email) {
-//                 toast.error("Please select a supplier with a valid email.");
-//                 return;
-//               }
-//               console.log("Sending RFQ to:", supplier.email);
-//               //eslint-disable-next-line
-//               const rfqText = generateRFQText({
-//                 project,
-//                 deliveryLocation,
-//                 biddingStartDate,
-//                 biddingEndDate,
-//                 deliveryDate,
-//                 selectedMaterials,
-//                 terms,
-//               });
-
-//               const rfqData = {
-//                 project,
-//                 deliveryLocation,
-//                 biddingStartDate,
-//                 biddingEndDate,
-//                 deliveryDate,
-//                 selectedMaterials,
-//                 terms,
-//               };
-
-//               try {
-//                 toast.loading("Sending email...");
-//                 await sendRFQEmail({
-//                   to_email: supplier.email,
-//                   project,
-//                   deliveryLocation,
-//                   biddingStartDate,
-//                   biddingEndDate,
-//                   deliveryDate,
-//                   selectedMaterials,
-//                   terms,
-//                 });
-
-//                 toast.dismiss();
-//                 toast.success("RFQ sent successfully!");
-
-//                 saveRFQToLocalStorage(rfqData, "published");
-//                 toast.success("RFQ saved as published!");
-//               } catch (error) {
-//                 toast.dismiss();
-//                 toast.error("Failed to send RFQ.");
-//               }
-//             }}
+//             onClick={handleSavePublish}
 //           >
 //             Save & Publish
 //           </Button>
