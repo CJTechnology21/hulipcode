@@ -9,7 +9,7 @@ import {
   addResponseToRFQ,
   getResponsesOfRFQ,
 } from "../../../services/rfqServices";
-import { getLabel } from "../../../utils/helpers"; // your getLabel function
+import { getLabel } from "../../../utils/getLabel"; // your getLabel function
 
 function QuoteResponsePage() {
   const { id } = useParams();
