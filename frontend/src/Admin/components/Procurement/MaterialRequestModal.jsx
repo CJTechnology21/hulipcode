@@ -1,123 +1,55 @@
 import { Dialog, Tab, Transition } from "@headlessui/react";
-import { Fragment, useState, useMemo } from "react";
+import { Fragment, useState } from "react";
 import ReqDetailsModal from "./ReqDetailsModal";
 import Button from "../../../components/Button";
 import { FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   setSelectedMaterials as setPendingMaterials,
+  updateMaterialStatus,
   clearSelectedMaterials,
 } from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
-import { addPendingMaterialAPI } from "../../../services/pendingMaterialServices";
 
 const TABS = ["Pending", "Approved", "Ordered", "Rejected"];
-const LOCAL_STORAGE_KEY = "materialGroups";
 
-const saveToLocalStorage = (data) => {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-};
-
-const loadFromLocalStorage = () => {
-  try {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (err) {
-    console.error("Error reading localStorage:", err);
-    return [];
-  }
-};
-
-function MaterialRequestModal({
-  open,
-  onClose,
-  source = "project", // "project" | "procurement"
-  selectedMaterials = [],
-  setSelectedMaterials = () => {},
-  projectId, // needed for backend calls on project flow
-}) {
+function MaterialRequestModal({ open, onClose }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [dropdownIndex, setDropdownIndex] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const reduxMaterials = useSelector(
+  const selectedMaterials = useSelector(
     (state) => state.pendingMaterials.selectedMaterials
   );
 
-  // Flatten materials by project
-  const flattenMaterials = (materials) => {
-    const flat = [];
-    for (const group of materials) {
-      if (group.items && group.project) {
-        for (const item of group.items) {
-          flat.push({
-            ...item,
-            projectName: group.project,
-            status: item.status || "Pending",
-          });
-        }
-      }
-    }
-    return flat;
-  };
+  // Group items by project and status
+  const groupedByStatusAndProject = {};
+  TABS.forEach((status) => {
+    groupedByStatusAndProject[status] = {};
+  });
 
-  // Build grouped items by status
-  const buildGroupedItems = (materials) => {
-    const flatMaterials = flattenMaterials(materials);
-    return TABS.reduce((acc, status) => {
-      acc[status] = flatMaterials.filter((item) => item.status === status);
-      return acc;
-    }, {});
-  };
-
-  // Memoized grouped items to avoid infinite re-render
-  const groupedItems = useMemo(() => {
-    if (source === "project") {
-      const materialsToUse =
-        selectedMaterials.length > 0 ? selectedMaterials : loadFromLocalStorage();
-      return buildGroupedItems(materialsToUse);
-    } else {
-      return buildGroupedItems(reduxMaterials);
+  selectedMaterials.forEach((item, idx) => {
+    const projectName = item.project || "Unknown Project";
+    const status = item.status || "Pending";
+    if (!groupedByStatusAndProject[status][projectName]) {
+      groupedByStatusAndProject[status][projectName] = [];
     }
-  }, [selectedMaterials, reduxMaterials, source]);
+    groupedByStatusAndProject[status][projectName].push({ ...item, idx });
+  });
 
   const handleStatusClick = (index) => {
     setDropdownIndex(index === dropdownIndex ? null : index);
   };
 
-  const moveItemToStatus = (itemIndex, currentStatus, newStatus) => {
-    const itemToMove = {
-      ...groupedItems[currentStatus][itemIndex],
-      status: newStatus,
-    };
-
-    const updated = { ...groupedItems };
-    updated[currentStatus] = updated[currentStatus].filter(
-      (_, idx) => idx !== itemIndex
+  const moveItemToStatus = (itemIdx, newStatus) => {
+    dispatch(
+      updateMaterialStatus({
+        itemIndex: itemIdx,
+        newStatus,
+      })
     );
-    updated[newStatus] = [...updated[newStatus], itemToMove];
-
-    const updatedAll = Object.values(updated).flat();
-
-    if (source === "project") {
-      // Update local state + localStorage
-      setSelectedMaterials(updatedAll);
-      const groupedByProject = updatedAll.reduce((acc, item) => {
-        const project = item.projectName || "Unknown Project";
-        if (!acc[project]) acc[project] = [];
-        acc[project].push(item);
-        return acc;
-      }, {});
-      const finalGroups = Object.entries(groupedByProject).map(([project, items]) => ({
-        project,
-        items,
-      }));
-      saveToLocalStorage(finalGroups);
-    } else {
-      // Procurement: update Redux
-      dispatch(setPendingMaterials(updatedAll));
-    }
     setDropdownIndex(null);
   };
 
@@ -148,10 +80,7 @@ function MaterialRequestModal({
                 </Button>
               </div>
 
-              <Tab.Group
-                selectedIndex={selectedIndex}
-                onChange={setSelectedIndex}
-              >
+              <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
                 <Tab.List className="flex space-x-2 p-3 border-b">
                   {TABS.map((tab) => (
                     <Tab
@@ -170,97 +99,103 @@ function MaterialRequestModal({
                 </Tab.List>
 
                 <Tab.Panels className="px-4 py-3">
-                  {TABS.map((tab) => (
-                    <Tab.Panel key={tab}>
-                      {groupedItems[tab]?.length ? (
-                        Object.entries(
-                          groupedItems[tab].reduce((acc, item) => {
-                            const project = item.projectName || "Unknown Project";
-                            if (!acc[project]) acc[project] = [];
-                            acc[project].push(item);
-                            return acc;
-                          }, {})
-                        ).map(([projectName, items], projectIndex) => (
-                          <div key={projectIndex} className="mb-6">
-                            <h3 className="text-red-600 font-semibold mb-2">
-                              {projectName}
-                            </h3>
-
-                            <div className="space-y-3">
-                              {items.map((item, i) => (
-                                <div
-                                  key={i}
-                                  className="relative flex justify-between items-center bg-gray-100 p-3 rounded-lg hover:bg-gray-200 cursor-pointer"
-                                >
-                                  <div>
-                                    <div className="text-sm font-medium text-gray-800">
-                                      {item.name}
-                                    </div>
-                                    <div className="text-xs text-gray-600">
-                                      Qty: {item.quantity} {item.unit}
-                                    </div>
-                                  </div>
-
-                                  <div className="relative text-right">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStatusClick(i + projectIndex * 100);
-                                      }}
-                                      className="text-xs text-red-600 font-semibold hover:underline"
-                                    >
-                                      {item.status} ▼
-                                    </button>
-
-                                    {dropdownIndex === i + projectIndex * 100 && (
-                                      <div className="absolute right-0 mt-1 bg-white border rounded-md shadow-lg z-50 w-40 text-left">
-                                        {TABS.map((statusOpt) => (
-                                          <button
-                                            key={statusOpt}
-                                            className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              moveItemToStatus(
-                                                groupedItems[tab].indexOf(item),
-                                                tab,
-                                                statusOpt
-                                              );
-                                            }}
-                                          >
-                                            {statusOpt}
-                                          </button>
-                                        ))}
+                  {TABS.map((tab) => {
+                    const projects = groupedByStatusAndProject[tab];
+                    return (
+                      <Tab.Panel key={tab}>
+                        {Object.keys(projects).length ? (
+                          Object.entries(projects).map(([projectName, items], idx) => (
+                            <div key={idx} className="mb-6">
+                              <h3 className="text-red-600 font-semibold mb-2">{projectName}</h3>
+                              <div className="space-y-3">
+                                {items.map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="relative flex justify-between items-center bg-gray-100 p-3 rounded-lg hover:bg-gray-200 cursor-pointer"
+                                  >
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-800">{item.name}</div>
+                                      <div className="text-xs text-gray-600">
+                                        Qty: {item.quantity} {item.unit}
                                       </div>
-                                    )}
+                                    </div>
+
+                                    <div className="relative text-right">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStatusClick(i + idx * 100);
+                                        }}
+                                        className="text-xs text-red-600 font-semibold hover:underline"
+                                      >
+                                        {item.status} ▼
+                                      </button>
+
+                                      {dropdownIndex === i + idx * 100 && (
+                                        <div className="absolute right-0 mt-1 bg-white border rounded-md shadow-lg z-50 w-40 text-left">
+                                          {TABS.map((statusOpt) => (
+                                            <button
+                                              key={statusOpt}
+                                              className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                moveItemToStatus(item.idx, statusOpt);
+                                              }}
+                                            >
+                                              {statusOpt}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
+                                ))}
+                              </div>
+
+                              {/* ✅ Place Request Button for Approved Tab */}
+                              {tab === "Approved" && items.length > 0 && (
+                                <div className="mt-4 text-right">
+                                  <Button
+                                    variant="primary"
+                                    className="bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700"
+                                    onClick={() => {
+                                      const approvedItems = items.filter(
+                                        (item) => item.status === "Approved"
+                                      );
+                                      if (approvedItems.length === 0) {
+                                        alert("No approved materials to request for this project.");
+                                        return;
+                                      }
+                                      navigate("/addmaterials", {
+                                        state: {
+                                          project: projectName,
+                                          materials: approvedItems,
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    Place Request
+                                  </Button>
                                 </div>
-                              ))}
+                              )}
+
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-gray-400 py-10">
-                          No {tab} Requests
-                        </div>
-                      )}
-                    </Tab.Panel>
-                  ))}
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-400 py-10">No {tab} Requests</div>
+                        )}
+                      </Tab.Panel>
+                    );
+                  })}
                 </Tab.Panels>
               </Tab.Group>
 
               <div className="px-4 mt-4">
                 <button
-                  onClick={() => {
-                    if (source === "project") {
-                      localStorage.removeItem(LOCAL_STORAGE_KEY);
-                      setSelectedMaterials([]);
-                    } else {
-                      dispatch(clearSelectedMaterials());
-                    }
-                  }}
+                  onClick={() => dispatch(clearSelectedMaterials())}
                   className="text-xs text-red-500 hover:underline"
                 >
-                  Clear Requests
+                  Clear Saved Requests
                 </button>
               </div>
             </div>
@@ -271,25 +206,12 @@ function MaterialRequestModal({
       <ReqDetailsModal
         selectedGroup={selectedGroup}
         setSelectedGroup={setSelectedGroup}
-        items={groupedItems}
-        setItems={(updated) => {
-          const allUpdated = Object.values(updated).flat();
-
-          if (source === "project") {
-            setSelectedMaterials(allUpdated);
-            const groupedByProject = allUpdated.reduce((acc, item) => {
-              const project = item.projectName || "Unknown Project";
-              if (!acc[project]) acc[project] = [];
-              acc[project].push(item);
-              return acc;
-            }, {});
-            const finalGroups = Object.entries(groupedByProject).map(
-              ([project, items]) => ({ project, items })
-            );
-            saveToLocalStorage(finalGroups);
-          } else {
-            dispatch(setPendingMaterials(allUpdated));
-          }
+        items={groupedByStatusAndProject}
+        setItems={(updatedFlat) => {
+          const allUpdated = Object.values(updatedFlat).flatMap((proj) =>
+            Object.values(proj).flat()
+          );
+          dispatch(setPendingMaterials(allUpdated));
         }}
         TABS={TABS}
       />
@@ -298,6 +220,7 @@ function MaterialRequestModal({
 }
 
 export default MaterialRequestModal;
+
 
 
 // import { Dialog, Tab, Transition } from "@headlessui/react";

@@ -112,108 +112,86 @@ const ProjectAttendance = ({ projectId }) => {
   };
 
   const handleAddStaff = async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const staffData = {
-    name: formData.get("name"),
-    personType: formData.get("personType"),
-    projectId,
-  };
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const staffData = {
+      name: formData.get("name"),
+      personType: formData.get("personType"),
+      projectId,
+    };
 
-  const attendanceStatus = formData.get("attendanceStatus");
+    const attendanceStatus = formData.get("attendanceStatus");
 
-  try {
-    if (editingStaff) {
-      const updatedData = { ...staffData };
+    try {
+      if (editingStaff) {
+        const updatedData = { ...staffData };
 
-      if (attendanceStatus) {
-        updatedData.attendance = {
-          date: new Date().toISOString(), // Send ISO format
-          status: attendanceStatus,
-        };
+        if (attendanceStatus) {
+          updatedData.attendance = {
+            date: new Date().toISOString(), // Send ISO format
+            status: attendanceStatus,
+          };
+        }
+
+        // Optimistic UI update
+        setStaff((prev) =>
+          prev.map((s) =>
+            s._id === editingStaff._id ? { ...s, ...updatedData } : s
+          )
+        );
+
+        // Call API
+        const updatedStaff = await updateStaff(editingStaff._id, updatedData);
+
+        // Replace with actual updated data from server
+        setStaff((prev) =>
+          prev.map((s) => (s._id === updatedStaff._id ? updatedStaff : s))
+        );
+
+        toast.success("Staff updated successfully");
+      } else {
+        const saved = await createStaff(staffData);
+        setStaff((prev) => [...prev, saved]);
+        toast.success("Staff added successfully");
       }
-
-      // Optimistic UI update
-      setStaff((prev) =>
-        prev.map((s) =>
-          s._id === editingStaff._id ? { ...s, ...updatedData } : s
-        )
-      );
-
-      // Call API
-      const updatedStaff = await updateStaff(editingStaff._id, updatedData);
-
-      // Replace with actual updated data from server
-      setStaff((prev) =>
-        prev.map((s) => (s._id === updatedStaff._id ? updatedStaff : s))
-      );
-
-      toast.success("Staff updated successfully");
-    } else {
-      const saved = await createStaff(staffData);
-      setStaff((prev) => [...prev, saved]);
-      toast.success("Staff added successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save staff");
+    } finally {
+      setIsModalOpen(false);
+      setEditingStaff(null);
     }
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to save staff");
-  } finally {
-    setIsModalOpen(false);
-    setEditingStaff(null);
-  }
-};
-
+  };
 
   //  Mark Attendance
   const handleAttendanceChange = async (staffId, value) => {
     try {
+      console.log(
+        "Marking attendance for staffId:",
+        staffId,
+        "value:",
+        value,
+        "date:",
+        selectedDateKey
+      );
+
       const record = {
         date: selectedDateKey,
         status: value,
-        projectId,
+        // projectId removed
       };
 
-      await markStaffAttendance(staffId, record);
+      console.log("Payload sent to backend:", record);
 
-      //  Update local state
-      setStaff((prev) =>
-        prev.map((s) => {
-          if (s._id === staffId) {
-            const updatedHistory = [...(s.attendanceHistory || [])];
-            const monthKey = selectedDateKey.slice(0, 7);
+      const res = await markStaffAttendance(staffId, record);
+      console.log("Backend response:", res);
 
-            let monthEntry = updatedHistory.find((m) => m.month === monthKey);
-            if (!monthEntry) {
-              monthEntry = { month: monthKey, records: [] };
-              updatedHistory.push(monthEntry);
-            }
-
-            const existingRecord = monthEntry.records.find(
-              (r) =>
-                new Date(r.date).toISOString().slice(0, 10) === selectedDateKey
-            );
-            if (existingRecord) {
-              existingRecord.status = value;
-            } else {
-              monthEntry.records.push({
-                date: new Date(selectedDateKey),
-                status: value,
-              });
-            }
-
-            return { ...s, attendanceHistory: updatedHistory };
-          }
-          return s;
-        })
-      );
-
-      toast.success("Attendance updated successfully");
+      // Update local state...
     } catch (err) {
-      console.error("Mark Attendance Error:", err);
+      console.error("Mark Attendance Error:", err.response?.data || err);
       toast.error("Failed to update attendance");
     }
   };
-
   const handleDeleteStaff = async (_id) => {
     try {
       await deleteStaff(_id);

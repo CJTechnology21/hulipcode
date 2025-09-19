@@ -6,9 +6,10 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Provider } from 'react-redux';
-import { store } from './app/store';
+import { store, persistor } from './app/store';
 import { LocationProvider } from './context/LocationContext';
 import { AuthProvider } from './context/AuthContext';
+import { PersistGate } from 'redux-persist/integration/react';
 import axios from "axios";
 
 // Make axios always send cookies
@@ -21,11 +22,13 @@ root.render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Provider store={store}>
-        <AuthProvider>
-          <LocationProvider>
-            <App />
-          </LocationProvider>
-        </AuthProvider>
+        <PersistGate loading={null} persistor={persistor}>
+          <AuthProvider>
+            <LocationProvider>
+              <App />
+            </LocationProvider>
+          </AuthProvider>
+          </PersistGate >
       </Provider>
     </GoogleOAuthProvider>
   </React.StrictMode>

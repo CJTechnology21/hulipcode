@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import Layout from "../Layout";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -31,14 +31,18 @@ function AddMaterialsScreen() {
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const { project, taxType, deliveryLocation } = location.state || {};
+  const { project, taxType, deliveryLocation ,materials} = location.state || {};
 
   //   now from Redux
   const selectedMaterials = useSelector(
     (state) => state.pendingMaterials.selectedMaterials
   );
-
-  // ADD THIS 
+  useEffect(() => {
+    if (materials && materials.length > 0) {
+      dispatch(setSelectedMaterials(materials));
+    }
+  }, [materials, dispatch]);
+  // ADD THIS
   const [materialGroups, setMaterialGroups] = useState([]);
   const [biddingStartDate, setBiddingStartDate] = useState(null);
   const [biddingEndDate, setBiddingEndDate] = useState(null);

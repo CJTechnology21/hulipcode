@@ -4,14 +4,12 @@ import DropDown from "../../../components/DropDown";
 import SearchBar from "../../../components/SearchBar";
 import Button from "../../../components/Button";
 import AddNewMaterialModal from "./AddNewMaterialModal";
-import { fetchProductsByCategory } from "../../../services/productServices";
+import { fetchProductsByCategory } from "../../../services/productServices"; // you can keep or remove
 import { ClipLoader } from "react-spinners";
 import { useDispatch, useSelector } from "react-redux";
-import { setSelectedMaterials as setPendingMaterials } from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
 import {
-  addPendingMaterialAPI,
-  getPendingMaterialsByProjectAPI,
-} from "../../../services/pendingMaterialServices";
+  setSelectedMaterials as setPendingMaterials,
+} from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
 
 const categories = [
   { name: "Kitchen" },
@@ -29,8 +27,6 @@ export default function MaterialLibraryDrawer({
   isOpen,
   onClose,
   selectedProject,
-  setMaterialGroups,
-  source = "project", // "project" | "procurement"
 }) {
   const [category, setCategory] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -49,8 +45,8 @@ export default function MaterialLibraryDrawer({
     setMaterials((prev) => [...prev, newMaterial]);
   };
 
-  // fetch catalog materials by category
   useEffect(() => {
+    // fetch catalog if needed
     const getMaterials = async () => {
       if (!category) return;
       setLoading(true);
@@ -61,31 +57,13 @@ export default function MaterialLibraryDrawer({
     getMaterials();
   }, [category]);
 
-  // hydrate pending materials
-  useEffect(() => {
-    const loadData = async () => {
-      if (source === "project" && selectedProject) {
-        try {
-          const data = await getPendingMaterialsByProjectAPI(selectedProject);
-          setMaterialGroups(data || []);
-        } catch (err) {
-          console.error("Failed to load project pending materials", err);
-        }
-      } else if (source === "procurement") {
-        setMaterialGroups(reduxMaterials || []);
-      }
-    };
-    if (isOpen) loadData();
-    // eslint-disable-next-line
-  }, [isOpen, source]);
-
   const filteredMaterials = useMemo(() => {
     return materials.filter((item) =>
       item.name?.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [materials, searchText]);
 
-  const handleNext = async () => {
+  const handleNext = () => {
     const selected = materials.filter((item) => checked[item._id]);
 
     const enriched = selected.map((m) => ({
@@ -105,92 +83,18 @@ export default function MaterialLibraryDrawer({
       return;
     }
 
-    // ✅ THIS IS THE PART YOU REPLACE
-    if (source === "project") {
-      try {
-        for (const mat of enriched) {
-          await addPendingMaterialAPI(mat);
-        }
-        const updated = await getPendingMaterialsByProjectAPI(selectedProject);
-        setMaterialGroups(updated || []);
-      } catch (err) {
-        console.error("Error saving project materials", err);
-      }
-    } else {
-      // procurement flow → update Redux only (flat array)
-      const updatedMaterials = [...reduxMaterials, ...enriched];
-      dispatch(setPendingMaterials(updatedMaterials));
-      setMaterialGroups(updatedMaterials);
-    }
+    // ✅ Store everything in Redux
+    const updatedMaterials = [...reduxMaterials, ...enriched];
+    dispatch(setPendingMaterials(updatedMaterials));
 
-    // reset UI state
+    // Reset UI state
     setChecked({});
     setQuantities({});
     onClose();
   };
 
-  // const handleNext = async () => {
-  //   const selected = materials.filter((item) => checked[item._id]);
-
-  //   const enriched = selected.map((m) => ({
-  //     ...m,
-  //     quantity: quantities[m._id] || "",
-  //     deliveryDate: null,
-  //     status: "Pending",
-  //     project: selectedProject,
-  //   }));
-
-  //   const hasInvalidQty = enriched.some(
-  //     (mat) => !mat.quantity || isNaN(mat.quantity)
-  //   );
-
-  //   if (hasInvalidQty) {
-  //     alert("Please enter quantity for all selected materials.");
-  //     return;
-  //   }
-
-  //   if (source === "project") {
-  //     try {
-  //       for (const mat of enriched) {
-  //         await addPendingMaterialAPI(mat);
-  //       }
-  //       const updated = await getPendingMaterialsByProjectAPI(selectedProject);
-  //       setMaterialGroups(updated || []);
-  //     } catch (err) {
-  //       console.error("Error saving project materials", err);
-  //     }
-  //   } else {
-  //     // procurement flow → update Redux only
-  //     const existingGroup = reduxMaterials.find(
-  //       (group) => group.project === selectedProject
-  //     );
-  //     let updatedGroups;
-  //     if (existingGroup) {
-  //       updatedGroups = reduxMaterials.map((group) =>
-  //         group.project === selectedProject
-  //           ? { ...group, items: [...group.items, ...enriched] }
-  //           : group
-  //       );
-  //     } else {
-  //       updatedGroups = [
-  //         ...reduxMaterials,
-  //         { project: selectedProject, items: enriched },
-  //       ];
-  //     }
-  //     dispatch(setPendingMaterials(updatedGroups));
-  //     setMaterialGroups(updatedGroups);
-  //   }
-
-  //   // reset UI state
-  //   setChecked({});
-  //   setQuantities({});
-  //   onClose();
-  // };
-
   return (
-    <div
-      className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}
-    >
+    <div className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}>
       {/* Overlay */}
       <div
         className={`fixed inset-0 bg-black transition-opacity duration-300 ${
@@ -271,7 +175,6 @@ export default function MaterialLibraryDrawer({
                 key={item._id || idx}
                 className="flex items-center justify-between py-3 border-b border-gray-200 text-sm"
               >
-                {/* Left side: checkbox + name */}
                 <div className="flex items-start gap-3 w-2/3">
                   <input
                     type="checkbox"
@@ -299,7 +202,6 @@ export default function MaterialLibraryDrawer({
                   </div>
                 </div>
 
-                {/* Right side: quantity */}
                 <div className="flex flex-col items-end w-1/3">
                   <input
                     type="number"
@@ -338,6 +240,7 @@ export default function MaterialLibraryDrawer({
     </div>
   );
 }
+
 
 // import React, { useState, useEffect, useMemo } from "react";
 // import { MdClose } from "react-icons/md";
