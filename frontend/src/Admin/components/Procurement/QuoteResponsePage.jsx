@@ -23,7 +23,7 @@ function QuoteResponsePage() {
   // ✅ Auth + role check
   useEffect(() => {
     if (!user) {
-      navigate("/login", { state: { from: `/responses/${id}` } });
+      navigate("/responselogin", { state: { from: `/responses/${id}` } });
       return;
     }
     if (user.role !== "Material Supplier") {
