@@ -101,6 +101,7 @@ import CategoryOne from "./client/components/BlogComponents/CategoryOne";
 import LeadInfo from "./Admin/DashboardPages/Lead/LeadInfo";
 import QuoteResponsePage from "./Admin/components/Procurement/QuoteResponsePage";
 import Thankyou from './Admin/components/Procurement/Thankyou'
+import ResponseLogin from "./Admin/pages/ResponseLogin";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -157,6 +158,9 @@ function App() {
         </AuthRedirect>} />
         <Route path="/login" element={<AuthRedirect>
           <Login />
+        </AuthRedirect>} />
+        <Route path="/responselogin" element={<AuthRedirect>
+          <ResponseLogin />
         </AuthRedirect>} />
         <Route path="/approval" element={<Approval />} />
         <Route path="/profile" element={<Profile />} />
