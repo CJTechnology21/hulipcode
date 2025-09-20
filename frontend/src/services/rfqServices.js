@@ -1,7 +1,5 @@
 import axiosInstance from './axiosInstance';
 
-//  RFQ SERVICES 
-
 // Fetch all RFQs
 export const fetchRFQs = async () => {
   const res = await axiosInstance.get('/api/rfq');
@@ -14,6 +12,16 @@ export const fetchRFQByID = async (rfqId) => {
   return res.data;
 };
 
+//Fetch rfqs based on architectID
+export const fetchRFQByArchitect = async (architectId) => {
+  const res = await axiosInstance.get(`/api/rfq/architect/${architectId}`);
+  return res.data;
+}
+//Fetch rfqs based on projectId
+export const fetchRFQByProject = async (projectId) => {
+  const res = await axiosInstance.get(`/api/rfq/project/${projectId}`);
+  return res.data;
+}
 // Create new RFQ
 export const createRFQ = async (rfqData) => {
   const res = await axiosInstance.post('/api/rfq', rfqData, {
@@ -21,6 +29,7 @@ export const createRFQ = async (rfqData) => {
   });
   return res.data;
 };
+
 //publish an RFQ
 export const publishRFQ = async (rfqData) => {
   const res = await axiosInstance.post('/api/rfq/publish', rfqData, {
@@ -50,14 +59,6 @@ export const publishExistingRFQ = async (rfqId, data = {}) => {
   return res.data.data;
 };
 
-// export const publishExistingRFQ = async (rfqId, data = {}) => {
-//   const res = await axiosInstance.put(`/api/rfq/${rfqId}/publish`, data, {
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//   });
-//   return res.data;
-// };
 
 // Delete RFQ
 export const deleteRFQ = async (rfqId) => {
@@ -110,7 +111,7 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
     }))
   };
 
-  console.log("📦 Payload being sent:", payload);
+  // console.log("📦 Payload being sent:", payload);
 
   const res = await axiosInstance.post(
     `/api/rfq/${rfqId}/responses`,
@@ -120,63 +121,6 @@ export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 
   return res.data;
 };
-// export const addResponseToRFQ = async (rfqId, supplierId, items) => {
-//   const quotes = items.map(item => ({
-//     material: item.materialId,     
-//     productName: item.name,       
-//     price: Number(item.price),
-//     quantity: Number(item.quantity),
-//     totalAmount: Number(item.price) * Number(item.quantity), 
-//   }));
-
-//   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
-
-//   const payload = {
-//     supplierId,
-//     responses: {
-//       supplier: supplierId,
-//       quotes,
-//       totalAmount
-//     }
-//   };
-
-//   console.log("📦 Payload being sent:", payload);
-
-//   const res = await axiosInstance.post(
-//     `/api/rfq/${rfqId}/responses`,
-//     payload,
-//     { headers: { "Content-Type": "application/json" } }
-//   );
-
-//   return res.data;
-// };
-
-// export const addResponseToRFQ = async (rfqId, supplierId, items) => {
-//   //  Transform each item into the backend's expected schema
-//   const quotes = items.map(item => ({
-//     material: item.materialId,     
-//     productName: item.name,       
-//     price: Number(item.price),
-//     quantity: Number(item.quantity),
-//     totalAmount: Number(item.price) * Number(item.quantity), 
-//   }));
-
-//   // Calculate grand total for all items
-//   const totalAmount = quotes.reduce((sum, q) => sum + q.totalAmount, 0);
-
-//   const payload = {
-//     supplierId,
-//     responses: quotes, 
-//     totalAmount,        
-//   };
-//   const res = await axiosInstance.post(
-//     `/api/rfq/${rfqId}/responses`,
-//     payload,
-//     { headers: { "Content-Type": "application/json" } }
-//   );
-
-//   return res.data;
-// };
 
 // Get all responses of a specific RFQ
 export const getResponsesOfRFQ = async (rfqId) => {

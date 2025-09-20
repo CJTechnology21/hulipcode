@@ -168,6 +168,67 @@ const deleteRFQ = async (req, res) => {
     }
 };
 
+//  Get all RFQs by Architect ID
+const getRFQsByArchitect = async (req, res) => {
+    try {
+        const { architectId } = req.params;
+
+        const rfqs = await RFQ.find({ architect: architectId })
+            .populate("project", "name client location")
+            .populate("supplier", "name email phone role");
+
+        if (!rfqs || rfqs.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No RFQs found for this architect",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: rfqs.length,
+            data: rfqs,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching RFQs by architect",
+            error: error.message,
+        });
+    }
+};
+
+//  Get all RFQs by Project ID
+const getRFQsByProject = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+
+        const rfqs = await RFQ.find({ project: projectId })
+            .populate("project", "name client location")
+            .populate("supplier", "name email phone role");
+
+        if (!rfqs || rfqs.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No RFQs found for this project",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: rfqs.length,
+            data: rfqs,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching RFQs by project",
+            error: error.message,
+        });
+    }
+};
+
+
 // MATERIAL CONTROLLERS  
 
 // Add one or multiple materials to an RFQ
@@ -293,58 +354,58 @@ const getMaterialsOfRFQ = async (req, res) => {
 //  RESPONSE CONTROLLERS 
 // Add one or multiple responses to an RFQ
 const addResponseToRFQ = async (req, res) => {
-  try {
-    const { id } = req.params; // RFQ ID
-    const { supplierId, responses } = req.body; 
+    try {
+        const { id } = req.params; // RFQ ID
+        const { supplierId, responses } = req.body;
 
-    if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "SupplierId and at least one response item are required",
-      });
+        if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "SupplierId and at least one response item are required",
+            });
+        }
+
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        // Convert incoming responses into schema-compatible structure
+        const quotes = responses.map((item) => ({
+            material: item.materialId,
+            productName: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            remarks: item.remarks || "",
+        }));
+
+        // Calculate totalAmount at supplier-response level
+        const totalAmount = responses.reduce(
+            (sum, item) => sum + (item.price * item.quantity),
+            0
+        );
+
+        // Push new response into RFQ
+        rfq.responses.push({
+            supplier: supplierId,
+            quotes,
+            totalAmount,
+        });
+
+        await rfq.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Responses added successfully",
+            data: rfq.responses,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Error adding responses",
+            error: error.message,
+        });
     }
-
-    const rfq = await RFQ.findById(id);
-    if (!rfq) {
-      return res.status(404).json({ success: false, message: "RFQ not found" });
-    }
-
-    // Convert incoming responses into schema-compatible structure
-    const quotes = responses.map((item) => ({
-      material: item.materialId, 
-      productName: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      remarks: item.remarks || "",
-    }));
-
-    // Calculate totalAmount at supplier-response level
-    const totalAmount = responses.reduce(
-      (sum, item) => sum + (item.price * item.quantity),
-      0
-    );
-
-    // Push new response into RFQ
-    rfq.responses.push({
-      supplier: supplierId,
-      quotes,
-      totalAmount,
-    });
-
-    await rfq.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Responses added successfully",
-      data: rfq.responses,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: "Error adding responses",
-      error: error.message,
-    });
-  }
 };
 
 // Get all responses for a given RFQ
@@ -372,29 +433,6 @@ const getResponsesOfRFQ = async (req, res) => {
     }
 };
 
-// const getResponsesOfRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const rfq = await RFQ.findById(id).populate("responses.supplier", "name email phone");
-
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         res.status(200).json({
-//             success: true,
-//             count: rfq.responses.length,
-//             data: rfq.responses,
-//         });
-//     } catch (error) {
-//         res.status(500).json({
-//             success: false,
-//             message: "Error fetching responses",
-//             error: error.message,
-//         });
-//     }
-// };
-
 
 module.exports = {
     createRFQ,
@@ -410,4 +448,6 @@ module.exports = {
     publishExistingRFQ,
     addResponseToRFQ,
     getResponsesOfRFQ,
+    getRFQsByArchitect,
+    getRFQsByProject,
 }

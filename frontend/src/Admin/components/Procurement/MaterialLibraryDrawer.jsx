@@ -7,9 +7,7 @@ import AddNewMaterialModal from "./AddNewMaterialModal";
 import { fetchProductsByCategory } from "../../../services/productServices"; // you can keep or remove
 import { ClipLoader } from "react-spinners";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  setSelectedMaterials as setPendingMaterials,
-} from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
+import { setSelectedMaterials as setPendingMaterials } from "../../../app/features/pendingMaterials/pendingMaterialsSlice";
 
 const categories = [
   { name: "Kitchen" },
@@ -71,7 +69,11 @@ export default function MaterialLibraryDrawer({
       quantity: quantities[m._id] || "",
       deliveryDate: null,
       status: "Pending",
-      project: selectedProject,
+      project: {
+        ...selectedProject,
+        deliveryLocation: selectedProject.location || "Main Warehouse", // ✅ Add this
+      },
+      // project: selectedProject,
     }));
 
     const hasInvalidQty = enriched.some(
@@ -94,7 +96,9 @@ export default function MaterialLibraryDrawer({
   };
 
   return (
-    <div className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}>
+    <div
+      className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}
+    >
       {/* Overlay */}
       <div
         className={`fixed inset-0 bg-black transition-opacity duration-300 ${
@@ -240,7 +244,6 @@ export default function MaterialLibraryDrawer({
     </div>
   );
 }
-
 
 // import React, { useState, useEffect, useMemo } from "react";
 // import { MdClose } from "react-icons/md";

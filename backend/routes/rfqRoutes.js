@@ -14,6 +14,8 @@ const {
   publishExistingRFQ,
   addResponseToRFQ,
   getResponsesOfRFQ,
+  getRFQsByArchitect,
+  getRFQsByProject,
 } = require('../controllers/rfqController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -24,6 +26,12 @@ router.get('/', getRFQs);
 
 // Get RFQ by ID
 router.get('/:id', getRFQById);
+
+// ✅ Get RFQs by Architect
+router.get('/architect/:architectId', getRFQsByArchitect);
+
+// ✅ Get RFQs by Project
+router.get('/project/:projectId', getRFQsByProject);
 
 // Create RFQ (Draft)
 router.post('/', protect, createRFQ);
@@ -54,7 +62,7 @@ router.patch('/:id/materials/:materialId', protect, updateMaterialInRFQ);
 // Delete a specific material inside RFQ
 router.delete('/:id/materials/:materialId', protect, deleteMaterialFromRFQ);
 
-//  Response Routes 
+// ---------------------- Response Routes ----------------------
 
 // Get all responses for an RFQ
 router.get('/:id/responses', getResponsesOfRFQ);
@@ -78,10 +86,12 @@ module.exports = router;
 //   getMaterialsOfRFQ,
 //   createAndPublishRFQ,
 //   publishExistingRFQ,
+//   addResponseToRFQ,
+//   getResponsesOfRFQ,
 // } = require('../controllers/rfqController');
 // const { protect } = require('../middleware/authMiddleware');
 
-// //  RFQ Routes  
+// // ---------------------- RFQ Routes ----------------------
 
 // // Get all RFQs
 // router.get('/', getRFQs);
@@ -89,14 +99,14 @@ module.exports = router;
 // // Get RFQ by ID
 // router.get('/:id', getRFQById);
 
-// // Create RFQ
+// // Create RFQ (Draft)
 // router.post('/', protect, createRFQ);
 
-// //publish rfq  directly
-// router.post('/publish', protect, createAndPublishRFQ)
+// // Publish RFQ directly
+// router.post('/publish', protect, createAndPublishRFQ);
 
-// //publish exisiting draft
-// router.put("/:id/publish", protect, publishExistingRFQ)
+// // Publish existing draft
+// router.put('/:id/publish', protect, publishExistingRFQ);
 
 // // Update RFQ
 // router.put('/:id', protect, updateRFQ);
@@ -104,7 +114,7 @@ module.exports = router;
 // // Delete RFQ
 // router.delete('/:id', protect, deleteRFQ);
 
-// //  Material Routes (nested under RFQ)  
+// // ---------------------- Material Routes ----------------------
 
 // // Get all materials in an RFQ
 // router.get('/:id/materials', getMaterialsOfRFQ);
@@ -117,5 +127,13 @@ module.exports = router;
 
 // // Delete a specific material inside RFQ
 // router.delete('/:id/materials/:materialId', protect, deleteMaterialFromRFQ);
+
+// //  Response Routes 
+
+// // Get all responses for an RFQ
+// router.get('/:id/responses', getResponsesOfRFQ);
+
+// // Add response(s) to an RFQ
+// router.post('/:id/responses', protect, addResponseToRFQ);
 
 // module.exports = router;

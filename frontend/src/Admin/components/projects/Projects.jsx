@@ -9,7 +9,11 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
-import { fetchProjects, deleteProject, updateProject } from "../../../services/projectServices";
+import {
+  fetchProjects,
+  deleteProject,
+  updateProject,
+} from "../../../services/projectServices";
 import ClipLoader from "react-spinners/ClipLoader"; // <--- import ClipLoader
 
 function Projects() {
@@ -19,7 +23,16 @@ function Projects() {
   const [loading, setLoading] = useState(true); // <--- loading state
   const navigate = useNavigate();
 
-  const searchKeys = ["id", "name", "client", "location", "category", "status", "progress", "cashFlow"];
+  const searchKeys = [
+    "id",
+    "name",
+    "client",
+    "location",
+    "category",
+    "status",
+    "progress",
+    "cashFlow",
+  ];
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -166,25 +179,35 @@ function Projects() {
           <table className="min-w-full text-sm text-left bg-white rounded-lg shadow-lg">
             <thead className="bg-gray-200 text-black font-semibold uppercase text-xs">
               <tr>
-                {["#", "Project ID", "Project Name", "Client Name", "City / Area", "Category", "Status", "Progress", "In / Out", "Protect", ""].map(
-                  (title, i) => (
-                    <th key={i} className="p-3">
-                      {title}
-                      {i > 0 && i < searchKeys.length + 1 && (
-                        <SearchBar
-                          value={filters[searchKeys[i - 1]] || ""}
-                          onChange={(e) =>
-                            setFilters((f) => ({
-                              ...f,
-                              [searchKeys[i - 1]]: e.target.value,
-                            }))
-                          }
-                          className="mt-1"
-                        />
-                      )}
-                    </th>
-                  )
-                )}
+                {[
+                  "#",
+                  "Project ID",
+                  "Project Name",
+                  "Client Name",
+                  "City / Area",
+                  "Category",
+                  "Status",
+                  "Progress",
+                  "In / Out",
+                  "Protect",
+                  "",
+                ].map((title, i) => (
+                  <th key={i} className="p-3">
+                    {title}
+                    {i > 0 && i < searchKeys.length + 1 && (
+                      <SearchBar
+                        value={filters[searchKeys[i - 1]] || ""}
+                        onChange={(e) =>
+                          setFilters((f) => ({
+                            ...f,
+                            [searchKeys[i - 1]]: e.target.value,
+                          }))
+                        }
+                        className="mt-1"
+                      />
+                    )}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -197,9 +220,16 @@ function Projects() {
                   <td className="p-3">{proj.id}</td>
                   <td
                     className="p-3 cursor-pointer hover:underline text-blue-600"
-                    onClick={() =>
-                      navigate("/ptabs", { state: { projectName: proj.name, projectId: proj._id } })
-                    }
+                      onClick={() =>
+                        navigate("/ptabs", {
+                          state: {
+                            projectName: proj.name,
+                            projectId: proj._id,
+                            projectLocation: proj.location,
+                            project: proj
+                          },
+                        })
+                      }
                   >
                     {proj.name}
                   </td>
@@ -226,7 +256,12 @@ function Projects() {
                           <DropDown
                             name="category"
                             value={proj.category}
-                            options={["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "RETAIL"]}
+                            options={[
+                              "RESIDENTIAL",
+                              "COMMERCIAL",
+                              "INDUSTRIAL",
+                              "RETAIL",
+                            ]}
                             onChange={(e) =>
                               handleChange(proj._id, "category", e.target.value)
                             }
@@ -234,7 +269,9 @@ function Projects() {
                         ) : (
                           <Input
                             value={proj[key]}
-                            onChange={(e) => handleChange(proj._id, key, e.target.value)}
+                            onChange={(e) =>
+                              handleChange(proj._id, key, e.target.value)
+                            }
                             className="w-full border rounded p-1 text-sm"
                           />
                         )
@@ -258,7 +295,11 @@ function Projects() {
                         type="number"
                         value={proj.progress}
                         onChange={(e) =>
-                          handleChange(proj._id, "progress", Number(e.target.value))
+                          handleChange(
+                            proj._id,
+                            "progress",
+                            Number(e.target.value)
+                          )
                         }
                         className="w-full border rounded p-1 text-sm"
                       />
@@ -270,7 +311,9 @@ function Projects() {
                             style={{ width: `${proj.progress}%` }}
                           ></div>
                         </div>
-                        <div className="text-xs mt-1 text-gray-600">{proj.progress}%</div>
+                        <div className="text-xs mt-1 text-gray-600">
+                          {proj.progress}%
+                        </div>
                       </>
                     )}
                   </td>
@@ -282,7 +325,11 @@ function Projects() {
                           type="number"
                           value={proj.cashFlow}
                           onChange={(e) =>
-                            handleChange(proj._id, "cashFlow", Number(e.target.value))
+                            handleChange(
+                              proj._id,
+                              "cashFlow",
+                              Number(e.target.value)
+                            )
                           }
                           className="w-28 border rounded p-1 text-sm"
                         />
@@ -291,7 +338,11 @@ function Projects() {
                           value={proj.cashFlowType}
                           options={["IN", "OUT"]}
                           onChange={(e) =>
-                            handleChange(proj._id, "cashFlowType", e.target.value)
+                            handleChange(
+                              proj._id,
+                              "cashFlowType",
+                              e.target.value
+                            )
                           }
                         />
                       </div>

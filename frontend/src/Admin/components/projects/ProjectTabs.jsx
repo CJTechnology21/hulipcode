@@ -36,6 +36,8 @@ export default function ProjectTabs() {
   const location = useLocation();
   const projectId = location.state?.projectId;
   const projectName = location.state?.projectName || "Unnamed Project";
+  const projectLocation = location.state?.projectLocation || "Main Warehouse";
+  const project = location.state?.project;
   const [activeTab, setActiveTab] = useState("Overview");
   const [loading, setLoading] = useState(false);
   const [firstLoad, setFirstLoad] = useState(true);
@@ -58,7 +60,7 @@ export default function ProjectTabs() {
     // firstLoad
   );
   const renderContent = () => {
-    const commonProps = { projectId, projectName };
+    const commonProps = { projectId, projectName, projectLocation, project };
 
     switch (activeTab) {
       case "Overview":
@@ -80,7 +82,7 @@ export default function ProjectTabs() {
       case "Attendance":
         return <ProjectAttendance {...commonProps} />;
       case "Material":
-        return <ProjectMaterials {...commonProps} />;
+        return <ProjectMaterials {...commonProps} project={project} />;
       case "Subcon":
         return <ProjectSubcon {...commonProps} />;
       case "Files":
@@ -92,7 +94,6 @@ export default function ProjectTabs() {
     }
   };
 
-  
   return (
     <Layout title={projectName}>
       <div className="min-h-screen bg-gray-100">

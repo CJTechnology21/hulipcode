@@ -23,7 +23,6 @@ function MaterialRequestModal({ open, onClose }) {
   const selectedMaterials = useSelector(
     (state) => state.pendingMaterials.selectedMaterials
   );
-
   // Group items by project and status
   const groupedByStatusAndProject = {};
   TABS.forEach((status) => {
@@ -31,7 +30,11 @@ function MaterialRequestModal({ open, onClose }) {
   });
 
   selectedMaterials.forEach((item, idx) => {
-    const projectName = item.project || "Unknown Project";
+    const projectName =
+      typeof item.project === "object"
+        ? item.project.name || "Unknown Project"
+        : item.project || "Unknown Project";
+
     const status = item.status || "Pending";
     if (!groupedByStatusAndProject[status][projectName]) {
       groupedByStatusAndProject[status][projectName] = [];
@@ -80,7 +83,10 @@ function MaterialRequestModal({ open, onClose }) {
                 </Button>
               </div>
 
-              <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
+              <Tab.Group
+                selectedIndex={selectedIndex}
+                onChange={setSelectedIndex}
+              >
                 <Tab.List className="flex space-x-2 p-3 border-b">
                   {TABS.map((tab) => (
                     <Tab
@@ -104,85 +110,101 @@ function MaterialRequestModal({ open, onClose }) {
                     return (
                       <Tab.Panel key={tab}>
                         {Object.keys(projects).length ? (
-                          Object.entries(projects).map(([projectName, items], idx) => (
-                            <div key={idx} className="mb-6">
-                              <h3 className="text-red-600 font-semibold mb-2">{projectName}</h3>
-                              <div className="space-y-3">
-                                {items.map((item, i) => (
-                                  <div
-                                    key={i}
-                                    className="relative flex justify-between items-center bg-gray-100 p-3 rounded-lg hover:bg-gray-200 cursor-pointer"
-                                  >
-                                    <div>
-                                      <div className="text-sm font-medium text-gray-800">{item.name}</div>
-                                      <div className="text-xs text-gray-600">
-                                        Qty: {item.quantity} {item.unit}
+                          Object.entries(projects).map(
+                            ([projectName, items], idx) => (
+                              <div key={idx} className="mb-6">
+                                <h3 className="text-red-600 font-semibold mb-2">
+                                  {projectName}
+                                </h3>
+                                <div className="space-y-3">
+                                  {items.map((item, i) => (
+                                    <div
+                                      key={i}
+                                      className="relative flex justify-between items-center bg-gray-100 p-3 rounded-lg hover:bg-gray-200 cursor-pointer"
+                                    >
+                                      <div>
+                                        <div className="text-sm font-medium text-gray-800">
+                                          {item.name}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          Qty: {item.quantity} {item.unit}
+                                        </div>
+                                      </div>
+
+                                      <div className="relative text-right">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStatusClick(i + idx * 100);
+                                          }}
+                                          className="text-xs text-red-600 font-semibold hover:underline"
+                                        >
+                                          {item.status} ▼
+                                        </button>
+
+                                        {dropdownIndex === i + idx * 100 && (
+                                          <div className="absolute right-0 mt-1 bg-white border rounded-md shadow-lg z-50 w-40 text-left">
+                                            {TABS.map((statusOpt) => (
+                                              <button
+                                                key={statusOpt}
+                                                className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  moveItemToStatus(
+                                                    item.idx,
+                                                    statusOpt
+                                                  );
+                                                }}
+                                              >
+                                                {statusOpt}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
-
-                                    <div className="relative text-right">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleStatusClick(i + idx * 100);
-                                        }}
-                                        className="text-xs text-red-600 font-semibold hover:underline"
-                                      >
-                                        {item.status} ▼
-                                      </button>
-
-                                      {dropdownIndex === i + idx * 100 && (
-                                        <div className="absolute right-0 mt-1 bg-white border rounded-md shadow-lg z-50 w-40 text-left">
-                                          {TABS.map((statusOpt) => (
-                                            <button
-                                              key={statusOpt}
-                                              className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                moveItemToStatus(item.idx, statusOpt);
-                                              }}
-                                            >
-                                              {statusOpt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* ✅ Place Request Button for Approved Tab */}
-                              {tab === "Approved" && items.length > 0 && (
-                                <div className="mt-4 text-right">
-                                  <Button
-                                    variant="primary"
-                                    className="bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700"
-                                    onClick={() => {
-                                      const approvedItems = items.filter(
-                                        (item) => item.status === "Approved"
-                                      );
-                                      if (approvedItems.length === 0) {
-                                        alert("No approved materials to request for this project.");
-                                        return;
-                                      }
-                                      navigate("/addmaterials", {
-                                        state: {
-                                          project: projectName,
-                                          materials: approvedItems,
-                                        },
-                                      });
-                                    }}
-                                  >
-                                    Place Request
-                                  </Button>
+                                  ))}
                                 </div>
-                              )}
 
-                            </div>
-                          ))
+                                {/* ✅ Place Request Button for Approved Tab */}
+                                {tab === "Approved" && items.length > 0 && (
+                                  <div className="mt-4 text-right">
+                                    <Button
+                                      variant="primary"
+                                      className="bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700"
+                                      // In MaterialRequestModal, inside Place Request button:
+                                      onClick={() => {
+                                        const approvedItems = items.filter(
+                                          (item) => item.status === "Approved"
+                                        );
+                                        if (approvedItems.length === 0) {
+                                          alert(
+                                            "No approved materials to request for this project."
+                                          );
+                                          return;
+                                        }
+
+                                        // You need both project and deliveryLocation here
+                                        // Suppose each item contains a `projectId` and `deliveryLocation`
+                                        navigate("/addmaterials", {
+                                          state: {
+                                            project: approvedItems[0].project,
+                                            materials: approvedItems,
+                                          },
+                                        });
+                                      }}
+                                    >
+                                      Place Request
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          )
                         ) : (
-                          <div className="text-center text-gray-400 py-10">No {tab} Requests</div>
+                          <div className="text-center text-gray-400 py-10">
+                            No {tab} Requests
+                          </div>
                         )}
                       </Tab.Panel>
                     );
@@ -220,8 +242,6 @@ function MaterialRequestModal({ open, onClose }) {
 }
 
 export default MaterialRequestModal;
-
-
 
 // import { Dialog, Tab, Transition } from "@headlessui/react";
 // import { Fragment, useState, useEffect } from "react";

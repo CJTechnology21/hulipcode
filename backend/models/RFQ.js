@@ -7,6 +7,11 @@ const RFQSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    architect: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", 
+      required: true,
+    },
 
     date: { type: Date, default: Date.now },
 
@@ -51,7 +56,7 @@ const RFQSchema = new mongoose.Schema(
       default: "draft",
     },
 
-    // ✅ Supplier responses
+    //  Supplier responses
     responses: [
       {
         supplier: {
@@ -66,7 +71,7 @@ const RFQSchema = new mongoose.Schema(
               ref: "Product",
               required: true,
             },
-            productName: { type: String, required: true }, // ✅ added
+            productName: { type: String, required: true },
             price: { type: Number, required: true },
             quantity: { type: Number, required: true },
             remarks: { type: String },
@@ -100,7 +105,7 @@ module.exports = mongoose.model("RFQ", RFQSchema);
 //     date: { type: Date, default: Date.now },
 //     taxType: {
 //       type: String,
-//       enum: ["GST", "VAT", "NONE", "item","bill"], 
+//       enum: ["GST", "VAT", "NONE", "item","bill"],
 //       default: "GST"
 //     },
 //     deliveryLocation: { type: String, required: true },
