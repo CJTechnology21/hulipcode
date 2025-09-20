@@ -105,7 +105,7 @@ function AddMaterialsScreen() {
   const buildRFQPayload = (status = "draft") => {
     return {
       project: project?._id,
-      architect: user?._id, // <-- automatically set architect
+      // architect: user?._id, // <-- automatically set architect
       date: new Date().toISOString(),
       taxType: taxType || "GST",
       deliveryLocation:
