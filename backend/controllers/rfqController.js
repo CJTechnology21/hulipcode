@@ -30,7 +30,7 @@ const createAndPublishRFQ = async (req, res) => {
 
         const rfqData = {
             ...req.body,
-            status: req.body.status||"published",          // force published
+            status: req.body.status || "draft",          // force published
             architect: req.user._id,      // logged-in architect
         };
 

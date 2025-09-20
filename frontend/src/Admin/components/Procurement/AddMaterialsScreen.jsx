@@ -140,8 +140,8 @@ function AddMaterialsScreen() {
     }
 
     const draftData = buildRFQPayload("draft");
-
-    try {
+    console.log("Draft payload",draftData);
+    try { 
       toast.loading("Saving draft...");
       await createRFQ(draftData);
       toast.dismiss();
