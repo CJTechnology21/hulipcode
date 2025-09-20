@@ -21,11 +21,20 @@ const createRFQ = async (req, res) => {
     }
 };
 
-//publish directly 
+// //publish directly 
 const createAndPublishRFQ = async (req, res) => {
     try {
-        // Force status to "published" no matter what frontend sends
-        const rfq = new RFQ({ ...req.body, status: "published" });
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+
+        const rfqData = {
+            ...req.body,
+            status: "published",          // force published
+            architect: req.user._id,      // logged-in architect
+        };
+
+        const rfq = new RFQ(rfqData);
         await rfq.save();
 
         res.status(201).json({
@@ -34,7 +43,7 @@ const createAndPublishRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
-        console.log("Error in publishing :", error)
+        console.error("Error in publishing:", error);
         res.status(400).json({
             success: false,
             message: "Error creating & publishing RFQ",
@@ -46,8 +55,11 @@ const createAndPublishRFQ = async (req, res) => {
 // Publish an existing draft RFQ
 const publishExistingRFQ = async (req, res) => {
     try {
-        const { id } = req.params;
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
 
+        const { id } = req.params;
         const rfq = await RFQ.findById(id);
         if (!rfq) {
             return res.status(404).json({ success: false, message: "RFQ not found" });
@@ -57,9 +69,11 @@ const publishExistingRFQ = async (req, res) => {
             return res.status(400).json({ success: false, message: "RFQ is already published" });
         }
 
-        // Flip to published + allow optional updates from req.body
+        // Flip to published + optional updates
         rfq.status = "published";
-        Object.assign(rfq, req.body); // optional: update dates, terms, etc.
+        rfq.architect = req.user._id; // ensure architect is logged-in user
+        Object.assign(rfq, req.body); // optional updates (dates, terms, etc.)
+
         await rfq.save();
 
         res.status(200).json({
@@ -68,7 +82,7 @@ const publishExistingRFQ = async (req, res) => {
             data: rfq,
         });
     } catch (error) {
-        console.log("Error in publishing draft :", error)
+        console.error("Error in publishing draft:", error);
         res.status(400).json({
             success: false,
             message: "Error publishing RFQ",
@@ -76,6 +90,61 @@ const publishExistingRFQ = async (req, res) => {
         });
     }
 };
+
+// const createAndPublishRFQ = async (req, res) => {
+//     try {
+//         // Force status to "published" no matter what frontend sends
+//         const rfq = new RFQ({ ...req.body, status: "published" });
+//         await rfq.save();
+
+//         res.status(201).json({
+//             success: true,
+//             message: "RFQ created and published successfully",
+//             data: rfq,
+//         });
+//     } catch (error) {
+//         console.log("Error in publishing :", error)
+//         res.status(400).json({
+//             success: false,
+//             message: "Error creating & publishing RFQ",
+//             error: error.message,
+//         });
+//     }
+// };
+
+// // Publish an existing draft RFQ
+// const publishExistingRFQ = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+
+//         const rfq = await RFQ.findById(id);
+//         if (!rfq) {
+//             return res.status(404).json({ success: false, message: "RFQ not found" });
+//         }
+
+//         if (rfq.status === "published") {
+//             return res.status(400).json({ success: false, message: "RFQ is already published" });
+//         }
+
+//         // Flip to published + allow optional updates from req.body
+//         rfq.status = "published";
+//         Object.assign(rfq, req.body); // optional: update dates, terms, etc.
+//         await rfq.save();
+
+//         res.status(200).json({
+//             success: true,
+//             message: "RFQ published successfully",
+//             data: rfq,
+//         });
+//     } catch (error) {
+//         console.log("Error in publishing draft :", error)
+//         res.status(400).json({
+//             success: false,
+//             message: "Error publishing RFQ",
+//             error: error.message,
+//         });
+//     }
+// };
 
 
 // Get all RFQs
