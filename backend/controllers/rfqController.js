@@ -424,28 +424,21 @@ const getMaterialsOfRFQ = async (req, res) => {
 // Add one or multiple responses to an RFQ
 const addResponseToRFQ = async (req, res) => {
     try {
-        console.log("💡 Request body:", req.body);
-        console.log("💡 Request params:", req.params);
-
         const { id } = req.params;
         const { supplierId, responses, tax = 0 } = req.body;
 
         if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
-            console.log("❌ Validation failed", { supplierId, responses });
             return res.status(400).json({
                 success: false,
                 message: "SupplierId and at least one response item are required",
             });
         }
 
-        console.log("✅ Validation passed", { supplierId, responses, tax });
-
         const rfq = await RFQ.findById(id);
         if (!rfq) {
             return res.status(404).json({ success: false, message: "RFQ not found" });
         }
 
-        // Map responses to DB schema
         const quotes = responses.map(item => ({
             material: item.materialId,
             productName: item.name,
@@ -454,26 +447,21 @@ const addResponseToRFQ = async (req, res) => {
             remarks: item.remarks || "",
         }));
 
-        // Calculate totals
         const baseTotal = responses.reduce((sum, item) => sum + item.price * item.quantity, 0);
         const taxAmount = (Number(tax) / 100) * baseTotal;
         const totalAmount = baseTotal + taxAmount;
 
-        // Push new response
-        rfq.responses.push({
-            supplier: supplierId,
-            quotes,
-            tax: Number(tax),
-            totalAmount
-        });
+        // Update only responses
+        const updatedRFQ = await RFQ.findByIdAndUpdate(
+            id,
+            { $push: { responses: { supplier: supplierId, quotes, tax: Number(tax), totalAmount } } },
+            { new: true }
+        );
 
-        await rfq.save();
-
-        // Send final response
         res.status(200).json({
             success: true,
             message: "Responses added successfully",
-            data: rfq.responses
+            data: updatedRFQ.responses
         });
 
     } catch (error) {
