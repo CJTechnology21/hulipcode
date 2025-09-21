@@ -98,8 +98,9 @@ export const getMaterialsOfRFQ = async (rfqId) => {
 
 // ---------------- RESPONSE SERVICES ----------------
 // 0Add response to RFQ
+import { axiosInstance } from "./axiosInstance";
+
 export const addResponseToRFQ = async (rfqId, supplierId, items, tax = 0) => {
-  // Each item must have: materialId, name, price, quantity
   const payload = {
     supplierId,
     responses: items.map(item => ({
@@ -109,17 +110,42 @@ export const addResponseToRFQ = async (rfqId, supplierId, items, tax = 0) => {
       quantity: Number(item.quantity),
       remarks: item.remarks || ""
     })),
-    tax: Number(tax) // ✅ include tax (percentage) here
+    tax: Number(tax)
   };
 
-  const res = await axiosInstance.post(
-    `/api/rfq/${rfqId}/responses`,
-    payload,
-    { headers: { "Content-Type": "application/json" } }
-  );
+  console.log("Sending payload to backend:", payload); // debug
+
+  const res = await axiosInstance.post(`/api/rfq/${rfqId}/responses`, payload, {
+    headers: { "Content-Type": "application/json" }
+  });
+
+  console.log("Backend returned:", res.data); // debug
 
   return res.data;
 };
+
+// export const addResponseToRFQ = async (rfqId, supplierId, items, tax = 0) => {
+//   // Each item must have: materialId, name, price, quantity
+//   const payload = {
+//     supplierId,
+//     responses: items.map(item => ({
+//       materialId: item.materialId,
+//       name: item.name,
+//       price: Number(item.price),
+//       quantity: Number(item.quantity),
+//       remarks: item.remarks || ""
+//     })),
+//     tax: Number(tax) // ✅ include tax (percentage) here
+//   };
+
+//   const res = await axiosInstance.post(
+//     `/api/rfq/${rfqId}/responses`,
+//     payload,
+//     { headers: { "Content-Type": "application/json" } }
+//   );
+
+//   return res.data;
+// };
 
 // export const addResponseToRFQ = async (rfqId, supplierId, items) => {
 //   // Each item must have: materialId, name, price, quantity
