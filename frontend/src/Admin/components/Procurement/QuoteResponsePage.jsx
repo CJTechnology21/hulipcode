@@ -16,7 +16,7 @@ function QuoteResponsePage() {
   const [rfq, setRFQ] = useState(null);
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tax, setTax] = useState(0);
+  const [tax, setTax] = useState(0); // Tax %
 
   // Auth + role check
   useEffect(() => {
@@ -35,7 +35,6 @@ function QuoteResponsePage() {
     const fetchResponses = async () => {
       try {
         const res = await getResponsesOfRFQ(id);
-
         if (!res?.rfq || !res.rfq?.materials?.length) {
           toast.error("RFQ not found or has no materials.");
           setLoading(false);
@@ -53,8 +52,8 @@ function QuoteResponsePage() {
             name: m.name,
             quantity: m.quantity,
             unit: m.unit,
-            price: existingQuote?.price || "",
-            remarks: existingQuote?.remarks || "",
+            price: existingQuote?.price || "",   // optional
+            remarks: existingQuote?.remarks || "", // optional
             totalAmount: (existingQuote?.price || 0) * (m.quantity || 0),
           };
         });
@@ -83,17 +82,14 @@ function QuoteResponsePage() {
     setResponses(updated);
   };
 
-  const grandTotal = responses.reduce(
-    (sum, r) => sum + (parseFloat(r.totalAmount) || 0),
-    0
-  );
+  const grandTotal = responses.reduce((sum, r) => sum + (parseFloat(r.totalAmount) || 0), 0);
 
   const handleSubmit = async () => {
-    // Only include items where price is entered
-    const filteredResponses = responses.filter(r => r.price !== "" && r.price > 0);
+    // Filter only items with price entered
+    const filteredResponses = responses.filter((r) => r.price !== "" && r.price !== null && r.price !== undefined);
 
     if (filteredResponses.length === 0) {
-      toast.error("Please enter price for at least one item.");
+      toast.error("Please add at least one item price to submit.");
       return;
     }
 
@@ -104,7 +100,11 @@ function QuoteResponsePage() {
         return;
       }
 
-      console.log("Submitting payload:", { supplierId, filteredResponses, tax });
+      console.log("Submitting payload:", {
+        supplierId,
+        responses: filteredResponses,
+        tax: Number(tax),
+      });
 
       await addResponseToRFQ(id, supplierId, filteredResponses, Number(tax));
 
@@ -214,10 +214,9 @@ function QuoteResponsePage() {
             )}
           </div>
 
-          {/* Grand Total including tax */}
           {responses.length > 0 && (
             <div className="flex justify-end px-6 py-3 font-semibold text-gray-800 border-t">
-              Grand Total (incl. tax): ₹{grandTotal + (grandTotal * Number(tax) / 100)}
+              Grand Total: ₹{grandTotal}
             </div>
           )}
         </div>
@@ -253,6 +252,7 @@ function QuoteResponsePage() {
 }
 
 export default QuoteResponsePage;
+
 
 // import React, { useEffect, useState } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
