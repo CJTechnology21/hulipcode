@@ -424,8 +424,8 @@ const getMaterialsOfRFQ = async (req, res) => {
 // Add one or multiple responses to an RFQ
 const addResponseToRFQ = async (req, res) => {
     try {
-        const { id } = req.params; // RFQ ID
-        const { supplierId, responses } = req.body;
+        const { id } = req.params;
+        const { supplierId, responses, tax = 0 } = req.body; // ✅ accept tax from client (default 0)
 
         if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
             return res.status(400).json({
@@ -448,17 +448,22 @@ const addResponseToRFQ = async (req, res) => {
             remarks: item.remarks || "",
         }));
 
-        // Calculate totalAmount at supplier-response level
-        const totalAmount = responses.reduce(
+        // Calculate base total
+        const baseTotal = responses.reduce(
             (sum, item) => sum + (item.price * item.quantity),
             0
         );
+
+        // ✅ If you want to store tax amount separately:
+        const taxAmount = (Number(tax) / 100) * baseTotal; // treat tax as %
+        const totalAmount = baseTotal + taxAmount; // total including tax
 
         // Push new response into RFQ
         rfq.responses.push({
             supplier: supplierId,
             quotes,
-            totalAmount,
+            tax: Number(tax),       // store tax rate or amount here
+            totalAmount,            // store total including tax
         });
 
         await rfq.save();
@@ -476,6 +481,61 @@ const addResponseToRFQ = async (req, res) => {
         });
     }
 };
+
+// const addResponseToRFQ = async (req, res) => {
+//     try {
+//         const { id } = req.params; 
+//         const { supplierId, responses } = req.body;
+
+//         if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "SupplierId and at least one response item are required",
+//             });
+//         }
+
+//         const rfq = await RFQ.findById(id);
+//         if (!rfq) {
+//             return res.status(404).json({ success: false, message: "RFQ not found" });
+//         }
+
+//         // Convert incoming responses into schema-compatible structure
+//         const quotes = responses.map((item) => ({
+//             material: item.materialId,
+//             productName: item.name,
+//             price: item.price,
+//             quantity: item.quantity,
+//             remarks: item.remarks || "",
+//         }));
+
+//         // Calculate totalAmount at supplier-response level
+//         const totalAmount = responses.reduce(
+//             (sum, item) => sum + (item.price * item.quantity),
+//             0
+//         );
+
+//         // Push new response into RFQ
+//         rfq.responses.push({
+//             supplier: supplierId,
+//             quotes,
+//             totalAmount,
+//         });
+
+//         await rfq.save();
+
+//         res.status(200).json({
+//             success: true,
+//             message: "Responses added successfully",
+//             data: rfq.responses,
+//         });
+//     } catch (error) {
+//         res.status(400).json({
+//             success: false,
+//             message: "Error adding responses",
+//             error: error.message,
+//         });
+//     }
+// };
 
 // Get all responses for a given RFQ
 const getResponsesOfRFQ = async (req, res) => {

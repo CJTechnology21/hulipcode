@@ -5,11 +5,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../Header";
 import { useAuth } from "../../../context/AuthContext";
-import {
-  addResponseToRFQ,
-  getResponsesOfRFQ,
-} from "../../../services/rfqServices";
-import { getLabel } from "../../../utils/getLabel"; // your getLabel function
+import { addResponseToRFQ, getResponsesOfRFQ } from "../../../services/rfqServices";
+import { getLabel } from "../../../utils/getLabel";
 
 function QuoteResponsePage() {
   const { id } = useParams();
@@ -19,55 +16,52 @@ function QuoteResponsePage() {
   const [rfq, setRFQ] = useState(null);
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tax, setTax] = useState(0); // new state for tax
 
-  // ✅ Auth + role check
+  // Auth + role check
   useEffect(() => {
     if (!user) {
       navigate("/responselogin", { state: { from: `/responses/${id}` } });
       return;
     }
     if (user.role !== "Material Supplier") {
-      toast.error("❌ Access denied. Only suppliers can respond.");
+      toast.error("Access denied. Only suppliers can respond.");
       navigate("/");
     }
   }, [user, id, navigate]);
 
-  // ✅ Fetch RFQ + existing responses
+  // Fetch RFQ + existing responses
   useEffect(() => {
     const fetchResponses = async () => {
       try {
         const res = await getResponsesOfRFQ(id);
 
         if (!res?.rfq || !res.rfq?.materials?.length) {
-          toast.error("⚠️ RFQ not found or has no materials.");
+          toast.error("RFQ not found or has no materials.");
           setLoading(false);
           return;
         }
 
         setRFQ(res.rfq);
 
-        // Find supplier’s existing response if any
-        const existing = res.responses?.find(
-          (r) => r.supplier?._id === user?._id
-        );
+        const existing = res.responses?.find((r) => r.supplier?._id === user?._id);
 
         const initializedResponses = (res.rfq.materials || []).map((m, idx) => {
-          const existingQuote = existing?.quotes?.find(
-            (q) => q.material === m._id
-          );
+          const existingQuote = existing?.quotes?.find((q) => q.material === m._id);
           return {
             materialId: m._id || idx,
             name: m.name,
             quantity: m.quantity,
             unit: m.unit,
             price: existingQuote?.price || "",
+            remarks: existingQuote?.remarks || "", // add remarks field
             totalAmount: (existingQuote?.price || 0) * (m.quantity || 0),
           };
         });
 
         setResponses(initializedResponses);
       } catch (err) {
-        toast.error("❌ Failed to load RFQ details.");
+        toast.error("Failed to load RFQ details.");
       } finally {
         setLoading(false);
       }
@@ -89,31 +83,28 @@ function QuoteResponsePage() {
     setResponses(updated);
   };
 
-  const grandTotal = responses.reduce(
-    (sum, r) => sum + (parseFloat(r.totalAmount) || 0),
-    0
-  );
+  const grandTotal = responses.reduce((sum, r) => sum + (parseFloat(r.totalAmount) || 0), 0);
 
   const handleSubmit = async () => {
     if (!responses.every((r) => r.price !== "")) {
-      toast.error("⚠️ Please fill prices for all items.");
+      toast.error("Please fill prices for all items.");
       return;
     }
 
     try {
       const supplierId = user?._id || user?.id || user?.userId;
       if (!supplierId) {
-        toast.error("❌ Supplier ID is missing. Please log in again.");
+        toast.error("Supplier ID is missing. Please log in again.");
         return;
       }
 
-      await addResponseToRFQ(id, supplierId, responses);
+      await addResponseToRFQ(id, supplierId, responses, tax); // send tax
 
-      toast.success("✅ Response submitted successfully!");
+      toast.success("Response submitted successfully!");
       setTimeout(() => navigate("/thankyou"), 1200);
     } catch (err) {
       console.error("Error submitting response:", err);
-      toast.error("❌ Failed to submit response.");
+      toast.error("Failed to submit response.");
     }
   };
 
@@ -143,62 +134,52 @@ function QuoteResponsePage() {
 
         {/* RFQ Info */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-2">
-            RFQ for Project: {getLabel(null, rfq.project)}
-          </h2>
-          <p className="text-sm text-gray-600">
-            Delivery Location: {rfq.deliveryLocation || "N/A"}
-          </p>
+          <h2 className="text-lg font-semibold mb-2">RFQ for Project: {getLabel(null, rfq.project)}</h2>
+          <p className="text-sm text-gray-600">Delivery Location: {rfq.deliveryLocation || "N/A"}</p>
           <p className="text-sm text-gray-600">
             Bidding:{" "}
-            {rfq.biddingStartDate
-              ? new Date(rfq.biddingStartDate).toLocaleDateString()
-              : "N/A"}{" "}
-            -{" "}
-            {rfq.biddingEndDate
-              ? new Date(rfq.biddingEndDate).toLocaleDateString()
-              : "N/A"}
+            {rfq.biddingStartDate ? new Date(rfq.biddingStartDate).toLocaleDateString() : "N/A"} -{" "}
+            {rfq.biddingEndDate ? new Date(rfq.biddingEndDate).toLocaleDateString() : "N/A"}
           </p>
         </div>
 
         {/* Response Table */}
         <div className="bg-white border rounded-lg shadow-sm">
-          <div className="hidden sm:grid grid-cols-6 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
+          <div className="hidden sm:grid grid-cols-7 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
             <span>S.No</span>
             <span>Item</span>
             <span>Qty</span>
             <span>Unit</span>
             <span>Price</span>
+            <span>Remarks</span>
             <span>Total</span>
           </div>
 
           <div className="divide-y divide-gray-200">
             {responses.length > 0 ? (
               responses.map((r, idx) => (
-                <div
-                  key={r.materialId || idx}
-                  className="grid grid-cols-1 sm:grid-cols-6 gap-3 px-4 sm:px-6 py-3 items-center text-sm"
-                >
-                  {/* Mobile Card Layout */}
+                <div key={r.materialId || idx} className="grid grid-cols-1 sm:grid-cols-7 gap-3 px-4 sm:px-6 py-3 items-center text-sm">
+                  {/* Mobile Layout */}
                   <div className="sm:hidden space-y-1">
                     <p className="font-medium">{r.name}</p>
                     <p className="text-xs text-gray-600">
                       Qty: {r.quantity} {r.unit}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 w-24"
-                        placeholder="Price"
-                        value={r.price}
-                        onChange={(e) =>
-                          updateResponse(idx, "price", e.target.value)
-                        }
-                      />
-                      <span className="font-medium text-gray-800">
-                        {r.totalAmount ? `₹${r.totalAmount}` : "-"}
-                      </span>
-                    </div>
+                    <input
+                      type="number"
+                      className="border rounded px-2 py-1 w-24"
+                      placeholder="Price"
+                      value={r.price}
+                      onChange={(e) => updateResponse(idx, "price", e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="border rounded px-2 py-1 w-full"
+                      placeholder="Remarks"
+                      value={r.remarks}
+                      onChange={(e) => updateResponse(idx, "remarks", e.target.value)}
+                    />
+                    <span className="font-medium text-gray-800">{r.totalAmount ? `₹${r.totalAmount}` : "-"}</span>
                   </div>
 
                   {/* Desktop Layout */}
@@ -211,19 +192,20 @@ function QuoteResponsePage() {
                     className="hidden sm:block border rounded px-2 py-1"
                     placeholder="Price"
                     value={r.price}
-                    onChange={(e) =>
-                      updateResponse(idx, "price", e.target.value)
-                    }
+                    onChange={(e) => updateResponse(idx, "price", e.target.value)}
                   />
-                  <span className="hidden sm:block font-medium">
-                    {r.totalAmount ? `₹${r.totalAmount}` : "-"}
-                  </span>
+                  <input
+                    type="text"
+                    className="hidden sm:block border rounded px-2 py-1"
+                    placeholder="Remarks"
+                    value={r.remarks}
+                    onChange={(e) => updateResponse(idx, "remarks", e.target.value)}
+                  />
+                  <span className="hidden sm:block font-medium">{r.totalAmount ? `₹${r.totalAmount}` : "-"}</span>
                 </div>
               ))
             ) : (
-              <div className="px-6 py-3 text-gray-500 text-sm">
-                No materials available.
-              </div>
+              <div className="px-6 py-3 text-gray-500 text-sm">No materials available.</div>
             )}
           </div>
 
@@ -234,6 +216,19 @@ function QuoteResponsePage() {
           )}
         </div>
 
+        {/* Tax Input */}
+        <div className="flex justify-end items-center gap-2 mt-4">
+          <label className="text-sm font-medium text-gray-700">Tax (%)</label>
+          <input
+            type="number"
+            className="border rounded px-2 py-1 w-24"
+            placeholder="e.g. 18"
+            value={tax}
+            onChange={(e) => setTax(e.target.value)}
+          />
+        </div>
+
+        {/* Submit Button */}
         {responses.length > 0 && (
           <div className="flex justify-end">
             <Button
@@ -253,7 +248,6 @@ function QuoteResponsePage() {
 
 export default QuoteResponsePage;
 
-
 // import React, { useEffect, useState } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import Button from "../../../components/Button";
@@ -265,6 +259,7 @@ export default QuoteResponsePage;
 //   addResponseToRFQ,
 //   getResponsesOfRFQ,
 // } from "../../../services/rfqServices";
+// import { getLabel } from "../../../utils/getLabel"; // your getLabel function
 
 // function QuoteResponsePage() {
 //   const { id } = useParams();
@@ -275,30 +270,33 @@ export default QuoteResponsePage;
 //   const [responses, setResponses] = useState([]);
 //   const [loading, setLoading] = useState(true);
 
+//   //  Auth + role check
 //   useEffect(() => {
 //     if (!user) {
-//       navigate("/login", { state: { from: `/responses/${id}` } });
+//       navigate("/responselogin", { state: { from: `/responses/${id}` } });
 //       return;
 //     }
 //     if (user.role !== "Material Supplier") {
-//       toast.error("❌ Access denied. Only suppliers can respond.");
+//       toast.error(" Access denied. Only suppliers can respond.");
 //       navigate("/");
 //     }
 //   }, [user, id, navigate]);
 
+//   //  Fetch RFQ + existing responses
 //   useEffect(() => {
 //     const fetchResponses = async () => {
 //       try {
 //         const res = await getResponsesOfRFQ(id);
 
 //         if (!res?.rfq || !res.rfq?.materials?.length) {
-//           toast.error("⚠️ RFQ not found or has no materials.");
+//           toast.error(" RFQ not found or has no materials.");
 //           setLoading(false);
 //           return;
 //         }
 
 //         setRFQ(res.rfq);
 
+//         // Find supplier’s existing response if any
 //         const existing = res.responses?.find(
 //           (r) => r.supplier?._id === user?._id
 //         );
@@ -319,7 +317,7 @@ export default QuoteResponsePage;
 
 //         setResponses(initializedResponses);
 //       } catch (err) {
-//         toast.error("❌ Failed to load RFQ details.");
+//         toast.error(" Failed to load RFQ details.");
 //       } finally {
 //         setLoading(false);
 //       }
@@ -345,27 +343,27 @@ export default QuoteResponsePage;
 //     (sum, r) => sum + (parseFloat(r.totalAmount) || 0),
 //     0
 //   );
+
 //   const handleSubmit = async () => {
 //     if (!responses.every((r) => r.price !== "")) {
-//       toast.error("⚠️ Please fill prices for all items.");
+//       toast.error(" Please fill prices for all items.");
 //       return;
 //     }
 
 //     try {
 //       const supplierId = user?._id || user?.id || user?.userId;
 //       if (!supplierId) {
-//         toast.error("❌ Supplier ID is missing. Please log in again.");
+//         toast.error("Supplier ID is missing. Please log in again.");
 //         return;
 //       }
 
-//       // Pass the responses array directly
 //       await addResponseToRFQ(id, supplierId, responses);
 
-//       toast.success("✅ Response submitted successfully!");
+//       toast.success(" Response submitted successfully!");
 //       setTimeout(() => navigate("/thankyou"), 1200);
 //     } catch (err) {
 //       console.error("Error submitting response:", err);
-//       toast.error("❌ Failed to submit response.");
+//       toast.error("Failed to submit response.");
 //     }
 //   };
 
@@ -393,9 +391,10 @@ export default QuoteResponsePage;
 //       <div className="p-4 sm:p-6 bg-gray-100 min-h-screen space-y-6">
 //         <ToastContainer position="top-right" autoClose={2000} />
 
+//         {/* RFQ Info */}
 //         <div className="bg-white border rounded-lg shadow-sm p-4">
 //           <h2 className="text-lg font-semibold mb-2">
-//             RFQ for Project: {rfq.project || "Unknown Project"}
+//             RFQ for Project: {getLabel(null, rfq.project)}
 //           </h2>
 //           <p className="text-sm text-gray-600">
 //             Delivery Location: {rfq.deliveryLocation || "N/A"}
@@ -412,9 +411,8 @@ export default QuoteResponsePage;
 //           </p>
 //         </div>
 
-//         {/* Responsive Table */}
+//         {/* Response Table */}
 //         <div className="bg-white border rounded-lg shadow-sm">
-//           {/* Desktop Header */}
 //           <div className="hidden sm:grid grid-cols-6 text-xs font-semibold text-gray-600 uppercase bg-gray-100 px-6 py-2 rounded-t-lg">
 //             <span>S.No</span>
 //             <span>Item</span>
@@ -504,3 +502,4 @@ export default QuoteResponsePage;
 // }
 
 // export default QuoteResponsePage;
+

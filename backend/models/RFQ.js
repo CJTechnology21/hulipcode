@@ -9,7 +9,7 @@ const RFQSchema = new mongoose.Schema(
     },
     architect: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
+      ref: "User",
       required: true,
     },
 
@@ -77,6 +77,10 @@ const RFQSchema = new mongoose.Schema(
             remarks: { type: String },
           },
         ],
+        tax: {
+          type: Number,
+          default: 0,
+        },
         totalAmount: { type: Number, required: true },
         status: {
           type: String,
