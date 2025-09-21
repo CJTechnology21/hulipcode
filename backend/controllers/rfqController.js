@@ -424,7 +424,7 @@ const getMaterialsOfRFQ = async (req, res) => {
 // Add one or multiple responses to an RFQ
 const addResponseToRFQ = async (req, res) => {
     try {
-        console.log("💡 Request body:", req.body);   // check what backend receives
+        console.log("💡 Request body:", req.body);
         console.log("💡 Request params:", req.params);
 
         const { id } = req.params;
@@ -440,7 +440,42 @@ const addResponseToRFQ = async (req, res) => {
 
         console.log("✅ Validation passed", { supplierId, responses, tax });
 
-        // ... rest of your code
+        const rfq = await RFQ.findById(id);
+        if (!rfq) {
+            return res.status(404).json({ success: false, message: "RFQ not found" });
+        }
+
+        // Map responses to DB schema
+        const quotes = responses.map(item => ({
+            material: item.materialId,
+            productName: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            remarks: item.remarks || "",
+        }));
+
+        // Calculate totals
+        const baseTotal = responses.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const taxAmount = (Number(tax) / 100) * baseTotal;
+        const totalAmount = baseTotal + taxAmount;
+
+        // Push new response
+        rfq.responses.push({
+            supplier: supplierId,
+            quotes,
+            tax: Number(tax),
+            totalAmount
+        });
+
+        await rfq.save();
+
+        // Send final response
+        res.status(200).json({
+            success: true,
+            message: "Responses added successfully",
+            data: rfq.responses
+        });
+
     } catch (error) {
         console.error("🔥 Error in addResponseToRFQ:", error);
         res.status(400).json({
