@@ -21,17 +21,25 @@ const createRFQ = async (req, res) => {
     }
 };
 
-// //publish directly 
+// Publish directly (create RFQ and set suppliers)
 const createAndPublishRFQ = async (req, res) => {
     try {
         if (!req.user || !req.user._id) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
 
+        // Ensure suppliers is always an array
+        const suppliers = Array.isArray(req.body.suppliers)
+            ? req.body.suppliers
+            : req.body.suppliers
+                ? [req.body.suppliers]
+                : [];
+
         const rfqData = {
             ...req.body,
-            status: req.body.status || "draft",          // force published
-            architect: req.user._id,      // logged-in architect
+            status: "published", // force published
+            architect: req.user._id,
+            suppliers, // array of suppliers
         };
 
         const rfq = new RFQ(rfqData);
@@ -69,10 +77,19 @@ const publishExistingRFQ = async (req, res) => {
             return res.status(400).json({ success: false, message: "RFQ is already published" });
         }
 
-        // Flip to published + optional updates
+        // Update RFQ fields + set status to published
         rfq.status = "published";
-        rfq.architect = req.user._id; // ensure architect is logged-in user
-        Object.assign(rfq, req.body); // optional updates (dates, terms, etc.)
+        rfq.architect = req.user._id;
+
+        // Optional updates from request body
+        Object.assign(rfq, req.body);
+
+        // Ensure suppliers is an array
+        if (req.body.suppliers) {
+            rfq.suppliers = Array.isArray(req.body.suppliers)
+                ? req.body.suppliers
+                : [req.body.suppliers];
+        }
 
         await rfq.save();
 
@@ -91,10 +108,20 @@ const publishExistingRFQ = async (req, res) => {
     }
 };
 
+// // //publish directly 
 // const createAndPublishRFQ = async (req, res) => {
 //     try {
-//         // Force status to "published" no matter what frontend sends
-//         const rfq = new RFQ({ ...req.body, status: "published" });
+//         if (!req.user || !req.user._id) {
+//             return res.status(401).json({ success: false, message: "Unauthorized" });
+//         }
+
+//         const rfqData = {
+//             ...req.body,
+//             status: req.body.status || "draft",          // force published
+//             architect: req.user._id,      // logged-in architect
+//         };
+
+//         const rfq = new RFQ(rfqData);
 //         await rfq.save();
 
 //         res.status(201).json({
@@ -103,7 +130,7 @@ const publishExistingRFQ = async (req, res) => {
 //             data: rfq,
 //         });
 //     } catch (error) {
-//         console.log("Error in publishing :", error)
+//         console.error("Error in publishing:", error);
 //         res.status(400).json({
 //             success: false,
 //             message: "Error creating & publishing RFQ",
@@ -115,8 +142,11 @@ const publishExistingRFQ = async (req, res) => {
 // // Publish an existing draft RFQ
 // const publishExistingRFQ = async (req, res) => {
 //     try {
-//         const { id } = req.params;
+//         if (!req.user || !req.user._id) {
+//             return res.status(401).json({ success: false, message: "Unauthorized" });
+//         }
 
+//         const { id } = req.params;
 //         const rfq = await RFQ.findById(id);
 //         if (!rfq) {
 //             return res.status(404).json({ success: false, message: "RFQ not found" });
@@ -126,9 +156,11 @@ const publishExistingRFQ = async (req, res) => {
 //             return res.status(400).json({ success: false, message: "RFQ is already published" });
 //         }
 
-//         // Flip to published + allow optional updates from req.body
+//         // Flip to published + optional updates
 //         rfq.status = "published";
-//         Object.assign(rfq, req.body); // optional: update dates, terms, etc.
+//         rfq.architect = req.user._id; // ensure architect is logged-in user
+//         Object.assign(rfq, req.body); // optional updates (dates, terms, etc.)
+
 //         await rfq.save();
 
 //         res.status(200).json({
@@ -137,7 +169,7 @@ const publishExistingRFQ = async (req, res) => {
 //             data: rfq,
 //         });
 //     } catch (error) {
-//         console.log("Error in publishing draft :", error)
+//         console.error("Error in publishing draft:", error);
 //         res.status(400).json({
 //             success: false,
 //             message: "Error publishing RFQ",
@@ -145,7 +177,6 @@ const publishExistingRFQ = async (req, res) => {
 //         });
 //     }
 // };
-
 
 // Get all RFQs
 const getRFQs = async (req, res) => {
@@ -465,7 +496,7 @@ const addResponseToRFQ = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("🔥 Error in addResponseToRFQ:", error);
+        // console.error("🔥 Error in addResponseToRFQ:", error);
         res.status(400).json({
             success: false,
             message: "Error adding responses",
@@ -473,121 +504,6 @@ const addResponseToRFQ = async (req, res) => {
         });
     }
 };
-
-// const addResponseToRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const { supplierId, responses, tax = 0 } = req.body; // ✅ accept tax from client (default 0)
-
-//         if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "SupplierId and at least one response item are required",
-//             });
-//         }
-
-//         const rfq = await RFQ.findById(id);
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         // Convert incoming responses into schema-compatible structure
-//         const quotes = responses.map((item) => ({
-//             material: item.materialId,
-//             productName: item.name,
-//             price: item.price,
-//             quantity: item.quantity,
-//             remarks: item.remarks || "",
-//         }));
-
-//         // Calculate base total
-//         const baseTotal = responses.reduce(
-//             (sum, item) => sum + (item.price * item.quantity),
-//             0
-//         );
-
-//         // ✅ If you want to store tax amount separately:
-//         const taxAmount = (Number(tax) / 100) * baseTotal; // treat tax as %
-//         const totalAmount = baseTotal + taxAmount; // total including tax
-
-//         // Push new response into RFQ
-//         rfq.responses.push({
-//             supplier: supplierId,
-//             quotes,
-//             tax: Number(tax),       // store tax rate or amount here
-//             totalAmount,            // store total including tax
-//         });
-
-//         await rfq.save();
-
-//         res.status(200).json({
-//             success: true,
-//             message: "Responses added successfully",
-//             data: rfq.responses,
-//         });
-//     } catch (error) {
-//         res.status(400).json({
-//             success: false,
-//             message: "Error adding responses",
-//             error: error.message,
-//         });
-//     }
-// };
-
-// const addResponseToRFQ = async (req, res) => {
-//     try {
-//         const { id } = req.params; 
-//         const { supplierId, responses } = req.body;
-
-//         if (!supplierId || !Array.isArray(responses) || responses.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "SupplierId and at least one response item are required",
-//             });
-//         }
-
-//         const rfq = await RFQ.findById(id);
-//         if (!rfq) {
-//             return res.status(404).json({ success: false, message: "RFQ not found" });
-//         }
-
-//         // Convert incoming responses into schema-compatible structure
-//         const quotes = responses.map((item) => ({
-//             material: item.materialId,
-//             productName: item.name,
-//             price: item.price,
-//             quantity: item.quantity,
-//             remarks: item.remarks || "",
-//         }));
-
-//         // Calculate totalAmount at supplier-response level
-//         const totalAmount = responses.reduce(
-//             (sum, item) => sum + (item.price * item.quantity),
-//             0
-//         );
-
-//         // Push new response into RFQ
-//         rfq.responses.push({
-//             supplier: supplierId,
-//             quotes,
-//             totalAmount,
-//         });
-
-//         await rfq.save();
-
-//         res.status(200).json({
-//             success: true,
-//             message: "Responses added successfully",
-//             data: rfq.responses,
-//         });
-//     } catch (error) {
-//         res.status(400).json({
-//             success: false,
-//             message: "Error adding responses",
-//             error: error.message,
-//         });
-//     }
-// };
 
 // Get all responses for a given RFQ
 const getResponsesOfRFQ = async (req, res) => {
