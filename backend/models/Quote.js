@@ -72,7 +72,7 @@ const quoteSchema = new mongoose.Schema(
       enum: ["Send", "In Review", "Shortlisted", "Approved", "Rejected"],
       default: "Send",
     },
-    summary: [summarySchema], // summary array
+    summary: [summarySchema], 
   },
   { timestamps: true }
 );

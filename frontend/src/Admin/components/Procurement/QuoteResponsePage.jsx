@@ -138,37 +138,7 @@ function QuoteResponsePage() {
     }
   };
 
-  // const handleSubmit = async () => {
-  //   // Filter only items with price entered
-  //   const filteredResponses = responses.filter((r) => r.price !== "" && r.price !== null && r.price !== undefined);
 
-  //   if (filteredResponses.length === 0) {
-  //     toast.error("Please add at least one item price to submit.");
-  //     return;
-  //   }
-
-  //   try {
-  //     const supplierId = user?._id || user?.id || user?.userId;
-  //     if (!supplierId) {
-  //       toast.error("Supplier ID is missing. Please log in again.");
-  //       return;
-  //     }
-
-  //     console.log("Submitting payload:", {
-  //       supplierId,
-  //       responses: filteredResponses,
-  //       tax: Number(tax),
-  //     });
-
-  //     await addResponseToRFQ(id, supplierId, filteredResponses, Number(tax));
-
-  //     toast.success("Response submitted successfully!");
-  //     setTimeout(() => navigate("/thankyou"), 1200);
-  //   } catch (err) {
-  //     console.error("Error submitting response:", err);
-  //     toast.error("Failed to submit response.");
-  //   }
-  // };
 
   if (loading) {
     return (

@@ -52,3 +52,8 @@ export const fetchProjectById = async (projectId) => {
   return res.data;
 };
 
+export const fetchProjectsByArchitect = async (architectId) => {
+  const res = await axiosInstance.get(`/api/projects/architect/${architectId}`);
+  return res.data;
+};
+

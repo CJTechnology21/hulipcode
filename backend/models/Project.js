@@ -1,24 +1,30 @@
+
 const mongoose = require('mongoose');
-const Counter = require('./Counter'); 
+const Counter = require('./Counter');
 
 const projectSchema = new mongoose.Schema({
-    id: { type: String }, 
+    id: { type: String },
     name: { type: String, required: true },
     client: { type: String, required: true },
     location: { type: String, required: true },
-    category: { 
-        type: String, 
-        enum: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'RETAIL'], 
-        required: true 
+    category: {
+        type: String,
+        enum: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'RETAIL'],
+        required: true
     },
-    status: { 
-        type: String, 
-        enum: ['EXECUTION IN PROGRESS', 'SITE MEASUREMENTS', 'DESIGNING IN PROCESS', 'HOLD', 'COMPLETED'], 
-        required: true 
+    status: {
+        type: String,
+        enum: ['EXECUTION IN PROGRESS', 'SITE MEASUREMENTS', 'DESIGNING IN PROCESS', 'HOLD', 'COMPLETED'],
+        required: true
     },
-    progress: { type: Number, min: 0, max: 100 },  
-    cashFlow: { type: Number, default: 0 },  
-    isHuelip: { type: Boolean, default: false }, 
+    progress: { type: Number, min: 0, max: 100 },
+    cashFlow: { type: Number, default: 0 },
+    isHuelip: { type: Boolean, default: false },
+    architectId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
 }, { timestamps: true });
 
 // Pre-save hook to generate auto ID
