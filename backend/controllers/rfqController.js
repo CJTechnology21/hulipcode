@@ -183,7 +183,7 @@ const getRFQs = async (req, res) => {
     try {
         const rfqs = await RFQ.find()
             .populate("project", "name client location") // only pick needed fields
-            .populate("supplier", "name email phone role");
+            .populate("suppliers", "name email phone role"); // updated to array
 
         res.status(200).json({
             success: true,
@@ -198,6 +198,26 @@ const getRFQs = async (req, res) => {
         });
     }
 };
+
+// const getRFQs = async (req, res) => {
+//     try {
+//         const rfqs = await RFQ.find()
+//             .populate("project", "name client location") // only pick needed fields
+//             .populate("supplier", "name email phone role");
+
+//         res.status(200).json({
+//             success: true,
+//             count: rfqs.length,
+//             data: rfqs,
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false,
+//             message: "Error fetching RFQs",
+//             error: error.message,
+//         });
+//     }
+// };
 
 // Get single RFQ by ID
 const getRFQById = async (req, res) => {
