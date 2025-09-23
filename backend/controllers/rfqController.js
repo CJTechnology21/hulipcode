@@ -224,7 +224,7 @@ const getRFQById = async (req, res) => {
     try {
         const rfq = await RFQ.findById(req.params.id)
             .populate("project", "name client location")
-            .populate("supplier", "name email phone role");
+            .populate("suppliers", "name email phone role");
 
         if (!rfq) {
             return res.status(404).json({ success: false, message: "RFQ not found" });
@@ -295,7 +295,7 @@ const getRFQsByArchitect = async (req, res) => {
 
         const rfqs = await RFQ.find({ architect: architectId })
             .populate("project", "name client location")
-            .populate("supplier", "name email phone role");
+            .populate("suppliers", "name email phone role");
 
         if (!rfqs || rfqs.length === 0) {
             return res.status(404).json({
@@ -325,7 +325,7 @@ const getRFQsByProject = async (req, res) => {
 
         const rfqs = await RFQ.find({ project: projectId })
             .populate("project", "name client location")
-            .populate("supplier", "name email phone role");
+            .populate("suppliers", "name email phone role");
 
         if (!rfqs || rfqs.length === 0) {
             return res.status(404).json({

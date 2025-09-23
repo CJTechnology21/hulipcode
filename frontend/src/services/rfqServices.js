@@ -2,9 +2,25 @@ import axiosInstance from './axiosInstance';
 
 // Fetch all RFQs
 export const fetchRFQs = async () => {
-  const res = await axiosInstance.get('/api/rfq');
-  return res.data;
+  const res = await axiosInstance.get("/api/rfq");
+
+  // ensure each RFQ has suppliers array (even if empty)
+  const rfqs = res.data.data.map((rfq) => ({
+    ...rfq,
+    suppliers: rfq.suppliers || [],
+  }));
+
+  return {
+    success: res.data.success,
+    count: res.data.count,
+    data: rfqs,
+  };
 };
+
+// export const fetchRFQs = async () => {
+//   const res = await axiosInstance.get('/api/rfq');
+//   return res.data;
+// };
 
 // Fetch single RFQ by ID
 export const fetchRFQByID = async (rfqId) => {
