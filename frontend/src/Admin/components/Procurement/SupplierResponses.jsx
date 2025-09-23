@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getResponsesOfRFQ } from "../../../services/rfqServices";
+import { punchQuotation } from "../../../services/purchaseOrderServices";
 import Button from "../../../components/Button";
 import { toast } from "react-toastify";
 
@@ -7,6 +8,7 @@ function SupplierResponses({ rfqId, materials }) {
   const [responses, setResponses] = useState([]);
   const [activeResponse, setActiveResponse] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [punching, setPunching] = useState(false);
 
   useEffect(() => {
     if (!rfqId) return;
@@ -53,8 +55,29 @@ function SupplierResponses({ rfqId, materials }) {
   });
 
   const subtotal = itemTotals.reduce((sum, val) => sum + val, 0);
-  const taxAmount = (currentResponse.tax || 0) / 100 * subtotal;
+  const taxAmount = ((currentResponse.tax || 0) / 100) * subtotal;
   const totalWithTax = subtotal + taxAmount;
+
+  // Handle punching quotation
+  const handlePunchQuotation = async () => {
+    if (!rfqId || !currentResponse?._id) {
+      toast.error("Missing RFQ or Response ID");
+      return;
+    }
+
+    try {
+      setPunching(true);
+      const res = await punchQuotation(rfqId, currentResponse._id);
+      toast.success(res.message || "Purchase Order created successfully");
+    } catch (err) {
+      console.error("Error punching quotation:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to punch quotation"
+      );
+    } finally {
+      setPunching(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -178,7 +201,9 @@ function SupplierResponses({ rfqId, materials }) {
                     <td colSpan={4} className="p-2 text-right">
                       Total (Including Tax)
                     </td>
-                    <td className="p-2 text-red-700">₹ {totalWithTax.toFixed(2)}</td>
+                    <td className="p-2 text-red-700">
+                      ₹ {totalWithTax.toFixed(2)}
+                    </td>
                     <td></td>
                   </tr>
                 </tbody>
@@ -186,12 +211,15 @@ function SupplierResponses({ rfqId, materials }) {
             </div>
           </div>
 
+          {/* Punch Quotation Button */}
           <div className="flex justify-end">
             <Button
               variant="custom"
-              className=" bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-white"
+              onClick={handlePunchQuotation}
+              disabled={punching}
             >
-              Punch Quotation
+              {punching ? "Punching..." : "Punch Quotation"}
             </Button>
           </div>
         </div>
@@ -247,6 +275,18 @@ export default SupplierResponses;
 //   }
 
 //   const currentResponse = responses[activeResponse];
+
+//   // Calculate totals
+//   const itemTotals = materials.map((mat) => {
+//     const quote = currentResponse.quotes.find((q) => q.material === mat._id);
+//     const qty = quote?.quantity || 0;
+//     const price = quote?.price || 0;
+//     return qty * price;
+//   });
+
+//   const subtotal = itemTotals.reduce((sum, val) => sum + val, 0);
+//   const taxAmount = (currentResponse.tax || 0) / 100 * subtotal;
+//   const totalWithTax = subtotal + taxAmount;
 
 //   return (
 //     <div className="space-y-4">
@@ -321,6 +361,7 @@ export default SupplierResponses;
 //                     <th className="p-2">Requested Qty</th>
 //                     <th className="p-2">Quoted Qty</th>
 //                     <th className="p-2">Price</th>
+//                     <th className="p-2">Total</th>
 //                     <th className="p-2">Remarks</th>
 //                   </tr>
 //                 </thead>
@@ -329,28 +370,52 @@ export default SupplierResponses;
 //                     const quote = currentResponse.quotes.find(
 //                       (q) => q.material === mat._id
 //                     );
+//                     const qty = quote?.quantity || 0;
+//                     const price = quote?.price || 0;
+//                     const total = qty * price;
 //                     return (
 //                       <tr key={idx} className="border-t">
 //                         <td className="p-2">{mat.name}</td>
 //                         <td className="p-2">
 //                           {mat.quantity} {mat.unit}
 //                         </td>
-//                         <td className="p-2">{quote?.quantity || "-"}</td>
-//                         <td className="p-2">₹ {quote?.price || "-"}</td>
+//                         <td className="p-2">{qty || "-"}</td>
+//                         <td className="p-2">₹ {price || "-"}</td>
+//                         <td className="p-2">₹ {total || "-"}</td>
 //                         <td className="p-2">{quote?.remarks || "-"}</td>
 //                       </tr>
 //                     );
 //                   })}
+
+//                   {/* Subtotal row */}
+//                   <tr className="border-t font-semibold bg-gray-100">
+//                     <td colSpan={4} className="p-2 text-right">
+//                       Subtotal
+//                     </td>
+//                     <td className="p-2">₹ {subtotal}</td>
+//                     <td></td>
+//                   </tr>
+
+//                   {/* Tax row */}
+//                   <tr className="border-t font-semibold bg-gray-100">
+//                     <td colSpan={4} className="p-2 text-right">
+//                       Tax ({currentResponse.tax || 0}%)
+//                     </td>
+//                     <td className="p-2">₹ {taxAmount.toFixed(2)}</td>
+//                     <td></td>
+//                   </tr>
+
+//                   {/* Total including tax row */}
+//                   <tr className="border-t font-bold bg-gray-200">
+//                     <td colSpan={4} className="p-2 text-right">
+//                       Total (Including Tax)
+//                     </td>
+//                     <td className="p-2 text-red-700">₹ {totalWithTax.toFixed(2)}</td>
+//                     <td></td>
+//                   </tr>
 //                 </tbody>
 //               </table>
 //             </div>
-//           </div>
-
-//           {/* Total amount below the table */}
-//           <div className="text-right mt-4">
-//             <p className="text-lg font-bold text-red-700">
-//               Total: ₹ {currentResponse.totalAmount}
-//             </p>
 //           </div>
 
 //           <div className="flex justify-end">
