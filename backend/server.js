@@ -103,7 +103,7 @@ app.use("/api/subcon", subConRoutes)
 app.use('/api/site', siteRoutes)
 app.use('/api/rfq', rfqRoutes)
 app.use('/api/pending-materials', pendingMaterialRoutes)
-app.use('/api/purchase-order', purchaseOrderRoutes)
+app.use('/api/purchase-orders', purchaseOrderRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 
