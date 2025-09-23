@@ -11,7 +11,7 @@ const {
   getPOsByProject,
   updatePO,
   deletePO,
-} = require("../controllers/purchaseOrderController");
+} = require("../controllers/pruchaseOrderController");
 
 // Punch quotation → create PO
 router.post("/punch/:id/:responseId", protect, punchQuotation);
