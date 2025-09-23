@@ -253,8 +253,25 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
                   </ul>
                 </div>
               )}
-
               <div className="flex justify-end">
+                <Button
+                  variant="custom"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
+                  onClick={handlePublishDraft}
+                  disabled={loading}
+                >
+                  <MdOutlinePublish className="text-lg" />
+                  {loading
+                    ? rfq?.status === "draft"
+                      ? "Publishing..."
+                      : "Processing..."
+                    : rfq?.status === "draft"
+                    ? "Publish Draft"
+                    : "Punch Quotation"}
+                </Button>
+              </div>
+
+              {/* <div className="flex justify-end">
                 <Button
                   variant="custom"
                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1"
@@ -264,7 +281,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
                   <MdOutlinePublish className="text-lg" />
                   {loading ? "Publishing..." : "Publish Draft"}
                 </Button>
-              </div>
+              </div> */}
             </>
           )}
 
@@ -438,7 +455,7 @@ export default function RFQDetailDrawer({ rfq, onClose }) {
 //               <FiTrash className="text-lg" />
 //               Delete
 //             </Button>
-//             {/* 
+//             {/*
 //             <Button variant="solid" color="red">
 //               Edit
 //             </Button> */}
