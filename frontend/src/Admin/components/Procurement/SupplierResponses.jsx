@@ -15,15 +15,15 @@ function SupplierResponses({ rfqId, materials }) {
     const fetchResponses = async () => {
       setLoading(true);
       try {
-        console.log("[DEBUG] Fetching responses for RFQ:", rfqId);
+        // console.log("[DEBUG] Fetching responses for RFQ:", rfqId);
         const data = await getResponsesOfRFQ(rfqId);
-        console.log("[DEBUG] Responses API data:", data);
+        // console.log("[DEBUG] Responses API data:", data);
         setResponses(data.responses || []);
         toast.success("Responses fetched successfully", {
           toastId: "fetch-success",
         });
       } catch (err) {
-        console.error("[ERROR] Fetching responses failed:", err);
+        // console.error("[ERROR] Fetching responses failed:", err);
         toast.error("Error in fetching responses", { toastId: "fetch-error" });
       } finally {
         setLoading(false);
@@ -63,31 +63,31 @@ function SupplierResponses({ rfqId, materials }) {
   // Handle punching quotation
   const handlePunchQuotation = async () => {
     if (!rfqId || !currentResponse?._id) {
-      console.error("[ERROR] Missing RFQ ID or Response ID", {
-        rfqId,
-        responseId: currentResponse?._id,
-      });
+      // console.error("[ERROR] Missing RFQ ID or Response ID", {
+      //   rfqId,
+      //   responseId: currentResponse?._id,
+      // });
       toast.error("Missing RFQ or Response ID");
       return;
     }
 
     try {
       setPunching(true);
-      console.log(
-        `[DEBUG] Punching quotation... RFQ: ${rfqId}, Response: ${currentResponse._id}`
-      );
+      // console.log(
+      //   `[DEBUG] Punching quotation... RFQ: ${rfqId}, Response: ${currentResponse._id}`
+      // );
 
       const res = await punchQuotation(rfqId, currentResponse._id);
 
-      console.log("[DEBUG] Punch quotation API response:", res);
+      // console.log("[DEBUG] Punch quotation API response:", res);
 
       toast.success(res.message || "Purchase Order created successfully");
     } catch (err) {
-      console.error("[ERROR] Punch quotation failed:", err);
-      console.error(
-        "[DEBUG] Error details:",
-        err.response?.data || err.message || err
-      );
+      // console.error("[ERROR] Punch quotation failed:", err);
+      // console.error(
+      //   "[DEBUG] Error details:",
+      //   err.response?.data || err.message || err
+      // );
 
       toast.error(
         err.response?.data?.message || "Failed to punch quotation"
