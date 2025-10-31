@@ -6,14 +6,38 @@ import { FiChevronDown } from "react-icons/fi";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { createProjectFromQuote } from "../../services/quoteServices"; // ✅ added import
 
 function Contract() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [isCreating, setIsCreating] = useState(false); // ✅ prevent double click
   const navigate = useNavigate();
 
+  // Simulate selecting a contract (replace with dynamic quote ID from backend if available)
   const handleContractClick = () => {
-    setSelectedContract("P-100/Q-10"); // you can update to dynamic value if needed
+    setSelectedContract({ id: "671f45e0d9f9b8b5f23c2a4a", name: "P-100/Q-10" }); // ✅ example quoteId
+  };
+
+  // ✅ Handle signing agreement
+  const handleSignAgreement = async () => {
+    if (!selectedContract) return;
+
+    try {
+      setIsCreating(true);
+      toast.info("Creating project from contract...");
+      await createProjectFromQuote(selectedContract.id);
+      toast.success("Agreement signed and project created successfully!");
+      navigate("/projects");
+    } catch (err) {
+      console.error("Error creating project:", err);
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to create project. Please try again."
+      );
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -79,19 +103,20 @@ function Contract() {
 
             {/* Bottom Buttons */}
             <div className="flex gap-3 mt-6">
+              {/* ✅ Sign Agreement Button */}
               <Button
-                className="bg-red-700 hover:bg-red-800 text-white"
+                className={`bg-red-700 hover:bg-red-800 text-white ${
+                  isCreating ? "opacity-60 cursor-not-allowed" : ""
+                }`}
                 size="md"
                 variant="custom"
-                disabled={!selectedContract}
-                onClick={() => {
-                  toast.success("Agreement Signed Successfully");
-                  navigate("/projects");
-                }}
+                disabled={!selectedContract || isCreating}
+                onClick={handleSignAgreement}
               >
-                Sign Agreement
+                {isCreating ? "Signing..." : "Sign Agreement"}
               </Button>
 
+              {/* Auto Contract Button */}
               <Button
                 className="bg-red-700 hover:bg-red-800 text-white"
                 size="md"
@@ -110,3 +135,116 @@ function Contract() {
 }
 
 export default Contract;
+
+// import { useState } from "react";
+// import SideBar from "./SideBar";
+// import Header from "./Header";
+// import { FaSearch, FaFilePdf } from "react-icons/fa";
+// import { FiChevronDown } from "react-icons/fi";
+// import Button from "../../components/Button";
+// import { useNavigate } from "react-router-dom";
+// import { toast } from "react-toastify";
+
+// function Contract() {
+//   const [sidebarOpen, setSidebarOpen] = useState(false);
+//   const [selectedContract, setSelectedContract] = useState(null);
+//   const navigate = useNavigate();
+
+//   const handleContractClick = () => {
+//     setSelectedContract("P-100/Q-10"); // you can update to dynamic value if needed
+//   };
+
+//   return (
+//     <div className="flex h-screen overflow-hidden">
+//       {/* Sidebar */}
+//       <div
+//         className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+//           sidebarOpen ? "translate-x-0" : "-translate-x-full"
+//         } md:relative md:block`}
+//       >
+//         <SideBar />
+//       </div>
+
+//       {sidebarOpen && (
+//         <div
+//           className="fixed inset-0 z-40 bg-black bg-opacity-30 md:hidden"
+//           onClick={() => setSidebarOpen(false)}
+//         />
+//       )}
+
+//       {/* Main Content */}
+//       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
+//         <Header
+//           title="Contract"
+//           toggleSidebar={() => setSidebarOpen((prev) => !prev)}
+//         />
+//         <div className="p-6 flex-1 flex flex-col gap-4">
+//           <div className="bg-white rounded-xl shadow p-4 flex-1 flex flex-col justify-between">
+//             {/* Top Section */}
+//             <div className="flex flex-col gap-4">
+//               {/* Search */}
+//               <div className="flex justify-end">
+//                 <div className="relative w-64">
+//                   <input
+//                     type="text"
+//                     placeholder="Search"
+//                     className="border rounded-xl px-3 py-1 w-full pr-9 text-sm"
+//                   />
+//                   <FaSearch className="absolute right-3 top-2.5 text-gray-500 text-sm" />
+//                 </div>
+//               </div>
+
+//               {/* Contract Row */}
+//               <div
+//                 className={`border rounded-lg p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 cursor-pointer ${
+//                   selectedContract ? "ring-2 ring-red-500" : ""
+//                 }`}
+//                 onClick={handleContractClick}
+//               >
+//                 <div className="flex items-center gap-3">
+//                   <FaFilePdf className="text-green-600 text-xl" />
+//                   <span className="font-medium">P-100/Q-10</span>
+//                   <span className="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+//                     APPROVED
+//                   </span>
+//                 </div>
+//                 <div className="flex items-center gap-2 text-sm font-semibold">
+//                   <span>2,00,000 RS</span>
+//                   <FiChevronDown className="text-gray-500" />
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Bottom Buttons */}
+//             <div className="flex gap-3 mt-6">
+//               <Button
+//                 className="bg-red-700 hover:bg-red-800 text-white"
+//                 size="md"
+//                 variant="custom"
+//                 disabled={!selectedContract}
+//                 onClick={() => {
+//                   toast.success("Agreement Signed Successfully");
+//                   navigate("/projects");
+//                 }}
+//               >
+//                 Sign Agreement
+//               </Button>
+
+//               <Button
+//                 className="bg-red-700 hover:bg-red-800 text-white"
+//                 size="md"
+//                 variant="custom"
+//                 disabled={!selectedContract}
+//                 onClick={() => navigate("/projects")}
+//               >
+//                 Auto Contract
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default Contract;
