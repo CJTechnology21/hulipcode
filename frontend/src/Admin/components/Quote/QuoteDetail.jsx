@@ -47,46 +47,6 @@ function QuoteDetail() {
   const [summary, setSummary] = useState([]);
   const [sections, setSections] = useState(["Summary"]); // dynamic
 
-  // form state for Add Section
-  // const [sectionForm, setSectionForm] = useState({
-  //   space: "",
-  //   workPackages: "",
-  //   items: "",
-  //   amount: "",
-  //   tax: "",
-  //   total: "",
-  // });
-
-  // const handleSectionChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setSectionForm((prev) => ({ ...prev, [name]: value }));
-  // };
-  // const handleAddSection = () => {
-  //   if (!sectionForm.space) {
-  //     toast.error("Space name is required");
-  //     return;
-  //   }
-
-  //   const newSection = { ...sectionForm };
-
-  //   // Update summary locally
-  //   setSummary((prev) => [...prev, newSection]);
-
-  //   // Update sections list dynamically
-  //   setSections((prev) => [...prev, sectionForm.space]);
-
-  //   setShowAddSectionModal(false);
-
-  //   // Reset form
-  //   setSectionForm({
-  //     space: "",
-  //     workPackages: "",
-  //     items: "",
-  //     amount: "",
-  //     tax: "",
-  //   });
-  // };
-
   // --- Fetch client type using leadMongoId ---
   useEffect(() => {
     const fetchClientTypeData = async () => {

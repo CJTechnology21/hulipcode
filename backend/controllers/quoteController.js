@@ -1,4 +1,6 @@
 const Quote = require("../models/Quote");
+const Project = require("../models/Project"); // <-- add this import at the top
+
 const mongoose = require("mongoose");
 
 // QUOTE CONTROLLERS 
@@ -329,7 +331,48 @@ const getDeliverables = (req, res) => getNestedItems(req, res, "deliverables");
 const getDeliverableById = (req, res) => getNestedItemById(req, res, "deliverables");
 const addDeliverable = (req, res) => addNestedItem(req, res, "deliverables");
 const updateDeliverable = (req, res) => updateNestedItem(req, res, "deliverables");
-const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables");
+const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables");4
+
+
+// Create project after contract signing
+const createProjectFromQuote = async (req, res) => {
+  try {
+    const { id } = req.params; // quote ID
+    const quote = await Quote.findById(id)
+      .populate("leadId", "name city category")
+      .populate("assigned", "name _id");
+
+    if (!quote) return res.status(404).json({ message: "Quote not found" });
+
+    // build project data
+    const projectData = {
+      name: quote.leadId?.name || "Unnamed Project",
+      client: quote.leadId?.name || "Unknown Client",
+      location: quote.leadId?.city || "Unknown Location",
+      category: quote.leadId?.category || "RESIDENTIAL",
+      status: "EXECUTION IN PROGRESS",
+      progress: 0,
+      cashFlow: quote.quoteAmount || 0,
+      isHuelip: !!quote.isHuelip,
+      architectId: quote.assigned?._id, // assigned user
+    };
+
+    const newProject = new Project(projectData);
+    await newProject.save();
+
+    res.status(201).json({
+      message: "Project created successfully after contract signing",
+      project: newProject,
+    });
+  } catch (error) {
+    console.error("Error creating project from quote:", error);
+    res.status(500).json({
+      message: "Error creating project from quote",
+      error: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   // Quote
@@ -365,6 +408,9 @@ module.exports = {
   addDeliverable,
   updateDeliverable,
   deleteDeliverable,
+
+  //create project from 
+  createProjectFromQuote
 };
 
 // const Quote = require("../models/Quote");

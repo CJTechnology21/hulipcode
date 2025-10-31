@@ -34,6 +34,7 @@ const {
     addDeliverable,
     updateDeliverable,
     deleteDeliverable,
+    createProjectFromQuote,
 } = require("../controllers/quoteController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -71,6 +72,9 @@ router.get("/:id/summary/:spaceId/deliverables/:itemId", getDeliverableById);
 router.post("/:id/summary/:spaceId/deliverables", protect, addDeliverable);
 router.patch("/:id/summary/:spaceId/deliverables/:itemId", protect, updateDeliverable);
 router.delete("/:id/summary/:spaceId/deliverables/:itemId", protect, deleteDeliverable);
+
+
+router.post("/:id/create-project", createProjectFromQuote);
 
 module.exports = router;
 
