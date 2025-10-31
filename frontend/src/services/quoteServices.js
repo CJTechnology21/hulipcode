@@ -199,7 +199,7 @@ export const deleteDeliverable = async (quoteId, spaceId, itemId) => {
 
 
 export const createProjectFromQuote = async (quoteId) => {
-  const response = await axiosInstance.post(`/api/quotes/${quoteId}/create-project`);
+  const response = await axiosInstance.post(`/api/quote/${quoteId}/create-project`);
   return response.data;
 };
 
