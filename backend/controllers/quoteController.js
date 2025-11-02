@@ -331,13 +331,13 @@ const getDeliverables = (req, res) => getNestedItems(req, res, "deliverables");
 const getDeliverableById = (req, res) => getNestedItemById(req, res, "deliverables");
 const addDeliverable = (req, res) => addNestedItem(req, res, "deliverables");
 const updateDeliverable = (req, res) => updateNestedItem(req, res, "deliverables");
-const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables");4
+const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables");
 
 
 // Create project after contract signing
-exports.createProjectFromQuote = async (req, res) => {
+ const createProjectFromQuote = async (req, res) => {
   try {
-    const { id } = req.params; // quote ID
+    const { id } = req.params; 
 
     const quote = await Quote.findById(id)
       .populate("leadId", "name city category")
@@ -451,7 +451,7 @@ module.exports = {
   deleteDeliverable,
 
   //create project from 
-  createProjectFromQuote
+  createProjectFromQuote,
 };
 
 // const Quote = require("../models/Quote");
