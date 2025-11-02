@@ -4,30 +4,47 @@ import Header from "./Header";
 import { FaSearch, FaFilePdf } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
 import Button from "../../components/Button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-import { createProjectFromQuote } from "../../services/quoteServices"; // ✅ added import
+import { createProjectFromQuote } from "../../services/quoteServices"; // ✅ import API
 
 function Contract() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
-  const [isCreating, setIsCreating] = useState(false); // ✅ prevent double click
+  const [isCreating, setIsCreating] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
 
-  // Simulate selecting a contract (replace with dynamic quote ID from backend if available)
+  // ✅ Get data from QuoteSummary navigation
+  const { quoteId, totalAmount,qid } = location.state || {};
+
+  // ✅ Handle selecting the contract (based on quote)
   const handleContractClick = () => {
-    setSelectedContract({ id: "671f45e0d9f9b8b5f23c2a4a", name: "P-100/Q-10" }); // ✅ example quoteId
+    if (!quoteId) {
+      toast.error("Quote details missing!");
+      return;
+    }
+    setSelectedContract({
+      id: quoteId,
+      name: `Contract for Quote ${quoteId}`,
+      amount: totalAmount || 0,
+    });
   };
 
-  // ✅ Handle signing agreement
+  // ✅ Handle signing agreement → create project in backend
   const handleSignAgreement = async () => {
-    if (!selectedContract) return;
+    if (!selectedContract?.id) {
+      toast.error("Please select a contract first.");
+      return;
+    }
 
     try {
       setIsCreating(true);
-      toast.info("Creating project from contract...");
+      toast.info("Creating project from quote...");
+
       await createProjectFromQuote(selectedContract.id);
-      toast.success("Agreement signed and project created successfully!");
+
+      toast.success("Agreement signed & project created successfully!");
       navigate("/projects");
     } catch (err) {
       console.error("Error creating project:", err);
@@ -89,13 +106,19 @@ function Contract() {
               >
                 <div className="flex items-center gap-3">
                   <FaFilePdf className="text-green-600 text-xl" />
-                  <span className="font-medium">P-100/Q-10</span>
+                  <span className="font-medium">
+                    {qid ? `Quote #${qid}` : "No Quote Selected"}
+                  </span>
                   <span className="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
                     APPROVED
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm font-semibold">
-                  <span>2,00,000 RS</span>
+                  <span>
+                    {totalAmount
+                      ? `${Number(totalAmount).toLocaleString()} RS`
+                      : "N/A"}
+                  </span>
                   <FiChevronDown className="text-gray-500" />
                 </div>
               </div>
@@ -136,6 +159,7 @@ function Contract() {
 
 export default Contract;
 
+
 // import { useState } from "react";
 // import SideBar from "./SideBar";
 // import Header from "./Header";
@@ -144,14 +168,16 @@ export default Contract;
 // import Button from "../../components/Button";
 // import { useNavigate } from "react-router-dom";
 // import { toast } from "react-toastify";
-
+// import { useLocation } from "react-router-dom";
 // function Contract() {
 //   const [sidebarOpen, setSidebarOpen] = useState(false);
 //   const [selectedContract, setSelectedContract] = useState(null);
+//   const location = useLocation();
+//   const {quoteId,totalAmount} = location.state || {};
 //   const navigate = useNavigate();
 
 //   const handleContractClick = () => {
-//     setSelectedContract("P-100/Q-10"); // you can update to dynamic value if needed
+//     setSelectedContract("P-100/Q-10"); 
 //   };
 
 //   return (

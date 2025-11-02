@@ -357,14 +357,14 @@ const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables
       progress: 0,
       cashFlow: quote.quoteAmount || 0,
       isHuelip: !!quote.isHuelip,
-      architectId: quote.assigned?._id, // assigned user
+      // architectId: quote.assigned?._id, 
     };
 
     const newProject = new Project(projectData);
     await newProject.save();
 
     res.status(201).json({
-      message: "✅ Project created successfully after client approval",
+      message: " Project created successfully after client approval",
       project: newProject,
     });
   } catch (error) {

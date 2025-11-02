@@ -247,6 +247,7 @@ function QuoteDetail() {
               summary={summary}
               setSummary={setSummary}
               quoteId={quoteId}
+              qid={qid}
             />
           ) : (
             <QuoteItemizedSection
