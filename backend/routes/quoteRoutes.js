@@ -35,6 +35,7 @@ const {
     updateDeliverable,
     deleteDeliverable,
     createProjectFromQuote,
+    getDeliverablesByQuoteId,
 } = require("../controllers/quoteController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -75,6 +76,8 @@ router.delete("/:id/summary/:spaceId/deliverables/:itemId", protect, deleteDeliv
 
 
 router.post("/:id/create-project", createProjectFromQuote);
+// Fetch all deliverables by quote ID (used from project view)
+router.get("/:quoteId/deliverables-by-quote", getDeliverablesByQuoteId);
 
 module.exports = router;
 

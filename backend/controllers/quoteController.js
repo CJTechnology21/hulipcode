@@ -389,6 +389,41 @@ const createProjectFromQuote = async (req, res) => {
   }
 };
 
+
+// Get all deliverables for a given quote ID (used via Project's quoteId)
+const getDeliverablesByQuoteId = async (req, res) => {
+  try {
+    const { quoteId } = req.params;
+
+    // Find the quote by ID and only return summary.deliverables
+    const quote = await Quote.findById(quoteId).select("summary.deliverables summary.space");
+
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    // Flatten all deliverables from each summary row
+    const allDeliverables = quote.summary
+      .flatMap(summary => 
+        (summary.deliverables || []).map(del => ({
+          ...del.toObject(),
+          space: summary.space || "Unnamed Space"
+        }))
+      );
+
+    res.status(200).json({
+      count: allDeliverables.length,
+      deliverables: allDeliverables,
+    });
+  } catch (error) {
+    console.error("Error fetching deliverables by quoteId:", error);
+    res.status(500).json({
+      message: "Error fetching deliverables by quoteId",
+      error: error.message,
+    });
+  }
+};
+
 // const createProjectFromQuote = async (req, res) => {
 //   try {
 //     const { id } = req.params;
@@ -478,6 +513,7 @@ module.exports = {
 
   //create project from 
   createProjectFromQuote,
+  getDeliverablesByQuoteId,
 };
 
 // const Quote = require("../models/Quote");

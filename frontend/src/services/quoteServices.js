@@ -199,7 +199,7 @@ export const deleteDeliverable = async (quoteId, spaceId, itemId) => {
 
 export const createProjectFromQuote = async (quoteId, architectId) => {
   try {
-    console.log("Sending to backend:", { quoteId, architectId });
+    // console.log("Sending to backend:", { quoteId, architectId });
     const response = await axiosInstance.post(
       `/api/quote/${quoteId}/create-project`,
       { architectId } //  send architectId in request body
@@ -211,6 +211,15 @@ export const createProjectFromQuote = async (quoteId, architectId) => {
     throw error;
   }
 };
+
+export const getDeliverablesByQuoteId  = async(quoteId) =>{
+  const repsonse = await axiosInstance.get(`/api/quote/${quoteId}/deliverables-by-quote`);
+  return repsonse.data; 
+}
+
+
+
+
 
 // export const createProjectFromQuote = async (quoteId) => {
 //   const response = await axiosInstance.post(`/api/quote/${quoteId}/create-project`);

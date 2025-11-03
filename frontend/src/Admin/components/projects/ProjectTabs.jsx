@@ -60,7 +60,9 @@ export default function ProjectTabs() {
     // firstLoad
   );
   const renderContent = () => {
-    const commonProps = { projectId, projectName, projectLocation, project };
+    const quoteId = project?.quoteId;
+
+    const commonProps = { projectId, projectName, projectLocation, project,quoteId ,};
 
     switch (activeTab) {
       case "Overview":
