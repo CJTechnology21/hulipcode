@@ -64,7 +64,7 @@ function Quote() {
   useEffect(() => {
     //eslint-disable-next-line
     loadQuotes();
-     //eslint-disable-next-line
+    //eslint-disable-next-line
   }, [filters]);
 
   // Fetch clients
@@ -138,7 +138,7 @@ function Quote() {
       toast.success("Quote updated successfully!");
       setEditingIndex(null);
 
-      // ✅ reload data from backend
+      //  reload data from backend
       loadQuotes();
     } catch (err) {
       toast.error("Failed to update quote");
@@ -151,7 +151,7 @@ function Quote() {
       await deleteQuote(id);
       toast.success("Quote deleted successfully!");
 
-      // ✅ reload data
+      //  reload data
       loadQuotes();
     } catch (err) {
       toast.error("Failed to delete quote");
@@ -215,7 +215,7 @@ function Quote() {
       setShowSendOptions(false);
       setSelectedClient(null);
 
-      // ✅ reload latest quotes
+      //  reload latest quotes
       loadQuotes();
     } catch (err) {
       toast.error("Failed to send quote");
@@ -265,6 +265,35 @@ function Quote() {
                   <td className="px-3 py-2">{lead.sno}</td>
                   <td
                     className="px-3 py-2 cursor-pointer"
+                    onClick={() => {
+                      const firstArchitectId = lead.assigned?.[0]?._id || null;
+
+                      console.log("🔗 Navigating to Quote Details with:");
+                      console.log("• Quote ID:", lead.id);
+                      console.log("• QID:", lead.qid);
+                      console.log("• Lead Mongo ID:", lead.leadIdMongo);
+                      console.log(
+                        "• Architect ID (first assigned):",
+                        firstArchitectId
+                      );
+
+                      navigate("/quotedetails", {
+                        state: {
+                          qid: lead.qid,
+                          clientName: lead.name,
+                          leadMongoId: lead.leadIdMongo,
+                          quoteId: lead.id,
+                         architectId: firstArchitectId,
+
+                        },
+                      });
+                    }}
+                  >
+                    {lead.qid}
+                  </td>
+
+                  {/* <td
+                    className="px-3 py-2 cursor-pointer"
                     onClick={() =>
                       navigate("/quotedetails", {
                         state: {
@@ -277,7 +306,7 @@ function Quote() {
                     }
                   >
                     {lead.qid}
-                  </td>
+                  </td> */}
                   <td className="px-3 py-2">
                     {editingIndex === i ? (
                       <input

@@ -1,5 +1,5 @@
 const Quote = require("../models/Quote");
-const Project = require("../models/Project"); 
+const Project = require("../models/Project");
 
 const mongoose = require("mongoose");
 
@@ -335,9 +335,9 @@ const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables
 
 
 // Create project after contract signing
- const createProjectFromQuote = async (req, res) => {
+const createProjectFromQuote = async (req, res) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
 
     const quote = await Quote.findById(id)
       .populate("leadId", "name city category")
@@ -357,7 +357,7 @@ const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables
       progress: 0,
       cashFlow: quote.quoteAmount || 0,
       isHuelip: !!quote.isHuelip,
-      // architectId: quote.assigned?._id, 
+      architectId: quote.assigned?._id,
     };
 
     const newProject = new Project(projectData);

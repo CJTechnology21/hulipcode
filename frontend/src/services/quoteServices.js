@@ -197,11 +197,25 @@ export const deleteDeliverable = async (quoteId, spaceId, itemId) => {
   return res.data;
 };
 
+export const createProjectFromQuote = async (quoteId, architectId) => {
+  try {
+    console.log("Sending to backend:", { quoteId, architectId });
+    const response = await axiosInstance.post(
+      `/api/quote/${quoteId}/create-project`,
+      { architectId } // ✅ send architectId in request body
+    );
 
-export const createProjectFromQuote = async (quoteId) => {
-  const response = await axiosInstance.post(`/api/quote/${quoteId}/create-project`);
-  return response.data;
+    return response.data;
+  } catch (error) {
+    console.error("Error in createProjectFromQuote service:", error);
+    throw error;
+  }
 };
+
+// export const createProjectFromQuote = async (quoteId) => {
+//   const response = await axiosInstance.post(`/api/quote/${quoteId}/create-project`);
+//   return response.data;
+// };
 
 
 

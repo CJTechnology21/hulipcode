@@ -15,8 +15,9 @@ const QuoteSummary = ({
   isHuelip,
   summary,
   setSummary,
-  quoteId, // ✅ Mongo _id
-  qid, // ✅ Human-readable ID (e.g. "Q005")
+  quoteId, //  Mongo _id
+  qid, //  Human-readable ID (e.g. "Q005")
+  architectId,
 }) => {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
@@ -55,6 +56,7 @@ const QuoteSummary = ({
           quoteId, // ✅ Mongo _id (for API call)
           qid, // ✅ human-readable code (for display)
           totalAmount: total,
+          architectId,
         },
       });
     } else {

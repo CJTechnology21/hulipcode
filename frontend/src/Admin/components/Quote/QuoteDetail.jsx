@@ -27,11 +27,13 @@ import Button from "../../../components/Button";
 import { getClientType } from "../../../services/leadServices";
 
 function QuoteDetail() {
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { qid, clientName, leadMongoId, quoteId } = location.state || {};
+  const { qid, clientName, leadMongoId, quoteId, architectId } = location.state || {};
+  console.log("Arc id from details:",architectId)
   const [activeSection, setActiveSection] = useState("Summary");
-
+ 
   // modals
   //eslint-disable-next-line
   const [showAddSpaceModal, setShowAddSpaceModal] = useState(false);
@@ -248,6 +250,7 @@ function QuoteDetail() {
               setSummary={setSummary}
               quoteId={quoteId}
               qid={qid}
+              architectId={architectId}
             />
           ) : (
             <QuoteItemizedSection
