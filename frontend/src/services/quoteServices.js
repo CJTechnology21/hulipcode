@@ -202,7 +202,7 @@ export const createProjectFromQuote = async (quoteId, architectId) => {
     console.log("Sending to backend:", { quoteId, architectId });
     const response = await axiosInstance.post(
       `/api/quote/${quoteId}/create-project`,
-      { architectId } // ✅ send architectId in request body
+      { architectId } //  send architectId in request body
     );
 
     return response.data;

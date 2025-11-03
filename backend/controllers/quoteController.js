@@ -338,6 +338,7 @@ const deleteDeliverable = (req, res) => deleteNestedItem(req, res, "deliverables
 const createProjectFromQuote = async (req, res) => {
   try {
     const { id } = req.params;
+    const { architectId } = req.body; // ✅ also accept manual override
 
     const quote = await Quote.findById(id)
       .populate("leadId", "name city category")
@@ -347,7 +348,16 @@ const createProjectFromQuote = async (req, res) => {
       return res.status(404).json({ message: "Quote not found" });
     }
 
-    // build project data
+    // pick architect ID either from body or first assigned architect
+    const resolvedArchitectId =
+      architectId || (Array.isArray(quote.assigned) ? quote.assigned[0]?._id : null);
+
+    if (!resolvedArchitectId) {
+      return res
+        .status(400)
+        .json({ message: "Architect ID is missing in both quote and request body" });
+    }
+
     const projectData = {
       name: quote.leadId?.name || "Unnamed Project",
       client: quote.leadId?.name || "Unknown Client",
@@ -357,14 +367,14 @@ const createProjectFromQuote = async (req, res) => {
       progress: 0,
       cashFlow: quote.quoteAmount || 0,
       isHuelip: !!quote.isHuelip,
-      architectId: quote.assigned?._id,
+      architectId: resolvedArchitectId, // ✅ fixed
     };
 
     const newProject = new Project(projectData);
     await newProject.save();
 
     res.status(201).json({
-      message: " Project created successfully after client approval",
+      message: "Project created successfully after client approval",
       project: newProject,
     });
   } catch (error) {
@@ -375,6 +385,47 @@ const createProjectFromQuote = async (req, res) => {
     });
   }
 };
+
+// const createProjectFromQuote = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const quote = await Quote.findById(id)
+//       .populate("leadId", "name city category")
+//       .populate("assigned", "name _id");
+
+//     if (!quote) {
+//       return res.status(404).json({ message: "Quote not found" });
+//     }
+
+//     // build project data
+//     const projectData = {
+//       name: quote.leadId?.name || "Unnamed Project",
+//       client: quote.leadId?.name || "Unknown Client",
+//       location: quote.leadId?.city || "Unknown Location",
+//       category: quote.leadId?.category || "RESIDENTIAL",
+//       status: "EXECUTION IN PROGRESS",
+//       progress: 0,
+//       cashFlow: quote.quoteAmount || 0,
+//       isHuelip: !!quote.isHuelip,
+//       architectId: quote.assigned?._id,
+//     };
+
+//     const newProject = new Project(projectData);
+//     await newProject.save();
+
+//     res.status(201).json({
+//       message: " Project created successfully after client approval",
+//       project: newProject,
+//     });
+//   } catch (error) {
+//     console.error("Error creating project from quote:", error);
+//     res.status(500).json({
+//       message: "Error creating project from quote",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // const createProjectFromQuote = async (req, res) => {
 //   try {
