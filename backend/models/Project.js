@@ -25,6 +25,7 @@ const projectSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
+    quoteId: { type: mongoose.Schema.Types.ObjectId, ref: "Quote" }, // ✅ added
 }, { timestamps: true });
 
 // Pre-save hook to generate auto ID
