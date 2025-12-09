@@ -9,9 +9,10 @@ const axiosInstance = axios.create({
 });
 
 // Fetch all tasks
-export const fetchTasks = async () => {
-  const res = await axiosInstance.get("/api/tasks");
-  return res.data;
+export const fetchTasks = async (projectId) => {
+  const url = projectId ? `/api/tasks?projectId=${projectId}` : "/api/tasks";
+  const res = await axiosInstance.get(url);
+  return res.data.tasks || res.data || [];
 };
 
 // Fetch single task by id

@@ -30,7 +30,8 @@ export const fetchTasksByProject = async (projectId) => {
     params: { projectId }
   });
 
-  return res.data;
+  // Handle response format: { tasks: [...] } or just array
+  return res.data.tasks || res.data || [];
 };
 // Create new task
 export const createTask = async (taskData) => {

@@ -57,6 +57,12 @@ export const fetchArchitects = async () => {
   return res.data;
 };
 
+// ✅ Fetch assignable users (architects + Site Staff) for task assignment
+export const fetchAssignableUsers = async () => {
+  const res = await axiosInstance.get("/api/user/assignable");
+  return res.data;
+};
+
 //Fetch Vendors
 export const fetchVendors = async () => {
   const res = await axiosInstance.get("/api/user/vendors");

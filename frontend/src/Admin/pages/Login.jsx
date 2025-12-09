@@ -59,8 +59,15 @@ const Login = () => {
       navigate("/vendordashboard");
     } else if (user.role === "architect") {
       navigate("/architectdashboard");
+    } else if (user.role === "client") {
+      // ✅ Client/Homeowner should go to portal (projects page)
+      navigate("/projects");
+    } else if (user.role === "admin") {
+      // ✅ Admin should go to dashboard
+      navigate("/dashboard/");
     } else {
-      navigate("/ecom");
+      // ✅ Default fallback for other roles (e.g., Site Staff, etc.) - send to portal
+      navigate("/projects");
     }
   };
 

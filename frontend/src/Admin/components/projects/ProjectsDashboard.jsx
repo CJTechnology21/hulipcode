@@ -6,6 +6,7 @@ import Approvals from "./DashboardComponents/Approvals";
 import ProjectUsers from "./DashboardComponents/ProjectUsers";
 import OngoingTaskStatus from "./DashboardComponents/OngoingTask";
 import ProgressBar from "./DashboardComponents/ProgressBar";
+import EscrowBalance from "./DashboardComponents/EscrowBalance";
 
 function ProjectsDashboard({ projectId }) {
   return (
@@ -23,6 +24,7 @@ function ProjectsDashboard({ projectId }) {
           <TotalExpenses projectId={projectId} />
         </div>
         <div className="flex flex-col gap-6">
+          <EscrowBalance projectId={projectId} />
           <Approvals projectId={projectId} />
           <ProjectUsers projectId={projectId} />
         </div>

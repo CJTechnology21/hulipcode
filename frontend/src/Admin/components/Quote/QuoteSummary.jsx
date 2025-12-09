@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import {
   updateSummaryRow,
   deleteSummaryRow,
+  createProjectFromQuote,
 } from "../../../services/quoteServices";
 import { toast } from "react-toastify";
 
@@ -22,6 +23,7 @@ const QuoteSummary = ({
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   // Filter by section
   const filteredData =
@@ -44,7 +46,7 @@ const QuoteSummary = ({
     `Rs ${Number(amount || 0).toLocaleString("en-IN")}/-`;
 
   // ✅ FIXED: Pass both Mongo _id and qid to Contract page
-  const handleFinalAction = () => {
+  const handleFinalAction = async () => {
     if (isHuelip) {
       if (!quoteId) {
         toast.error("Quote ID missing!");
@@ -60,7 +62,34 @@ const QuoteSummary = ({
         },
       });
     } else {
-      navigate("/projects");
+      // ✅ For Non-Huelip: Create project directly and then navigate
+      if (!quoteId) {
+        toast.error("Quote ID missing!");
+        return;
+      }
+
+      if (!architectId) {
+        toast.error("Architect ID missing! Cannot create project.");
+        return;
+      }
+
+      try {
+        setIsCreatingProject(true);
+        toast.info("Creating project from quote...");
+        
+        await createProjectFromQuote(quoteId, architectId);
+        
+        toast.success("Project created successfully!");
+        navigate("/projects");
+      } catch (err) {
+        console.error("Error creating project:", err);
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to create project. Please try again."
+        );
+      } finally {
+        setIsCreatingProject(false);
+      }
     }
   };
 
@@ -308,8 +337,13 @@ const QuoteSummary = ({
                   variant="custom"
                   className="bg-red-700 hover:bg-red-800 text-white"
                   onClick={handleFinalAction}
+                  disabled={isCreatingProject}
                 >
-                  {isHuelip ? "Sign Contract" : "Start Project"}
+                  {isCreatingProject
+                    ? "Creating Project..."
+                    : isHuelip
+                    ? "Sign Contract"
+                    : "Start Project"}
                 </Button>
               </div>
             </div>

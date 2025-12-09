@@ -1,0 +1,14 @@
+# VAPID Keys Generated
+# Add these to your backend/.env file
+
+VAPID_PUBLIC_KEY=BPEcmk9F9hhmI4F5d7E3PDZlUtQlxCVVZe-6xJ0HcTuC1_vs5Mi3-P6hgHPooW-DprdAtt75kuP5EukF91EJyPg
+VAPID_PRIVATE_KEY=lx16qy4P-OTzkDsi8xInEVOT-OWbluTox2cSZdHt5VI
+
+# Instructions:
+# 1. Open backend/.env
+# 2. Find the lines:
+#    VAPID_PUBLIC_KEY=your-vapid-public-key-here
+#    VAPID_PRIVATE_KEY=your-vapid-private-key-here
+# 3. Replace with the keys above
+# 4. Save the file
+

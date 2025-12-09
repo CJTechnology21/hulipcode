@@ -14,7 +14,8 @@ const projectSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['EXECUTION IN PROGRESS', 'SITE MEASUREMENTS', 'DESIGNING IN PROCESS', 'HOLD', 'COMPLETED'],
+        enum: ['NEW', 'BRIEFED', 'QUOTED', 'CONTRACT_PENDING', 'CONTRACT_SIGNED', 'READY_TO_START', 'IN_PROGRESS', 'QA', 'COMPLETED', 'CLOSED'],
+        default: 'NEW',
         required: true
     },
     progress: { type: Number, min: 0, max: 100 },

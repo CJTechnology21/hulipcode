@@ -39,19 +39,28 @@ function Projects() {
       setLoading(true); // show loader
       try {
         const data = await fetchProjects();
-        setProjects(
-          data.map((p) => ({
-            ...p,
-            progress: p.progress || 50,
-            cashFlow: p.cashFlow || 0,
-            cashFlowType: p.cashFlowType || "IN",
-            showMenu: false,
-            isEditing: false,
-          }))
-        );
+        // Handle case where data is empty array (user not authenticated)
+        if (Array.isArray(data)) {
+          setProjects(
+            data.map((p) => ({
+              ...p,
+              progress: p.progress || 50,
+              cashFlow: p.cashFlow || 0,
+              cashFlowType: p.cashFlowType || "IN",
+              showMenu: false,
+              isEditing: false,
+            }))
+          );
+        } else {
+          setProjects([]);
+        }
       } catch (err) {
         console.error("Error fetching projects:", err);
-        toast.error("Failed to load projects");
+        // Only show error if it's not a 401 (401 is handled by interceptor)
+        if (err.response?.status !== 401) {
+          toast.error("Failed to load projects");
+        }
+        setProjects([]); // Set empty array on error
       } finally {
         setLoading(false); // hide loader
       }
@@ -70,16 +79,26 @@ function Projects() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "EXECUTION IN PROGRESS":
-        return "bg-green-500";
-      case "SITE MEASUREMENTS":
-        return "bg-yellow-400 text-black";
-      case "DESIGNING IN PROCESS":
+      case "NEW":
+        return "bg-gray-500";
+      case "BRIEFED":
+        return "bg-blue-500";
+      case "QUOTED":
+        return "bg-yellow-500";
+      case "CONTRACT_PENDING":
+        return "bg-orange-500";
+      case "CONTRACT_SIGNED":
+        return "bg-purple-500";
+      case "READY_TO_START":
         return "bg-indigo-500";
-      case "HOLD":
-        return "bg-red-700";
+      case "IN_PROGRESS":
+        return "bg-green-500";
+      case "QA":
+        return "bg-pink-500";
       case "COMPLETED":
         return "bg-emerald-500";
+      case "CLOSED":
+        return "bg-gray-700";
       default:
         return "bg-gray-300";
     }
@@ -242,11 +261,16 @@ function Projects() {
                             name="status"
                             value={proj.status}
                             options={[
-                              "EXECUTION IN PROGRESS",
-                              "SITE MEASUREMENTS",
-                              "DESIGNING IN PROCESS",
-                              "HOLD",
+                              "NEW",
+                              "BRIEFED",
+                              "QUOTED",
+                              "CONTRACT_PENDING",
+                              "CONTRACT_SIGNED",
+                              "READY_TO_START",
+                              "IN_PROGRESS",
+                              "QA",
                               "COMPLETED",
+                              "CLOSED",
                             ]}
                             onChange={(e) =>
                               handleChange(proj._id, "status", e.target.value)

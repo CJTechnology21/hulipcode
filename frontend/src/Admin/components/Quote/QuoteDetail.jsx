@@ -18,6 +18,7 @@ import QuoteSummary from "./QuoteSummary";
 import QuoteItemizedSection from "./QuoteOptimizedSection";
 import Modal from "../Modal";
 import AddSectionModal from "./AddSectionModal";
+import NewSpaceCreationView from "./NewSpaceCreationView";
 import {
   fetchQuotes,
   addSummaryToQuote,
@@ -36,7 +37,7 @@ function QuoteDetail() {
  
   // modals
   //eslint-disable-next-line
-  const [showAddSpaceModal, setShowAddSpaceModal] = useState(false);
+  const [showNewSpaceView, setShowNewSpaceView] = useState(false);
   const [showAddSectionModal, setShowAddSectionModal] = useState(false);
   const [showImportTemplateModal, setShowImportTemplateModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -92,7 +93,13 @@ function QuoteDetail() {
           return;
         }
         const data = await fetchQuoteSummary(quoteId);
-        setSummary(Array.isArray(data) ? data : []);
+        const summaryData = Array.isArray(data) ? data : [];
+        console.log("Fetched summary data:", summaryData);
+        // Log each summary item to check for _id
+        summaryData.forEach((item, index) => {
+          console.log(`Summary item ${index}:`, { space: item.space, _id: item._id, hasId: !!item._id });
+        });
+        setSummary(summaryData);
 
         //  Dynamically build sections from spaces
         const dynamicSpaces = (Array.isArray(data) ? data : []).map(
@@ -144,6 +151,23 @@ function QuoteDetail() {
     } catch (err) {
       console.error("Error saving summary:", err);
       toast.error("Failed to save summary");
+    }
+  };
+
+  // --- Refresh Summary after Space is Added ---
+  const handleSpaceAdded = async () => {
+    if (!quoteId) return;
+    
+    try {
+      const data = await fetchQuoteSummary(quoteId);
+      const summaryData = Array.isArray(data) ? data : [];
+      setSummary(summaryData);
+
+      // Update dynamic sections
+      const dynamicSpaces = summaryData.map((s) => s.space);
+      setSections(["Summary", ...dynamicSpaces]);
+    } catch (err) {
+      console.error("Error refreshing summary:", err);
     }
   };
   return (
@@ -204,14 +228,7 @@ function QuoteDetail() {
             <Button
               variant="custom"
               className="flex items-center gap-1 bg-red-700 text-white text-sm px-3 py-1 rounded-full"
-              onClick={() => setShowAddSectionModal(true)}
-            >
-              <FaPlus className="text-xs" /> Add Section
-            </Button>
-            <Button
-              variant="custom"
-              className="flex items-center gap-1 bg-red-700 text-white text-sm px-3 py-1 rounded-full"
-              onClick={() => setShowAddSpaceModal(true)}
+              onClick={() => setShowNewSpaceView(true)}
             >
               <FaPlus className="text-xs" /> Add Space
             </Button>
@@ -242,7 +259,16 @@ function QuoteDetail() {
 
         {/* Content */}
         <div className="p-4 overflow-y-auto flex-1">
-          {activeSection === "Summary" ? (
+          {showNewSpaceView ? (
+            <NewSpaceCreationView
+              quoteId={quoteId}
+              onSave={async () => {
+                await handleSpaceAdded();
+                setShowNewSpaceView(false);
+              }}
+              onCancel={() => setShowNewSpaceView(false)}
+            />
+          ) : activeSection === "Summary" ? (
             <QuoteSummary
               activeSection="Summary"
               isHuelip={isHuelip}
@@ -257,13 +283,21 @@ function QuoteDetail() {
               spaceRow={summary.find((s) => s.space === activeSection)}
               isHuelip={isHuelip}
               quoteId={quoteId}
-              summaryId= {summary.find((s) =>s.space === activeSection)?._id}
+              summaryId={(() => {
+                const foundSummary = summary.find((s) => s.space === activeSection);
+                if (foundSummary?._id) {
+                  return foundSummary._id;
+                }
+                // Fallback: if _id is missing, log and return undefined (will show error)
+                console.warn("Summary item missing _id:", foundSummary);
+                return foundSummary?._id;
+              })()}
             />
           )}
         </div>
       </div>
 
-      {/* Add Space Modal */}
+      {/* Add Section Modal */}
       <AddSectionModal
         isOpen={showAddSectionModal}
         onClose={() => setShowAddSectionModal(false)}
@@ -271,6 +305,7 @@ function QuoteDetail() {
           setSummary((prev) => [...prev, newSection]);
           setSections((prev) => [...prev, newSection.space]);
         }}
+        quoteId={quoteId}
       />
 
       {/* Import Template Modal */}

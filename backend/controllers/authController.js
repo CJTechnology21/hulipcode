@@ -29,11 +29,13 @@ const generateToken = (user) => {
 const setTokenCookie = (res, token) => {
   const isProd = process.env.NODE_ENV === 'production';
 
+  // For localhost development, use 'Lax' with secure: false
+  // For production/cross-origin, use 'None' with secure: true
   res.cookie('token', token, {
     httpOnly: true,
-    secure: isProd ? true : false, // localhost can use false
-    sameSite: 'None' ,// ✅ None for cross-origin even in dev
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: isProd, // true in production, false in dev
+    sameSite: isProd ? 'None' : 'Lax', // None for cross-origin (prod), Lax for same-origin (dev)
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
 

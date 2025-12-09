@@ -1,16 +1,41 @@
 import React, { useState, useEffect } from "react";
 import Button from "../../../components/Button";
 import DropDown from "../../../components/DropDown";
-import Modal from "../Modal";
+import SidebarModal from "../SidebarModal";
 import { toast } from "react-toastify";
-import { updateDeliverable } from "../../../services/quoteServices";
+import { updateDeliverable, fetchDeliverables } from "../../../services/quoteServices";
+import { FaEdit } from "react-icons/fa";
 
 const DeliverableEditModal = ({ isOpen, onClose, item, quoteId, spaceId, onSave }) => {
-  const [form, setForm] = useState(item || {});
+  const [form, setForm] = useState({
+    description: "",
+    spec: "",
+    code: "",
+    category: "",
+    unit: "",
+    qty: 1,
+    rate: 0,
+    hsn: "",
+    gst: 18,
+    photo: "",
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setForm(item || {});
+    if (item) {
+      setForm({
+        description: item.description || "",
+        spec: item.spec || "",
+        code: item.code || "",
+        category: item.category || "",
+        unit: item.unit || "",
+        qty: item.qty || 1,
+        rate: item.rate || 0,
+        hsn: item.hsn || "",
+        gst: item.gst || 18,
+        photo: item.photo || "",
+      });
+    }
   }, [item]);
 
   if (!item) return null;
@@ -22,10 +47,29 @@ const DeliverableEditModal = ({ isOpen, onClose, item, quoteId, spaceId, onSave 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Call API to update deliverable
-      const updated = await updateDeliverable(quoteId, spaceId, item._id, form);
+      // Call API to update deliverable - backend returns the entire quote
+      const response = await updateDeliverable(quoteId, spaceId, item._id, form);
+      
+      // Extract the updated deliverable from the response
+      let updatedItem = null;
+      if (response && response.summary) {
+        const space = response.summary.find((s) => s._id.toString() === spaceId.toString());
+        if (space && space.deliverables) {
+          updatedItem = space.deliverables.find((d) => d._id.toString() === item._id.toString());
+        }
+      }
+      
+      // If we couldn't extract from response, fetch fresh data
+      if (!updatedItem) {
+        const updatedDeliverables = await fetchDeliverables(quoteId, spaceId);
+        updatedItem = updatedDeliverables.find((d) => d._id.toString() === item._id.toString());
+      }
+      
+      if (onSave && updatedItem) {
+        onSave(updatedItem);
+      }
+      
       toast.success("Deliverable updated successfully!");
-      onSave(updated); // pass updated deliverable back to parent
       onClose();
     } catch (err) {
       console.error("Failed to update deliverable:", err);
@@ -36,136 +80,167 @@ const DeliverableEditModal = ({ isOpen, onClose, item, quoteId, spaceId, onSave 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Deliverable Detail" size="md">
-      <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2">
+    <SidebarModal isOpen={isOpen} onClose={onClose} title="Deliverable Detail">
+      <div className="space-y-4">
         {/* Photo Preview */}
         {form.photo && (
-          <div>
+          <div className="mb-4">
             <img
               src={form.photo}
               alt="Deliverable"
-              className="w-full h-40 object-cover rounded-lg border"
+              className="w-full h-48 object-cover rounded-lg border"
             />
           </div>
         )}
 
         {/* Deliverable */}
         <div>
-          <label className="block text-sm font-bold text-red-700">Deliverable</label>
+          <label className="block text-sm font-bold text-red-700 mb-1">Deliverable</label>
           <input
             type="text"
-            value={form.description || ""}
+            value={form.description}
             onChange={(e) => handleChange("description", e.target.value)}
-            className="border rounded w-full px-2 py-1 text-sm"
+            className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+        </div>
+
+        {/* Deliverable Description */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">Deliverable Description</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            rows={4}
+            className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
         </div>
 
         {/* Specification */}
         <div>
-          <label className="block text-sm font-bold text-red-700">Specification</label>
-          <textarea
-            value={form.spec || ""}
+          <label className="block text-sm font-bold text-red-700 mb-1">Specification</label>
+          <input
+            type="text"
+            value={form.spec}
             onChange={(e) => handleChange("spec", e.target.value)}
-            className="border rounded w-full px-2 py-1 text-sm"
+            className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
         </div>
 
-        {/* Code + Category */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-red-700">Code</label>
-            <input
-              type="text"
-              value={form.code || ""}
-              onChange={(e) => handleChange("code", e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-red-700">Category</label>
-            <DropDown
-              value={form.category || ""}
-              onChange={(e) => handleChange("category", e.target.value)}
-              options={["Civil", "Electrical", "Plumbing", "Carpentry"]}
-            />
-          </div>
+        {/* Code */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">Code</label>
+          <input
+            type="text"
+            value={form.code}
+            onChange={(e) => handleChange("code", e.target.value)}
+            className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
         </div>
 
-        {/* UOM + Qty + Rate */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-red-700">UOM</label>
+        {/* Category */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">Category</label>
+          <DropDown
+            value={form.category}
+            onChange={(e) => handleChange("category", e.target.value)}
+            options={["Civil", "Electrical", "Plumbing", "Carpentry", "Electrical Work", "Plumbing Work"]}
+          />
+        </div>
+
+        {/* UOM with edit icon */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">UOM</label>
+          <div className="flex items-center gap-2">
             <input
               type="text"
-              value={form.unit || ""}
+              value={form.unit}
               onChange={(e) => handleChange("unit", e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
+              className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-red-700">QTY</label>
-            <input
-              type="number"
-              value={form.qty || 1}
-              onChange={(e) => handleChange("qty", +e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-red-700">Rate</label>
-            <input
-              type="number"
-              value={form.rate || 0}
-              onChange={(e) => handleChange("rate", +e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
-            />
+            <FaEdit className="text-red-700 cursor-pointer" />
           </div>
         </div>
 
-        {/* HSN + GST */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-red-700">HSN</label>
+        {/* QTY with edit icon */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">QTY</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={form.qty}
+              onChange={(e) => handleChange("qty", +e.target.value)}
+              className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <FaEdit className="text-red-700 cursor-pointer" />
+          </div>
+        </div>
+
+        {/* RATE with edit icon */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">RATE</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={form.rate}
+              onChange={(e) => handleChange("rate", +e.target.value)}
+              className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <FaEdit className="text-red-700 cursor-pointer" />
+          </div>
+        </div>
+
+        {/* HSN with edit icon */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">HSN</label>
+          <div className="flex items-center gap-2">
             <input
               type="text"
-              value={form.hsn || ""}
+              value={form.hsn}
               onChange={(e) => handleChange("hsn", e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
+              className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-red-700">GST (%)</label>
-            <input
-              type="number"
-              value={form.gst || 18}
-              onChange={(e) => handleChange("gst", +e.target.value)}
-              className="border rounded w-full px-2 py-1 text-sm"
-            />
+            <FaEdit className="text-red-700 cursor-pointer" />
           </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex justify-end mt-4 gap-2">
-        <Button
-          variant="custom"
-          onClick={onClose}
-          className="bg-gray-400 text-white px-4 py-2 rounded-full"
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="custom"
-          onClick={handleSave}
-          className={`bg-red-700 hover:bg-red-900 text-white px-4 py-2 rounded-full ${
-            loading ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-          disabled={loading}
-        >
-          {loading ? "Saving..." : "Save"}
-        </Button>
+        {/* GST with edit icon */}
+        <div>
+          <label className="block text-sm font-bold text-red-700 mb-1">GST</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={form.gst}
+              onChange={(e) => handleChange("gst", +e.target.value)}
+              className="border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <FaEdit className="text-red-700 cursor-pointer" />
+            <span className="text-sm text-gray-600">%</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end mt-6 gap-2 pt-4 border-t">
+          <Button
+            variant="custom"
+            onClick={onClose}
+            className="bg-gray-400 text-white px-6 py-2 rounded-full"
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="custom"
+            onClick={handleSave}
+            className={`bg-red-700 hover:bg-red-900 text-white px-6 py-2 rounded-full ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            {loading ? "Saving..." : "Save"}
+          </Button>
+        </div>
       </div>
-    </Modal>
+    </SidebarModal>
   );
 };
 

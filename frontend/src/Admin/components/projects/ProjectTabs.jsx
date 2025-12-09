@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ClipLoader } from "react-spinners";
 import { useLocation } from "react-router-dom";
-import ProjectsOverview from "./ProjectsOverview";
 import Layout from "../Layout";
 import ProjectEstimate from "./ProjectEstimate";
 import ProjectParty from "./ProjectParty";
@@ -17,7 +16,6 @@ import ProjectsDesign from "./ProjectsDesign";
 import ProjectsDashboard from "./ProjectsDashboard";
 
 const tabs = [
-  "Overview",
   "Dashboard",
   "Site Measurements",
   "Design",
@@ -38,7 +36,7 @@ export default function ProjectTabs() {
   const projectName = location.state?.projectName || "Unnamed Project";
   const projectLocation = location.state?.projectLocation || "Main Warehouse";
   const project = location.state?.project;
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState("Dashboard");
   const [loading, setLoading] = useState(false);
   const [firstLoad, setFirstLoad] = useState(true);
 
@@ -60,13 +58,16 @@ export default function ProjectTabs() {
     // firstLoad
   );
   const renderContent = () => {
-    const quoteId = project?.quoteId;
+    // Extract quoteId - handle both string and object (populated) cases
+    const quoteId = project?.quoteId 
+      ? (typeof project.quoteId === 'string' 
+          ? project.quoteId 
+          : (project.quoteId._id || project.quoteId.toString()))
+      : null;
 
-    const commonProps = { projectId, projectName, projectLocation, project,quoteId ,};
+    const commonProps = { projectId, projectName, projectLocation, project, quoteId };
 
     switch (activeTab) {
-      case "Overview":
-        return <ProjectsOverview {...commonProps} />;
       case "Dashboard":
         return <ProjectsDashboard {...commonProps} />;
       case "Site Measurements":

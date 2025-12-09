@@ -795,12 +795,16 @@
 // export default QuoteItemizedSection;
 
 import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import AreaDetails from "./AreaDetails";
 import DeliverablesTable from "./DeliverablesTable";
+import DeliverablesTableEnhanced from "./DeliverablesTableEnhanced";
+import AreaDetailsEnhanced from "./AreaDetailsEnhanced";
 import DeliverableModal from "./DeliverableModal";
 import DeliverableEditModal from "./DeliverableEditModal";
 import OpeningModal from "./OpeningModal";
 import { initialItems } from "./initialLeads";
+import { fetchDeliverables, updateSummaryRow } from "../../../services/quoteServices";
 
 const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
   // useEffect so state resets when switching sections
@@ -812,6 +816,34 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
   const [height, setHeight] = useState(spaceRow?.height || 0);
   const [dimensions, setDimensions] = useState(spaceRow?.openings || []);
   const [items, setItems] = useState(spaceRow?.deliverables || initialItems);
+
+  // Function to update summary totals automatically
+  const updateSummaryTotals = async () => {
+    if (!quoteId || !summaryId) return;
+
+    try {
+      // Fetch latest deliverables
+      const latestDeliverables = await fetchDeliverables(quoteId, summaryId);
+      
+      // Calculate totals
+      const totals = calculateTotals(latestDeliverables);
+
+      // Update summary entry
+      const summaryData = {
+        space: spaceRow?.space || areaName,
+        spaceId: spaceRow?.spaceId,
+        workPackages: spaceRow?.workPackages || 0,
+        items: totals.items,
+        amount: totals.amount,
+        tax: totals.tax,
+        total: totals.total,
+      };
+
+      await updateSummaryRow(quoteId, summaryId, summaryData);
+    } catch (err) {
+      console.error("Error updating summary totals:", err);
+    }
+  };
 
   useEffect(() => {
     setAreaName(spaceRow?.space || "");
@@ -828,71 +860,120 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showOpeningModal, setShowOpeningModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [refreshDeliverables, setRefreshDeliverables] = useState(0); // For forcing table refresh
+
+  // Calculate totals from deliverables
+  const calculateTotals = (deliverablesList) => {
+    const itemsToCalculate = deliverablesList || [];
+    let totalItems = itemsToCalculate.length;
+    let totalAmount = 0; // Before GST
+    let totalTax = 0; // GST amount in rupees
+    
+    itemsToCalculate.forEach((item) => {
+      const amount = (item.qty || 0) * (item.rate || 0);
+      const gstAmount = amount * ((item.gst || 0) / 100);
+      totalAmount += amount;
+      totalTax += gstAmount;
+    });
+
+    return {
+      items: totalItems,
+      amount: totalAmount,
+      tax: totalTax,
+      total: totalAmount + totalTax,
+    };
+  };
+
+  const handleDeliverableSave = async (savedDeliverable) => {
+    setItems((prev) => [...prev, savedDeliverable]);
+    setRefreshDeliverables((prev) => prev + 1); // Trigger table refresh
+    // Update summary totals after adding deliverable
+    await updateSummaryTotals();
+  };
+
+  const handleDeliverableUpdate = async (updated) => {
+    setItems((prev) =>
+      prev.map((itm) => (itm._id === updated._id ? updated : itm))
+    );
+    setRefreshDeliverables((prev) => prev + 1); // Trigger table refresh
+    // Update summary totals after updating deliverable
+    await updateSummaryTotals();
+  };
 
   return (
-    <div className="bg-white p-4 rounded shadow space-y-6">
-      <AreaDetails
+    <div className="bg-gray-50 p-6 space-y-6">
+      {/* Enhanced Area Details */}
+      <AreaDetailsEnhanced
         quoteId={quoteId}
-        spaceId={spaceRow?._id}
+        spaceId={summaryId}
         summaryId={summaryId}
-        areaName={areaName}
-        setAreaName={setAreaName}
-        category={category}
-        setCategory={setCategory}
-        dimensions={dimensions}
-        setDimensions={setDimensions}
-        unit={unit}
-        setUnit={setUnit}
-        length={length}
-        setLength={setLength}
-        breadth={breadth}
-        setBreadth={setBreadth}
-        height={height}
-        setHeight={setHeight}
-        onAddOpening={() => setShowOpeningModal(true)}
+        standaloneSpaceId={spaceRow?.spaceId} // Pass the standalone space ID from summary
+        onSpaceUpdated={() => { /* Optional: handle space updates if needed */ }}
       />
 
-      <DeliverablesTable
+      {/* Enhanced Deliverables Table */}
+      <DeliverablesTableEnhanced
         quoteId={quoteId}
-        spaceId={spaceRow?._id}
-        summmaryId={summaryId}
-        items={items}
-        onRowClick={(item) => {
-          setSelectedItem(item);
-          setShowEditModal(true);
+        spaceId={summaryId}
+        onAddDeliverable={() => {
+          console.log("Add deliverable clicked - quoteId:", quoteId, "summaryId:", summaryId, "spaceRow:", spaceRow);
+          if (!summaryId) {
+            toast.error("Please select a space first. Summary ID is missing.");
+            return;
+          }
+          if (!quoteId) {
+            toast.error("Quote ID is missing");
+            return;
+          }
+          setShowDeliverableModal(true);
         }}
-        onDelete={(id) =>
-          setItems((prev) => prev.filter((itm) => itm._id !== id))
-        }
-        onAddDeliverable={() => setShowDeliverableModal(true)}
+        onDeliverableAddedOrUpdated={async () => {
+          setRefreshDeliverables((prev) => prev + 1);
+          // Update summary totals after deliverable operation
+          if (quoteId && summaryId) {
+            try {
+              const latestDeliverables = await fetchDeliverables(quoteId, summaryId);
+              const totals = calculateTotals(latestDeliverables);
+              const summaryData = {
+                space: spaceRow?.space || areaName,
+                spaceId: spaceRow?.spaceId,
+                workPackages: spaceRow?.workPackages || 0,
+                items: totals.items,
+                amount: totals.amount,
+                tax: totals.tax,
+                total: totals.total,
+              };
+              await updateSummaryRow(quoteId, summaryId, summaryData);
+            } catch (err) {
+              console.error("Error updating summary totals:", err);
+            }
+          }
+        }}
       />
 
       {/* Add Deliverable */}
-      <DeliverableModal
-        isOpen={showDeliverableModal}
-        onClose={() => setShowDeliverableModal(false)}
-        onSave={(savedDeliverable) =>
-          setItems((prev) => [...prev, savedDeliverable])
-        }
-        quoteId={quoteId}
-        spaceId={spaceRow?._id}
-      />
+      {summaryId && quoteId && (
+        <DeliverableModal
+          isOpen={showDeliverableModal}
+          onClose={() => setShowDeliverableModal(false)}
+          onSave={handleDeliverableSave} // Use new handler
+          quoteId={quoteId}
+          spaceId={summaryId}
+        />
+      )}
 
- 
       {/* Edit Deliverable */}
-      <DeliverableEditModal
-        isOpen={showEditModal}
-        item={selectedItem}
-        quoteId={quoteId}
-        spaceId={spaceRow?._id}
-        summaryId={summaryId}
-        onClose={() => setShowEditModal(false)}
-        onSave={(updated) =>
-          setItems((prev) =>
-            prev.map((itm) => (itm._id === updated._id ? updated : itm))
-          )
-        }
-      />
+      {summaryId && quoteId && (
+        <DeliverableEditModal
+          isOpen={showEditModal}
+          item={selectedItem}
+          quoteId={quoteId}
+          spaceId={summaryId}
+          summaryId={summaryId}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleDeliverableUpdate} // Use new handler
+        />
+      )}
 
       {/* Add Opening */}
       <OpeningModal

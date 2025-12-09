@@ -101,6 +101,21 @@ const getUsers = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// @desc    Get all assignable users (architects + Site Staff) for task assignment
+// @route   GET /api/user/assignable
+// @access  Private
+const getAssignableUsers = async (req, res) => {
+  try {
+    const assignableUsers = await User.find({ 
+      role: { $in: ['architect', 'Site Staff'] } 
+    }).select('_id name email phoneNumber role');
+    res.json(assignableUsers);
+  } catch (err) {
+    console.error('Error fetching assignable users:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
 // @desc    Create all architects
 // @route   GET /api/user/
 // @access  Private (or Public if needed)
@@ -441,6 +456,7 @@ module.exports = {
   getVendors,
   getUsers,
   getMaterialSuppliers,
+  getAssignableUsers,
   createUser,
   updateUser,
   getAddresses,

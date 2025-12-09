@@ -4,9 +4,9 @@ import { FaCalendarAlt } from "react-icons/fa";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import DropDown from "../../../components/DropDown";
-import { createTodo } from "../../../services/todoServices";
+import { createTask } from "../../../services/taskServices";
 import { toast } from "react-toastify";
-import { fetchArchitects } from "../../../services/leadServices";
+import { fetchAssignableUsers } from "../../../services/leadServices"; // ✅ Use assignable users instead of just architects
 import { fetchProjects } from "../../../services/projectServices";
 
 function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
@@ -14,25 +14,29 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
   const [formData, setFormData] = useState({
     title: "",
     dueDate: "",
+    startDate: "",
     taskType: "",
     assignedTo: "",
     project: "",
     description: "",
-    status: "Pending",
+    status: "TODO",
+    value: "",
+    weight_pct: "",
+    priority: "MEDIUM",
   });
   const [loading, setLoading] = useState(false);
-  const [architects, setArchitects] = useState([]);
+  const [assignableUsers, setAssignableUsers] = useState([]); // ✅ Renamed from architects
   const [projects, setProjects] = useState([]);
 
-  // Fetch architects & projects
+  // Fetch assignable users (architects + Site Staff) & projects
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [archs, projs] = await Promise.all([
-          fetchArchitects(),
+        const [users, projs] = await Promise.all([
+          fetchAssignableUsers(), // ✅ Fetch architects + Site Staff
           fetchProjects(),
         ]);
-        setArchitects(archs);
+        setAssignableUsers(users);
         setProjects(projs);
       } catch (err) {
         console.error(err);
@@ -56,44 +60,62 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
     }));
   };
   const handleSave = async () => {
-    if (!formData.title || !formData.dueDate || !formData.taskType) {
-      toast.error("Please fill all required fields");
+    if (!formData.title || !formData.dueDate) {
+      toast.error("Please fill all required fields (Title and Due Date)");
       return;
     }
 
-    const todoData = {
-      itemName: formData.title,
-      dueDate: formData.dueDate,
-      type: formData.taskType,
-      assigned: formData.assignedTo ? [formData.assignedTo] : [],
+    if (!projectId && !formData.project) {
+      toast.error("Please select a project");
+      return;
+    }
+
+    const taskData = {
+      name: formData.title,
+      description: formData.description || "",
       projectId: projectId || formData.project,
-      status: formData.status,
-      description: formData.description,
+      assignedTo: formData.assignedTo || undefined,
+      startDate: formData.startDate || undefined,
+      dueDate: formData.dueDate || undefined,
+      status: formData.status || "TODO",
+      priority: formData.priority || "MEDIUM",
+      value: formData.value ? parseFloat(formData.value) : 0,
+      weight_pct: formData.weight_pct ? parseFloat(formData.weight_pct) : 0,
     };
 
-    // 🔎 Debug logs
-    console.log("🟢 FormData state before sending:", formData);
-    console.log(
-      "🟡 Final todoData being sent:",
-      JSON.stringify(todoData, null, 2)
-    );
+    // Remove undefined fields
+    Object.keys(taskData).forEach(key => {
+      if (taskData[key] === undefined) {
+        delete taskData[key];
+      }
+    });
+
+    console.log("🟢 Creating task with data:", taskData);
 
     try {
       setLoading(true);
-      const res = await createTodo(todoData);
-      console.log("✅ Server response:", res);
+      const res = await createTask(taskData);
+      console.log("✅ Task created successfully:", res);
+      
+      // Extract task from response (could be { task: {...} } or just task object)
+      const createdTask = res.task || res;
 
-      toast.success("Todo created successfully!");
+      toast.success("Task created successfully!");
       setShowMessage(true);
 
+      // Reset form
       setFormData({
         title: "",
         dueDate: "",
+        startDate: "",
         taskType: "",
         assignedTo: "",
         project: "",
         description: "",
-        status: "Pending",
+        status: "TODO",
+        value: "",
+        weight_pct: "",
+        priority: "MEDIUM",
       });
 
       if (onCreated) onCreated();
@@ -103,14 +125,14 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
         setIsOpen(false);
       }, 1200);
     } catch (error) {
-      console.error("❌ Error while creating todo:", error);
+      console.error("❌ Error while creating task:", error);
       if (error.response) {
         console.error("🔴 Backend responded with:", error.response.data);
         toast.error(
-          `Failed: ${error.response.data.message || "Unknown error"}`
+          `Failed: ${error.response?.data?.message || "Unknown error"}`
         );
       } else {
-        toast.error("Failed to create todo");
+        toast.error("Failed to create task");
       }
     } finally {
       setLoading(false);
@@ -211,6 +233,22 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
             />
           </div>
 
+          {/* Start Date */}
+          <div>
+            <label className="text-xs font-medium text-gray-500">
+              START DATE
+            </label>
+            <div className="flex items-center mt-1 border rounded-md px-3 py-2 text-sm">
+              <FaCalendarAlt className="text-gray-400 mr-2" />
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={handleChange("startDate")}
+                className="w-full outline-none"
+              />
+            </div>
+          </div>
+
           {/* Due Date */}
           <div>
             <label className="text-xs font-medium text-gray-500">
@@ -227,13 +265,16 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
             </div>
           </div>
 
-          {/* Assigned To Architect */}
+          {/* Assigned To (Architects + Site Staff) */}
           <DropDown
             label="ASSIGNED TO"
             name="assignedTo"
             value={formData.assignedTo}
             onChange={handleChange("assignedTo")}
-            options={architects.map((a) => ({ value: a._id, label: a.name }))} // ✅ use _id
+            options={assignableUsers.map((user) => ({ 
+              value: user._id, 
+              label: `${user.name} (${user.role})` // ✅ Show name and role
+            }))}
           />
 
           {/* <DropDown
@@ -245,13 +286,23 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
           /> */}
           {/* Project Selection (only if no projectId passed) */}
 
-          <DropDown
-            label="PROJECT"
-            name="project"
-            value={formData.project}
-            onChange={handleChange("project")}
-            options={projects.map((p) => ({ value: p.id, label: p.name }))}
-          />
+          {!projectId && (
+            <DropDown
+              label="PROJECT"
+              name="project"
+              value={formData.project}
+              onChange={handleChange("project")}
+              options={projects.map((p) => ({ value: p._id || p.id, label: p.name }))}
+            />
+          )}
+          {projectId && (
+            <div>
+              <label className="text-xs font-medium text-gray-500">PROJECT</label>
+              <div className="mt-1 px-3 py-2 border rounded-md text-sm bg-gray-50">
+                {projects.find(p => (p._id || p.id) === projectId)?.name || "Current Project"}
+              </div>
+            </div>
+          )}
 
           {/* Task Type */}
           <DropDown
@@ -272,10 +323,58 @@ function AddNewTodoModal({ isOpen, setIsOpen, projectId, onCreated }) {
             value={formData.status}
             onChange={handleChange("status")}
             options={[
-              { value: "Pending", label: "Pending" },
-              { value: "Completed", label: "Completed" },
+              { value: "TODO", label: "TODO" },
+              { value: "IN_PROGRESS", label: "IN_PROGRESS" },
+              { value: "REVIEW", label: "REVIEW" },
+              { value: "DONE", label: "DONE" },
+              { value: "REJECTED", label: "REJECTED" },
             ]}
           />
+
+          {/* Priority */}
+          <DropDown
+            label="PRIORITY"
+            name="priority"
+            value={formData.priority}
+            onChange={handleChange("priority")}
+            options={[
+              { value: "LOW", label: "LOW" },
+              { value: "MEDIUM", label: "MEDIUM" },
+              { value: "HIGH", label: "HIGH" },
+              { value: "CRITICAL", label: "CRITICAL" },
+            ]}
+          />
+
+          {/* Value */}
+          <div>
+            <label className="text-xs font-medium text-gray-500">
+              VALUE (₹)
+            </label>
+            <Input
+              name="value"
+              type="number"
+              placeholder="Enter task value (e.g., 50000)"
+              value={formData.value}
+              onChange={handleChange("value")}
+              min="0"
+            />
+          </div>
+
+          {/* Weight Percentage */}
+          <div>
+            <label className="text-xs font-medium text-gray-500">
+              WEIGHT % (0-100)
+            </label>
+            <Input
+              name="weight_pct"
+              type="number"
+              placeholder="Enter weight percentage (e.g., 15)"
+              value={formData.weight_pct}
+              onChange={handleChange("weight_pct")}
+              min="0"
+              max="100"
+            />
+          </div>
 
           {/* Description */}
           <div>

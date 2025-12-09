@@ -147,6 +147,11 @@ const SignUp = () => {
                 <option value="architect">Architect</option>
                 <option value="vendor">Vendor</option>
                 <option value="client">Client</option>
+                <option value="Site Staff">Site Staff</option>
+                <option value="Labour Contractor">Labour Contractor</option>
+                <option value="Subcon">Subcon</option>
+                <option value="Material Supplier">Material Supplier</option>
+                <option value="Service Provider">Service Provider</option>
               </select>
               {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
@@ -200,9 +205,14 @@ const SignUp = () => {
               className="w-full p-2 border border-gray-300 rounded"
             >
               <option value="">Select Role</option>
-              <option value="client">Client</option>
-              <option value="vendor">Vendor</option>
               <option value="architect">Architect</option>
+              <option value="vendor">Vendor</option>
+              <option value="client">Client</option>
+              <option value="Site Staff">Site Staff</option>
+              <option value="Labour Contractor">Labour Contractor</option>
+              <option value="Subcon">Subcon</option>
+              <option value="Material Supplier">Material Supplier</option>
+              <option value="Service Provider">Service Provider</option>
             </select>
             <input
               type="text"

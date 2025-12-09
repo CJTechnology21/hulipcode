@@ -38,6 +38,7 @@ const siteRoutes = require('./routes/siteMeasurementsRoutes')
 const rfqRoutes = require('./routes/rfqRoutes');
 const pendingMaterialRoutes = require('./routes/pendingMaterialRoutes')
 const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes')
+const walletRoutes = require('./routes/walletRoutes')
 // Load environment variables
 dotenv.config();
 
@@ -104,6 +105,7 @@ app.use('/api/site', siteRoutes)
 app.use('/api/rfq', rfqRoutes)
 app.use('/api/pending-materials', pendingMaterialRoutes)
 app.use('/api/purchase-orders', purchaseOrderRoutes)
+app.use('/api/wallet', walletRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

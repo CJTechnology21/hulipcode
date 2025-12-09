@@ -3,13 +3,23 @@ const AWS = require("aws-sdk");
 const mongoose = require("mongoose");
 const multer = require("multer");
 
-// Configure AWS S3
-const s3 = new AWS.S3({
-    region: process.env.AWS_REGION,
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    signatureVersion: "v4",
-});
+// Initialize S3 only if AWS credentials are provided
+let s3 = null;
+if (process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  try {
+    s3 = new AWS.S3({
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      signatureVersion: "v4",
+    });
+    console.log("✅ AWS S3 client initialized (twoDLayoutController)");
+  } catch (error) {
+    console.warn("⚠️  AWS S3 initialization failed:", error.message);
+  }
+} else {
+  console.warn("⚠️  AWS S3 not configured. 2D Layout upload features will be disabled.");
+}
 
 // Multer memory storage for single file
 const storage = multer.memoryStorage();
@@ -17,6 +27,10 @@ const upload = multer({ storage }).single("file"); // field name = 'file'
 
 // Upload file to S3 and return public URL
 const uploadToS3 = async (file) => {
+  if (!s3) {
+    throw new Error("S3 is not configured. Please configure AWS S3 credentials.");
+  }
+
   const bucketName = process.env.AWS_BUCKET_NAME;
   const fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
 

@@ -11,10 +11,20 @@ const axiosInstance = axios.create({
 });
 
 // Fetch all projects
-  export const fetchProjects = async () => {
+export const fetchProjects = async () => {
+  try {
     const res = await axiosInstance.get("/api/projects");
     return res.data;
-  };
+  } catch (error) {
+    // Handle 401 - user not authenticated
+    if (error.response?.status === 401) {
+      // Return empty array instead of throwing error
+      // The interceptor will handle redirect
+      return [];
+    }
+    throw error;
+  }
+};
 
 // Create a new project
 export const createProject = async (projectData) => {

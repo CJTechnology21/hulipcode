@@ -14,6 +14,12 @@ const deliverableSchema = new mongoose.Schema(
     qty: { type: Number, default: 0 },
     rate: { type: Number, default: 0 },
     gst: { type: Number, default: 0 },
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Assigned team member
+    status: { 
+      type: String, 
+      enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"], 
+      default: "PENDING" 
+    }, // Status of the deliverable
   },
   { _id: true } // keep _id to match controllers
 );
@@ -44,17 +50,37 @@ const spaceDetailSchema = new mongoose.Schema(
   { _id: true } // keep _id
 );
 
-// Summary schema
+// Standalone Space schema (created via "Add Space" button)
+const standaloneSpaceSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true }, // e.g. "Master Bedroom Toilet"
+    category: { type: String, required: true }, // e.g. "Toilet"
+    length: Number,
+    breadth: Number,
+    height: Number,
+    unit: { type: String, default: "Feet" },
+    perimeter: Number,
+    floorArea: Number,
+    wallArea: Number,
+    spaces: [spaceDetailSchema], // nested space details
+    deliverables: [deliverableSchema], // items for this space
+    openings: [openingSchema], // doors and windows
+  },
+  { timestamps: true } // each standalone space has its own _id
+);
+
+// Summary schema (references standalone spaces)
 const summarySchema = new mongoose.Schema(
   {
-    space: { type: String, required: true },
+    space: { type: String, required: true }, // space name (from standalone space)
+    spaceId: { type: mongoose.Schema.Types.ObjectId }, // reference to standalone space
     workPackages: Number,
     items: Number,
     amount: Number,
     tax: Number,
-    spaces: [spaceDetailSchema],
-    deliverables: [deliverableSchema],
-    openings: [openingSchema],
+    spaces: [spaceDetailSchema], // can still have nested spaces
+    deliverables: [deliverableSchema], // can still have deliverables directly
+    openings: [openingSchema], // can still have openings directly
   },
   { timestamps: true } // each summary row has its own _id
 );
@@ -72,7 +98,8 @@ const quoteSchema = new mongoose.Schema(
       enum: ["Send", "In Review", "Shortlisted", "Approved", "Rejected"],
       default: "Send",
     },
-    summary: [summarySchema], 
+    spaces: [standaloneSpaceSchema], // Standalone spaces (created via "Add Space")
+    summary: [summarySchema], // Summary entries (created via "Add Section")
   },
   { timestamps: true }
 );

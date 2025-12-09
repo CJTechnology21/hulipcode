@@ -7,16 +7,34 @@ const Photo = require("../models/Photo");
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+// Initialize S3 only if AWS credentials are provided
+let s3 = null;
+if (process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  try {
+    s3 = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log("✅ AWS S3 client initialized (upload route)");
+  } catch (error) {
+    console.warn("⚠️  AWS S3 initialization failed:", error.message);
+  }
+} else {
+  console.warn("⚠️  AWS S3 not configured. Upload features will be disabled.");
+}
 
 router.post("/", upload.single("file"), async (req, res) => {
   try {
+    // Check if S3 is configured
+    if (!s3) {
+      return res.status(503).json({ 
+        error: "File upload service is not configured. Please configure AWS S3 credentials." 
+      });
+    }
+
     const file = req.file;
     if (!file) {
       return res.status(400).json({ error: "No file uploaded" });

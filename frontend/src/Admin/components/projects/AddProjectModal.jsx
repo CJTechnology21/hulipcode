@@ -27,11 +27,16 @@ const schema = yup.object().shape({
 });
 
 const statusOptions = [
-  "EXECUTION IN PROGRESS",
-  "SITE MEASUREMENTS",
-  "DESIGNING IN PROCESS",
-  "HOLD",
+  "NEW",
+  "BRIEFED",
+  "QUOTED",
+  "CONTRACT_PENDING",
+  "CONTRACT_SIGNED",
+  "READY_TO_START",
+  "IN_PROGRESS",
+  "QA",
   "COMPLETED",
+  "CLOSED",
 ];
 const categoryOptions = ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'RETAIL'];
 

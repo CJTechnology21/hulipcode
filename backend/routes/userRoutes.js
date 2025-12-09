@@ -9,6 +9,7 @@ const {
   getUsers,
   createUser,
   getMaterialSuppliers,
+  getAssignableUsers,
   addAddress,
   updateAddress,
   addBankDetail,
@@ -27,6 +28,7 @@ router.get("/architects", protect, getArchitects);
 router.get("/vendors", protect, getVendors);
 router.get("/material-suppliers", protect, getMaterialSuppliers);
 router.get("/architects-clients", protect, getUsers);
+router.get("/assignable", protect, getAssignableUsers); // ✅ New endpoint for task assignment
 
 // USER PROFILE
 router.get("/me", protect, getUserProfile);

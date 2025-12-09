@@ -1,5 +1,8 @@
 const Quote = require("../models/Quote");
 const Project = require("../models/Project");
+const { checkQuoteAccess, isAdmin, isProfessional } = require("../middleware/aclMiddleware");
+const { createWallet } = require("../services/walletService");
+const { getStateForQuoteProject } = require("../services/projectStateMachine");
 
 const mongoose = require("mongoose");
 
@@ -23,13 +26,38 @@ const createQuote = async (req, res) => {
   }
 };
 
-// Get all quotes
+// Get all quotes (filtered by ACL)
 const getQuotes = async (req, res) => {
   try {
-    const quotes = await Quote.find()
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email")
-      .sort({ createdAt: -1 });
+    let quotes;
+    
+    // Admin and Professional (architect) see all quotes
+    if (req.user && (isAdmin(req.user) || isProfessional(req.user))) {
+      quotes = await Quote.find()
+        .populate("leadId", "id name budget contact category city")
+        .populate("assigned", "name email")
+        .sort({ createdAt: -1 });
+    } else if (req.user) {
+      // For homeowners, filter quotes based on user access
+      const allQuotes = await Quote.find()
+        .populate("leadId", "id name budget contact category city")
+        .populate("assigned", "name email")
+        .sort({ createdAt: -1 });
+      
+      const accessibleQuotes = [];
+      
+      for (const quote of allQuotes) {
+        const access = await checkQuoteAccess(quote._id, req.user);
+        if (access.allowed) {
+          accessibleQuotes.push(quote);
+        }
+      }
+      
+      quotes = accessibleQuotes;
+    } else {
+      // Unauthenticated - return empty
+      quotes = [];
+    }
 
     res.status(200).json(quotes);
   } catch (error) {
@@ -37,7 +65,7 @@ const getQuotes = async (req, res) => {
   }
 };
 
-// Get one quote
+// Get one quote - with ACL check
 const getQuoteById = async (req, res) => {
   try {
     const quote = await Quote.findById(req.params.id)
@@ -46,15 +74,31 @@ const getQuoteById = async (req, res) => {
 
     if (!quote) return res.status(404).json({ message: "Quote not found" });
 
+    // Check ACL if user is authenticated
+    if (req.user) {
+      const access = await checkQuoteAccess(req.params.id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
     res.status(200).json(quote);
   } catch (error) {
     res.status(500).json({ message: "Error fetching quote", error });
   }
 };
 
-// Update full quote
+// Update full quote - with ACL check
 const updateQuote = async (req, res) => {
   try {
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(req.params.id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
     const updatedQuote = await Quote.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     })
@@ -69,9 +113,17 @@ const updateQuote = async (req, res) => {
   }
 };
 
-// Delete full quote
+// Delete full quote - with ACL check
 const deleteQuote = async (req, res) => {
   try {
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(req.params.id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
     const deleted = await Quote.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Quote not found" });
 
@@ -85,10 +137,19 @@ const deleteQuote = async (req, res) => {
 // SUMMARY CONTROLLERS 
 
 
-// Add or replace full summary array
+// Add or replace full summary array - with ACL check
 const addSummaryToQuote = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+    
     let rows = req.body;
 
     if (!Array.isArray(rows)) {
@@ -122,24 +183,42 @@ const addSummaryToQuote = async (req, res) => {
   }
 };
 
-// Get only summary
+// Get only summary - with ACL check
 const getQuoteSummary = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const quote = await Quote.findById(id).select("summary");
     if (!quote) {
       return res.status(404).json({ message: "Quote not found" });
     }
 
-    res.status(200).json(quote.summary || []);
+    // Ensure _id is included for each summary item by converting to plain objects
+    const summaryWithIds = (quote.summary || []).map(item => {
+      const itemObj = item.toObject ? item.toObject() : item;
+      // Ensure _id is present
+      if (!itemObj._id && item._id) {
+        itemObj._id = item._id;
+      }
+      return itemObj;
+    });
+
+    res.status(200).json(summaryWithIds);
   } catch (error) {
     console.error("Error fetching summary:", error);
     res.status(500).json({ message: "Error fetching summary", error: error.message });
   }
 };
 
-// Update a single summary row (by spaceId)
+// Update a single summary row (by spaceId) - with ACL check
 const updateSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
@@ -147,6 +226,14 @@ const updateSummaryRow = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(spaceId) || !fields) {
       return res.status(400).json({ message: "quoteId, spaceId and fields are required" });
+    }
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
     }
 
     const updatedQuote = await Quote.findOneAndUpdate(
@@ -175,10 +262,18 @@ const updateSummaryRow = async (req, res) => {
   }
 };
 
-// Delete a single summary row
+// Delete a single summary row - with ACL check
 const deleteSummaryRow = async (req, res) => {
   try {
     const { id, spaceId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const updatedQuote = await Quote.findByIdAndUpdate(
       id,
@@ -202,10 +297,18 @@ const deleteSummaryRow = async (req, res) => {
 // NESTED CRUD HELPERS //
 
 
-// GET all nested items
+// GET all nested items - with ACL check
 const getNestedItems = async (req, res, field) => {
   try {
     const { id, spaceId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const quote = await Quote.findOne(
       { _id: id, "summary._id": spaceId },
@@ -222,10 +325,18 @@ const getNestedItems = async (req, res, field) => {
   }
 };
 
-// GET single nested item
+// GET single nested item - with ACL check
 const getNestedItemById = async (req, res, field) => {
   try {
     const { id, spaceId, itemId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const quote = await Quote.findOne(
       { _id: id, "summary._id": spaceId },
@@ -247,11 +358,19 @@ const getNestedItemById = async (req, res, field) => {
   }
 };
 
-// ADD nested item
+// ADD nested item - with ACL check
 const addNestedItem = async (req, res, field) => {
   try {
     const { id, spaceId } = req.params;
     const data = req.body;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const updatedQuote = await Quote.findOneAndUpdate(
       { _id: id, "summary._id": spaceId },
@@ -267,17 +386,38 @@ const addNestedItem = async (req, res, field) => {
   }
 };
 
-// UPDATE nested item
+// UPDATE nested item - with ACL check
 const updateNestedItem = async (req, res, field) => {
   try {
     const { id, spaceId, itemId } = req.params;
     const { fields } = req.body;
 
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
     const path = `summary.$.${field}.$[elem]`;
+    
+    // Build update object - handle null values for assignedTo
+    const updateObj = {};
+    Object.entries(fields).forEach(([k, v]) => {
+      if (k === "assignedTo" && (v === null || v === "" || v === "null" || v === "undefined")) {
+        updateObj[`${path}.${k}`] = null;
+      } else if (k === "assignedTo" && v) {
+        // Convert to ObjectId if it's a valid string
+        updateObj[`${path}.${k}`] = mongoose.Types.ObjectId.isValid(v) ? new mongoose.Types.ObjectId(v) : v;
+      } else {
+        updateObj[`${path}.${k}`] = v;
+      }
+    });
 
     const updatedQuote = await Quote.findOneAndUpdate(
       { _id: id, "summary._id": spaceId },
-      { $set: Object.fromEntries(Object.entries(fields).map(([k, v]) => [`${path}.${k}`, v])) },
+      { $set: updateObj },
       {
         new: true,
         arrayFilters: [{ "elem._id": itemId }]
@@ -292,10 +432,18 @@ const updateNestedItem = async (req, res, field) => {
   }
 };
 
-// DELETE nested item
+// DELETE nested item - with ACL check
 const deleteNestedItem = async (req, res, field) => {
   try {
     const { id, spaceId, itemId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
 
     const updatedQuote = await Quote.findOneAndUpdate(
       { _id: id, "summary._id": spaceId },
@@ -364,7 +512,7 @@ const createProjectFromQuote = async (req, res) => {
       client: quote.leadId?.name || "Unknown Client",
       location: quote.leadId?.city || "Unknown Location",
       category: quote.leadId?.category || "RESIDENTIAL",
-      status: "EXECUTION IN PROGRESS",
+      status: getStateForQuoteProject(), // CONTRACT_SIGNED - project created from signed quote
       progress: 0,
       cashFlow: quote.quoteAmount || 0,
       isHuelip: !!quote.isHuelip,
@@ -375,6 +523,17 @@ const createProjectFromQuote = async (req, res) => {
 
     const newProject = new Project(projectData);
     await newProject.save();
+
+    // ✅ Create escrow wallet for the project
+    try {
+      // Pass projectId as string so walletService can populate quoteId
+      const wallet = await createWallet(newProject._id.toString());
+      console.log('✅ Wallet created for project:', wallet._id);
+    } catch (walletError) {
+      console.error('⚠️ Error creating wallet (non-blocking):', walletError);
+      // Don't fail project creation if wallet creation fails
+      // Wallet can be created manually later
+    }
 
     res.status(201).json({
       message: "Project created successfully from quote",
@@ -393,7 +552,17 @@ const createProjectFromQuote = async (req, res) => {
 // Get all deliverables for a given quote ID (used via Project's quoteId)
 const getDeliverablesByQuoteId = async (req, res) => {
   try {
-    const { quoteId } = req.params;
+    let { quoteId } = req.params;
+    
+    // Handle if quoteId is an object (shouldn't happen but safety check)
+    if (typeof quoteId === 'object' && quoteId !== null) {
+      quoteId = quoteId._id || quoteId.toString();
+    }
+    
+    // Validate quoteId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(quoteId)) {
+      return res.status(400).json({ message: "Invalid quote ID format" });
+    }
 
     // Find the quote by ID and only return summary.deliverables
     const quote = await Quote.findById(quoteId).select("summary.deliverables summary.space");
@@ -403,13 +572,29 @@ const getDeliverablesByQuoteId = async (req, res) => {
     }
 
     // Flatten all deliverables from each summary row
-    const allDeliverables = quote.summary
-      .flatMap(summary => 
-        (summary.deliverables || []).map(del => ({
-          ...del.toObject(),
-          space: summary.space || "Unnamed Space"
-        }))
-      );
+    const User = require("../models/User");
+    const allDeliverablesPromises = quote.summary.flatMap(summary => 
+      (summary.deliverables || []).map(async (del) => {
+        const delObj = del.toObject();
+        // Populate assignedTo if it exists
+        if (delObj.assignedTo) {
+          try {
+            const user = await User.findById(delObj.assignedTo).select("name email role");
+            delObj.assignedTo = user ? { _id: user._id, name: user.name, email: user.email, role: user.role } : null;
+          } catch (err) {
+            console.error("Error populating assignedTo:", err);
+            delObj.assignedTo = null;
+          }
+        }
+        return {
+          ...delObj,
+          space: summary.space || "Unnamed Space",
+          spaceId: summary._id // Include summary ID for updates
+        };
+      })
+    );
+    
+    const allDeliverables = await Promise.all(allDeliverablesPromises);
 
     res.status(200).json({
       count: allDeliverables.length,
@@ -421,6 +606,170 @@ const getDeliverablesByQuoteId = async (req, res) => {
       message: "Error fetching deliverables by quoteId",
       error: error.message,
     });
+  }
+};
+
+// STANDALONE SPACES CONTROLLERS (at quote level, not in summary)
+// Get all standalone spaces for a quote
+const getStandaloneSpaces = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
+    const quote = await Quote.findById(id).select("spaces");
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    res.status(200).json(quote.spaces || []);
+  } catch (error) {
+    console.error("Error fetching standalone spaces:", error);
+    res.status(500).json({ message: "Error fetching standalone spaces", error: error.message });
+  }
+};
+
+// Create a standalone space
+const createStandaloneSpace = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const spaceData = req.body;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
+    const quote = await Quote.findByIdAndUpdate(
+      id,
+      { $push: { spaces: spaceData } },
+      { new: true }
+    );
+
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    // Return the newly created space (last one in array)
+    const newSpace = quote.spaces[quote.spaces.length - 1];
+    res.status(201).json(newSpace);
+  } catch (error) {
+    console.error("Error creating standalone space:", error);
+    res.status(500).json({ message: "Error creating standalone space", error: error.message });
+  }
+};
+
+// Get a single standalone space
+const getStandaloneSpaceById = async (req, res) => {
+  try {
+    const { id, spaceId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
+    const quote = await Quote.findOne(
+      { _id: id, "spaces._id": spaceId },
+      { "spaces.$": 1 }
+    );
+
+    if (!quote || !quote.spaces?.length) {
+      return res.status(404).json({ message: "Space not found" });
+    }
+
+    res.status(200).json(quote.spaces[0]);
+  } catch (error) {
+    console.error("Error fetching standalone space:", error);
+    res.status(500).json({ message: "Error fetching standalone space", error: error.message });
+  }
+};
+
+// Update a standalone space
+const updateStandaloneSpace = async (req, res) => {
+  try {
+    const { id, spaceId } = req.params;
+    const { fields } = req.body;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
+    // Build update object with arrayFilters syntax
+    const updateObj = {};
+    Object.keys(fields).forEach(key => {
+      updateObj[`spaces.$[elem].${key}`] = fields[key];
+    });
+    updateObj[`spaces.$[elem].updatedAt`] = new Date();
+
+    const updatedQuote = await Quote.findOneAndUpdate(
+      { _id: id },
+      { $set: updateObj },
+      { 
+        new: true, 
+        arrayFilters: [{ "elem._id": new mongoose.Types.ObjectId(spaceId) }]
+      }
+    );
+
+    if (!updatedQuote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    const updatedSpace = updatedQuote.spaces.find(s => s._id.toString() === spaceId.toString());
+    if (!updatedSpace) {
+      return res.status(404).json({ message: "Space not found" });
+    }
+
+    res.status(200).json(updatedSpace);
+  } catch (error) {
+    console.error("Error updating standalone space:", error);
+    res.status(500).json({ message: "Error updating standalone space", error: error.message });
+  }
+};
+
+// Delete a standalone space
+const deleteStandaloneSpace = async (req, res) => {
+  try {
+    const { id, spaceId } = req.params;
+
+    // Check ACL first
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({ message: access.reason || "Access denied" });
+      }
+    }
+
+    const updatedQuote = await Quote.findByIdAndUpdate(
+      id,
+      { $pull: { spaces: { _id: spaceId } } },
+      { new: true }
+    );
+
+    if (!updatedQuote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    res.status(200).json({ message: "Space deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting standalone space:", error);
+    res.status(500).json({ message: "Error deleting standalone space", error: error.message });
   }
 };
 
@@ -514,6 +863,13 @@ module.exports = {
   //create project from 
   createProjectFromQuote,
   getDeliverablesByQuoteId,
+
+  // Standalone Spaces
+  getStandaloneSpaces,
+  createStandaloneSpace,
+  getStandaloneSpaceById,
+  updateStandaloneSpace,
+  deleteStandaloneSpace,
 };
 
 // const Quote = require("../models/Quote");

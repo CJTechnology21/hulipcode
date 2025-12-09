@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
 import Button from "../../../components/Button";
+import DropDown from "../../../components/DropDown";
 import { toast } from "react-toastify";
+import { fetchStandaloneSpaces } from "../../../services/quoteServices";
 
-function AddSectionModal({ isOpen, onClose, onAddSection }) {
+function AddSectionModal({ isOpen, onClose, onAddSection, quoteId }) {
   const [sectionForm, setSectionForm] = useState({
     space: "",
+    spaceId: "", // Reference to standalone space
     workPackages: "",
     items: "",
     amount: "",
@@ -13,14 +16,48 @@ function AddSectionModal({ isOpen, onClose, onAddSection }) {
     total: "",
   });
 
+  const [availableSpaces, setAvailableSpaces] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch standalone spaces when modal opens
+  useEffect(() => {
+    if (isOpen && quoteId) {
+      loadSpaces();
+    }
+  }, [isOpen, quoteId]);
+
+  const loadSpaces = async () => {
+    try {
+      setLoading(true);
+      const spaces = await fetchStandaloneSpaces(quoteId);
+      setAvailableSpaces(spaces || []);
+    } catch (err) {
+      console.error("Error fetching spaces:", err);
+      toast.error("Failed to load spaces");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSectionChange = (e) => {
     const { name, value } = e.target;
     setSectionForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSpaceSelect = (spaceId) => {
+    const selectedSpace = availableSpaces.find((s) => s._id === spaceId);
+    if (selectedSpace) {
+      setSectionForm((prev) => ({
+        ...prev,
+        space: selectedSpace.name,
+        spaceId: selectedSpace._id,
+      }));
+    }
+  };
+
   const handleSave = () => {
-    if (!sectionForm.space) {
-      toast.error("Space name is required");
+    if (!sectionForm.spaceId || !sectionForm.space) {
+      toast.error("Please select a space first");
       return;
     }
     onAddSection(sectionForm);
@@ -28,6 +65,7 @@ function AddSectionModal({ isOpen, onClose, onAddSection }) {
     // Reset form after saving
     setSectionForm({
       space: "",
+      spaceId: "",
       workPackages: "",
       items: "",
       amount: "",
@@ -41,20 +79,38 @@ function AddSectionModal({ isOpen, onClose, onAddSection }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add Section" size="md">
       <form className="space-y-4">
-        {["space", "workPackages", "items", "amount", "tax"].map((field) => (
+        {/* Space Dropdown */}
+        <div>
+          <label className="block font-semibold capitalize mb-1">
+            Space
+          </label>
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading spaces...</div>
+          ) : availableSpaces.length === 0 ? (
+            <div className="text-sm text-red-600">
+              No spaces available. Please create a space first using "Add Space" button.
+            </div>
+          ) : (
+            <DropDown
+              name="space"
+              value={sectionForm.spaceId}
+              onChange={(e) => handleSpaceSelect(e.target.value)}
+              options={availableSpaces.map((space) => ({
+                value: space._id,
+                label: `${space.name} (${space.category})`,
+              }))}
+            />
+          )}
+        </div>
+
+        {/* Other fields */}
+        {["workPackages", "items", "amount", "tax"].map((field) => (
           <div key={field}>
             <label className="block font-semibold capitalize mb-1">
               {field}
             </label>
             <input
-              type={
-                field === "items" ||
-                field === "amount" ||
-                field === "tax" ||
-                field === "total"
-                  ? "number"
-                  : "text"
-              }
+              type="number"
               name={field}
               value={sectionForm[field]}
               onChange={handleSectionChange}
@@ -78,6 +134,7 @@ function AddSectionModal({ isOpen, onClose, onAddSection }) {
               e.preventDefault();
               handleSave();
             }}
+            disabled={!sectionForm.spaceId || loading}
           >
             Save
           </Button>
