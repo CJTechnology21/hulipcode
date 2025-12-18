@@ -1,5 +1,8 @@
-const express = require('express');
+// Load environment variables FIRST before any other requires
 const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./utils/db');
@@ -39,11 +42,16 @@ const rfqRoutes = require('./routes/rfqRoutes');
 const pendingMaterialRoutes = require('./routes/pendingMaterialRoutes')
 const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes')
 const walletRoutes = require('./routes/walletRoutes')
-// Load environment variables
-dotenv.config();
+const contractRoutes = require('./routes/contractRoutes')
+const ledgerRoutes = require('./routes/ledgerRoutes')
+const webhookRoutes = require('./routes/webhookRoutes')
+const adminRoutes = require('./routes/adminRoutes')
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (async, but don't block server startup)
+connectDB().catch(err => {
+  console.error('❌ Failed to connect to MongoDB. Server will start but database operations will fail.');
+  console.error('Please check your MONGO_URI in .env file and ensure MongoDB is running.');
+});
 
 const app = express();
 
@@ -106,6 +114,10 @@ app.use('/api/rfq', rfqRoutes)
 app.use('/api/pending-materials', pendingMaterialRoutes)
 app.use('/api/purchase-orders', purchaseOrderRoutes)
 app.use('/api/wallet', walletRoutes)
+app.use('/api/contracts', contractRoutes)
+app.use('/api/ledger', ledgerRoutes)
+app.use('/webhooks', webhookRoutes)
+app.use('/api/admin', adminRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

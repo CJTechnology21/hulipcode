@@ -20,6 +20,7 @@ const deliverableSchema = new mongoose.Schema(
       enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"], 
       default: "PENDING" 
     }, // Status of the deliverable
+    progress: { type: Number, default: 0, min: 0, max: 100 }, // Progress percentage (0-100)
   },
   { _id: true } // keep _id to match controllers
 );
@@ -90,6 +91,12 @@ const quoteSchema = new mongoose.Schema(
   {
     qid: String,
     leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", required: true },
+    parent_quote_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Quote",
+      // Reference to the original quote if this is a revision
+      // null for original quotes
+    },
     quoteAmount: { type: Number, default: 0 },
     city: { type: String, default: "N/A" },
     assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -98,6 +105,14 @@ const quoteSchema = new mongoose.Schema(
       enum: ["Send", "In Review", "Shortlisted", "Approved", "Rejected"],
       default: "Send",
     },
+    // Client approval tracking
+    sentToClientAt: { type: Date }, // When quote was sent to client
+    clientApprovedAt: { type: Date }, // When client approved the quote
+    // Revision tracking fields
+    isRevision: { type: Boolean, default: false },
+    revisionNumber: { type: Number, default: 0 }, // 0 for original, 1, 2, 3... for revisions
+    requiresTopUp: { type: Boolean, default: false }, // If revised total > original
+    requiresAdminReview: { type: Boolean, default: false }, // If revised total < previous payouts
     spaces: [standaloneSpaceSchema], // Standalone spaces (created via "Add Space")
     summary: [summarySchema], // Summary entries (created via "Add Section")
   },
@@ -122,6 +137,10 @@ quoteSchema.pre("save", async function (next) {
     next();
   }
 });
+
+// Index for parent_quote_id lookups
+quoteSchema.index({ parent_quote_id: 1 });
+quoteSchema.index({ leadId: 1, isRevision: 1 });
 
 module.exports = mongoose.model("Quote", quoteSchema);
 

@@ -101,6 +101,32 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  // KYC Status
+  kycStatus: {
+    type: String,
+    enum: ['PENDING', 'APPROVED', 'REJECTED', 'NOT_SUBMITTED'],
+    default: 'NOT_SUBMITTED',
+  },
+  kycApprovedAt: {
+    type: Date,
+  },
+  kycApprovedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  kycRejectedAt: {
+    type: Date,
+  },
+  kycRejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  kycRejectedReason: {
+    type: String,
+  },
+  kycNotes: {
+    type: String,
+  },
 
 
 }, { timestamps: true });

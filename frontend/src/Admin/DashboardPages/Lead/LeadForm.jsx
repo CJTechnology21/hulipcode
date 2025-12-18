@@ -12,6 +12,7 @@ const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   budget: yup.string().required("Budget is required"),
   contact: yup.string().required("Contact is required"),
+  email: yup.string().email("Please enter a valid email address").nullable(),
   status: yup.string().required("Status is required"),
   category: yup.string().required("Category is required"),
   assigned: yup.string().required("Assigned User is required"),
@@ -56,6 +57,7 @@ function LeadForm() {
       isHuelip: false,
       budget: "",
       contact: "",
+      email: "",
       status: "Not Assigned",
       category: "RESIDENTIAL",
       update: "",
@@ -155,6 +157,23 @@ function LeadForm() {
               register={register}
               error={errors.contact}
             />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block font-semibold mb-1">
+              Email <span className="text-gray-500 text-sm">(Required for quote approval)</span>
+            </label>
+            <Input
+              name="email"
+              type="email"
+              placeholder="Enter email address"
+              register={register}
+              error={errors.email}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+            )}
           </div>
 
           {/* Status */}

@@ -2,11 +2,12 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
-require('dotenv').config();
+// dotenv.config() is already called in server.js
 
 // Validation utils
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const isValidPhoneNumber = (phoneNumber) => /^[6-9]\d{9}$/.test(phoneNumber);
+// Accept any 10-digit phone number (matching frontend validation)
+const isValidPhoneNumber = (phoneNumber) => /^\d{10}$/.test(phoneNumber);
 
 // Google OAuth2 setup
 const oauth2Client = new OAuth2Client(
@@ -17,6 +18,9 @@ const oauth2Client = new OAuth2Client(
 
 // Generate JWT
 const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured in environment variables');
+  }
   return jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
@@ -108,25 +112,77 @@ const registerUser = async (req, res) => {
 // ==============================
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Support both 'email' and 'emailOrPhone' from frontend
+    const { email, emailOrPhone, password } = req.body;
+    const loginIdentifier = email || emailOrPhone;
 
-    if (!email || !isValidEmail(email))
-      return res.status(400).json({ message: 'Enter a valid email address' });
+    console.log('=== Login Attempt ===');
+    console.log('Login identifier received:', loginIdentifier ? (isValidEmail(loginIdentifier) ? loginIdentifier.substring(0, 5) + '...' : 'phone: ' + loginIdentifier.substring(0, 3) + '***') : 'MISSING');
+    console.log('Password received:', password ? '***' : 'MISSING');
 
-    if (!password)
+    // Validate that we have either email or phone
+    if (!loginIdentifier) {
+      console.log('❌ No email or phone provided');
+      return res.status(400).json({ message: 'Email or phone number is required' });
+    }
+
+    // Validate format (must be valid email OR valid phone)
+    const isEmail = isValidEmail(loginIdentifier);
+    const isPhone = isValidPhoneNumber(loginIdentifier);
+
+    if (!isEmail && !isPhone) {
+      console.log('❌ Invalid email or phone format');
+      return res.status(400).json({ message: 'Enter a valid email address or phone number' });
+    }
+
+    if (!password) {
+      console.log('❌ Password missing');
       return res.status(400).json({ message: 'Password is required' });
+    }
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: 'No user found with this email' });
+    // Check JWT_SECRET before proceeding
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET is not set in environment variables');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET missing' });
+    }
 
+    console.log('Looking up user in database...');
+    
+    // Check if MongoDB is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ MongoDB is not connected. ReadyState:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        message: 'Database connection unavailable. Please try again in a moment.' 
+      });
+    }
+    
+    // Find user by email OR phone number
+    const user = isEmail 
+      ? await User.findOne({ email: loginIdentifier })
+      : await User.findOne({ phoneNumber: loginIdentifier });
+    
+    if (!user) {
+      console.log('❌ User not found with identifier:', isEmail ? 'email' : 'phone');
+      return res.status(400).json({ message: 'No user found with this email or phone number' });
+    }
+
+    console.log('User found, comparing password...');
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      console.log('❌ Password mismatch');
       return res.status(400).json({ message: 'Incorrect password' });
+    }
 
+    console.log('Password matched, generating token...');
     const token = generateToken(user);
-    setTokenCookie(res, token);
+    console.log('Token generated successfully');
 
+    console.log('Setting cookie...');
+    setTokenCookie(res, token);
+    console.log('Cookie set successfully');
+
+    console.log('✅ Login successful for user:', user.email);
     res.status(200).json({
       user: {
         id: user._id,
@@ -136,8 +192,29 @@ const loginUser = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Login Error:', err);
-    res.status(500).json({ message: 'Server error during login' });
+    console.error('❌ Login Error Details:');
+    console.error('Error name:', err.name);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    
+    // Provide more specific error messages
+    if (err.message.includes('JWT_SECRET')) {
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET missing' });
+    }
+    if (err.name === 'MongoError' || err.name === 'MongooseError' || err.message.includes('buffering timed out')) {
+      console.error('💡 MongoDB Connection Issue:');
+      console.error('   - Check if MongoDB is running');
+      console.error('   - Verify MONGO_URI in .env file');
+      console.error('   - Check network connectivity');
+      return res.status(503).json({ 
+        message: 'Database connection error. Please check your MongoDB connection and try again.' 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 

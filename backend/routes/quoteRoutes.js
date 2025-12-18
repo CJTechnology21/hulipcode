@@ -43,6 +43,15 @@ const {
     getStandaloneSpaceById,
     updateStandaloneSpace,
     deleteStandaloneSpace,
+
+    // Revisions
+    createQuoteRevision,
+    getQuoteRevisions,
+    checkQuoteContractBlock,
+
+    // Client Approval
+    sendQuoteToClient,
+    approveQuote,
 } = require("../controllers/quoteController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -52,6 +61,7 @@ router.post("/", protect, createQuote);
 router.get("/", protect, getQuotes); // Added protect for ACL filtering
 router.get("/:id", protect, getQuoteById); // Added protect for ACL check
 router.put("/:id", protect, updateQuote);
+router.patch("/:id", protect, updateQuote); // PATCH support for partial updates
 router.delete("/:id", protect, deleteQuote);
 
 // SUMMARY ROUTES
@@ -92,6 +102,15 @@ router.post("/:id/spaces", protect, createStandaloneSpace);
 router.get("/:id/spaces/:spaceId", protect, getStandaloneSpaceById);
 router.patch("/:id/spaces/:spaceId", protect, updateStandaloneSpace);
 router.delete("/:id/spaces/:spaceId", protect, deleteStandaloneSpace);
+
+// REVISION ROUTES
+router.post("/:id/revision", protect, createQuoteRevision);
+router.get("/:id/revisions", protect, getQuoteRevisions);
+router.get("/:id/check-contract-block", protect, checkQuoteContractBlock);
+
+// CLIENT APPROVAL ROUTES
+router.post("/:id/send-to-client", protect, sendQuoteToClient);
+router.post("/:id/approve", approveQuote); // Public route for client approval via email link
 
 module.exports = router;
 

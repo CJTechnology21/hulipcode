@@ -1,0 +1,345 @@
+openapi: 3.0.0
+info:
+  title: Huelip Platform API
+  description: API documentation for Huelip Platform - Project Management and Escrow System
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@huelip.com
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.huelip.com
+    description: Production server
+
+tags:
+  - name: Webhooks
+    description: Webhook endpoints for external service integrations
+  - name: Escrow
+    description: Escrow wallet and deposit management
+  - name: Contracts
+    description: Contract signing and e-signature management
+
+paths:
+  /webhooks/health:
+    get:
+      tags:
+        - Webhooks
+      summary: Webhook health check
+      description: Check if webhook endpoints are operational
+      operationId: webhookHealthCheck
+      responses:
+        '200':
+          description: Webhook endpoints are operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Webhook endpoints are operational
+                  timestamp:
+                    type: string
+                    format: date-time
+                  endpoints:
+                    type: object
+                    properties:
+                      escrowDeposit:
+                        type: string
+                        example: /webhooks/escrow/deposit
+                      esignCallback:
+                        type: string
+                        example: /webhooks/esign/callback
+
+  /webhooks/escrow/deposit:
+    post:
+      tags:
+        - Webhooks
+        - Escrow
+      summary: Escrow deposit webhook
+      description: |
+        Handle deposit webhook from escrow payment providers (Castler, Razorpay, etc.).
+        This endpoint processes deposit notifications and updates wallet balances.
+        
+        **Signature Validation:**
+        - Castler: Header `x-castler-signature`
+        - Razorpay: Header `x-razorpay-signature`
+        - Development: Header `x-bypass-signature: true` (for testing)
+      operationId: handleEscrowDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscrowDepositWebhook'
+            examples:
+              castler:
+                summary: Castler webhook payload
+                value:
+                  projectId: "507f1f77bcf86cd799439011"
+                  amount: 100000
+                  transactionId: "castler_txn_123456789"
+                  status: "success"
+                  currency: "INR"
+                  metadata:
+                    paymentMethod: "UPI"
+                    reference: "UPI123456"
+              razorpay:
+                summary: Razorpay webhook payload
+                value:
+                  projectId: "507f1f77bcf86cd799439011"
+                  walletId: "507f1f77bcf86cd799439012"
+                  amount: 150000
+                  transactionId: "pay_razorpay_123456"
+                  status: "completed"
+                  currency: "INR"
+      responses:
+        '200':
+          description: Webhook processed (success or failure acknowledged)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WebhookSuccessResponse'
+                  - $ref: '#/components/schemas/WebhookErrorResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webhooks/esign/callback:
+    post:
+      tags:
+        - Webhooks
+        - Contracts
+      summary: E-signature callback webhook
+      description: |
+        Handle callback webhook from Leegality e-signature platform.
+        This endpoint processes signing events and updates contract status.
+        
+        **Signature Validation:**
+        - Leegality: Header `x-leegality-signature`
+        - Development: Header `x-bypass-signature: true` (for testing)
+      operationId: handleEsignCallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EsignCallbackWebhook'
+            examples:
+              documentSigned:
+                summary: Document signed event
+                value:
+                  documentId: "leegality_doc_123456"
+                  event: "invitee.signed"
+                  invitee:
+                    email: "client@example.com"
+                    name: "John Doe"
+                    status: "signed"
+                  timestamp: "2024-01-01T12:00:00Z"
+              documentCompleted:
+                summary: Document completed event
+                value:
+                  documentId: "leegality_doc_123456"
+                  event: "document.completed"
+                  timestamp: "2024-01-01T12:30:00Z"
+              documentRejected:
+                summary: Document rejected event
+                value:
+                  documentId: "leegality_doc_123456"
+                  event: "document.rejected"
+                  timestamp: "2024-01-01T12:00:00Z"
+      responses:
+        '200':
+          description: Callback processed (success or failure acknowledged)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WebhookSuccessResponse'
+                  - $ref: '#/components/schemas/WebhookErrorResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    EscrowDepositWebhook:
+      type: object
+      required:
+        - amount
+        - transactionId
+        - status
+      properties:
+        projectId:
+          type: string
+          description: Project ID (ObjectId)
+          example: "507f1f77bcf86cd799439011"
+        walletId:
+          type: string
+          description: Wallet ID (ObjectId, optional if projectId provided)
+          example: "507f1f77bcf86cd799439012"
+        amount:
+          type: number
+          description: Deposit amount
+          minimum: 0
+          example: 100000
+        transactionId:
+          type: string
+          description: Unique transaction ID from provider
+          example: "castler_txn_123456789"
+        status:
+          type: string
+          enum:
+            - success
+            - completed
+            - credited
+            - failed
+            - pending
+          description: Transaction status
+          example: "success"
+        currency:
+          type: string
+          description: Currency code
+          default: INR
+          example: "INR"
+        metadata:
+          type: object
+          description: Additional metadata
+          properties:
+            paymentMethod:
+              type: string
+              example: "UPI"
+            reference:
+              type: string
+              example: "UPI123456"
+            depositedBy:
+              type: string
+              description: User ID who made the deposit
+            timestamp:
+              type: string
+              format: date-time
+
+    EsignCallbackWebhook:
+      type: object
+      required:
+        - documentId
+        - event
+      properties:
+        documentId:
+          type: string
+          description: Leegality document ID
+          example: "leegality_doc_123456"
+        event:
+          type: string
+          enum:
+            - document.signed
+            - document.completed
+            - document.rejected
+            - invitee.signed
+          description: Event type
+          example: "invitee.signed"
+        invitee:
+          type: object
+          description: Signer information (for invitee.signed events)
+          properties:
+            email:
+              type: string
+              format: email
+              example: "client@example.com"
+            name:
+              type: string
+              example: "John Doe"
+            status:
+              type: string
+              enum:
+                - signed
+                - pending
+                - rejected
+              example: "signed"
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+          example: "2024-01-01T12:00:00Z"
+        metadata:
+          type: object
+          description: Additional metadata
+
+    WebhookSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Webhook processed successfully"
+        data:
+          type: object
+          properties:
+            walletId:
+              type: string
+            projectId:
+              type: string
+            amount:
+              type: number
+            transactionId:
+              type: string
+            balance:
+              type: number
+            status:
+              type: string
+
+    WebhookErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string
+
+  securitySchemes:
+    WebhookSignature:
+      type: apiKey
+      in: header
+      name: x-signature
+      description: Webhook signature for validation (provider-specific header name)
+

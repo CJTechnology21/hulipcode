@@ -317,6 +317,7 @@ export default function Leads() {
                       "Name",
                       "Budget",
                       "Contact no.",
+                      "Email",
                       "Status",
                       "Category",
                       "Last Update",
@@ -336,7 +337,7 @@ export default function Leads() {
 
                   {/* Filters Row */}
                   <tr className="bg-white">
-                    {Array.from({ length: 12 }).map((_, idx) => (
+                    {Array.from({ length: 13 }).map((_, idx) => (
                       <td key={idx} className="px-3 py-2">
                         {idx === 5 || idx === 6 ? (
                           <select
@@ -365,7 +366,7 @@ export default function Leads() {
                                 </option>
                               ))}
                           </select>
-                        ) : idx === 10 || idx === 11 ? null : (
+                        ) : idx === 11 || idx === 12 ? null : (
                           <SearchBar
                             value={filters[idx] || ""}
                             onChange={(e) =>
@@ -426,6 +427,19 @@ export default function Leads() {
                             />
                           ) : (
                             lead.contact
+                          )}
+                        </td>
+                        <td className="px-3 py-3">
+                          {editRowId === lead._id ? (
+                            <input
+                              type="email"
+                              value={editFormData.email || ""}
+                              onChange={(e) => handleEditChange(e, "email")}
+                              className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
+                              placeholder="Enter email"
+                            />
+                          ) : (
+                            <span className="text-sm">{lead.email || "-"}</span>
                           )}
                         </td>
                         <td className="px-3 py-3">

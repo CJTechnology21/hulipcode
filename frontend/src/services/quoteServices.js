@@ -97,6 +97,28 @@ export const updateSummaryRow = async (quoteId, spaceId, fields) => {
   return res.data;
 };
 
+// Send quote to client via email
+export const sendQuoteToClient = async (quoteId) => {
+  try {
+    const res = await axiosInstance.post(`/api/quote/${quoteId}/send-to-client`);
+    return res.data;
+  } catch (error) {
+    console.error('Error sending quote to client:', error);
+    throw error;
+  }
+};
+
+// Client approves quote
+export const approveQuote = async (quoteId) => {
+  try {
+    const res = await axiosInstance.post(`/api/quote/${quoteId}/approve`);
+    return res.data;
+  } catch (error) {
+    console.error('Error approving quote:', error);
+    throw error;
+  }
+};
+
 // Delete a single summary row by spaceId
 export const deleteSummaryRow = async (quoteId, spaceId) => {
   const res = await axiosInstance.delete(

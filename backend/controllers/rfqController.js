@@ -507,7 +507,34 @@ const addResponseToRFQ = async (req, res) => {
             id,
             { $push: { responses: { supplier: supplierId, quotes, tax: Number(tax), totalAmount } } },
             { new: true }
-        );
+        ).populate('project', 'name architectId').populate('responses.supplier', 'name email');
+
+        // Trigger notification for RFQ response
+        try {
+            const { notifyRFQResponse } = require('../services/notificationService');
+            const User = require('../models/User');
+            const Project = require('../models/Project');
+
+            const rfq = await RFQ.findById(id).populate('project', 'name architectId');
+            const supplier = await User.findById(supplierId);
+            const project = await Project.findById(rfq.project?._id).populate('architectId', 'name email');
+
+            // Notify project architect
+            if (project?.architectId) {
+                await notifyRFQResponse({
+                    rfq: { name: rfq.id || rfq._id, _id: rfq._id },
+                    supplier,
+                    totalAmount,
+                    recipient: {
+                        email: project.architectId.email,
+                        pushToken: null, // TODO: Get from user preferences
+                    },
+                });
+            }
+        } catch (notifError) {
+            console.error('Error sending RFQ response notification:', notifError);
+            // Don't fail the request if notification fails
+        }
 
         res.status(200).json({
             success: true,

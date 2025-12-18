@@ -23,6 +23,9 @@ import {
   fetchQuotes,
   addSummaryToQuote,
   fetchQuoteSummary,
+  fetchQuoteById,
+  sendQuoteToClient,
+  patchQuote,
 } from "../../../services/quoteServices";
 import Button from "../../../components/Button";
 import { getClientType } from "../../../services/leadServices";
@@ -49,6 +52,8 @@ function QuoteDetail() {
   // summary state
   const [summary, setSummary] = useState([]);
   const [sections, setSections] = useState(["Summary"]); // dynamic
+  const [quoteStatus, setQuoteStatus] = useState("Send"); // Quote status
+  const [isSendingQuote, setIsSendingQuote] = useState(false); // Loading state for sending quote
 
   // --- Fetch client type using leadMongoId ---
   useEffect(() => {
@@ -84,14 +89,27 @@ function QuoteDetail() {
     }
   }, [showImportTemplateModal]);
 
-  // Fetch Quote Summary initially
+  // Fetch Quote Summary and Status initially
   useEffect(() => {
-    const loadSummary = async () => {
+    const loadQuoteData = async () => {
       try {
         if (!quoteId) {
           console.error("No quoteId passed from parent");
           return;
         }
+        
+        // Fetch quote to get status
+        const quoteData = await fetchQuoteById(quoteId);
+        console.log("QuoteDetail - Fetched quote data:", quoteData);
+        console.log("QuoteDetail - Quote status:", quoteData?.status);
+        if (quoteData?.status) {
+          setQuoteStatus(quoteData.status);
+        } else {
+          // Default to "Send" if status is not set
+          setQuoteStatus("Send");
+        }
+        
+        // Fetch summary
         const data = await fetchQuoteSummary(quoteId);
         const summaryData = Array.isArray(data) ? data : [];
         console.log("Fetched summary data:", summaryData);
@@ -107,11 +125,11 @@ function QuoteDetail() {
         );
         setSections(["Summary", ...dynamicSpaces]);
       } catch (err) {
-        console.error("Error fetching summary:", err);
+        console.error("Error fetching quote data:", err);
       }
     };
 
-    loadSummary();
+    loadQuoteData();
   }, [quoteId]);
 
   // --- Save Summary Handler ---
@@ -254,6 +272,60 @@ function QuoteDetail() {
             >
               <FaSave /> Save Summary
             </Button>
+            
+            {/* Send to Client Button - Show when status is "Send" or undefined */}
+            {(quoteStatus === "Send" || !quoteStatus) && (
+              <Button
+                variant="custom"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
+                onClick={async () => {
+                  if (!quoteId) {
+                    toast.error("Quote ID missing!");
+                    return;
+                  }
+                  try {
+                    setIsSendingQuote(true);
+                    toast.info("Approving quote for testing...");
+                    
+                    // TESTING MODE: Skip email sending and directly approve quote
+                    // This enables "Create Contract" button immediately
+                    // TODO: Re-enable email sending when ready for production
+                    
+                    // Commented out for testing:
+                    // const result = await sendQuoteToClient(quoteId);
+                    
+                    // Update quote status to "Approved" in database
+                    await patchQuote(quoteId, { status: "Approved" });
+                    
+                    // Update status in component state
+                    setQuoteStatus("Approved");
+                    toast.success("Quote approved! You can now create a contract.");
+                  } catch (err) {
+                    console.error("Error approving quote:", err);
+                    toast.error("Failed to approve quote. Please try again.");
+                  } finally {
+                    setIsSendingQuote(false);
+                  }
+                }}
+                disabled={isSendingQuote}
+              >
+                {isSendingQuote ? "⏳ Sending..." : "📧 Send to Client"}
+              </Button>
+            )}
+            
+            {/* Status Badge - Show when quote is sent */}
+            {quoteStatus === "In Review" && (
+              <div className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded flex items-center gap-1 border border-yellow-300">
+                ⏳ Waiting for Approval
+              </div>
+            )}
+            
+            {/* Approved Badge */}
+            {quoteStatus === "Approved" && (
+              <div className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded flex items-center gap-1 border border-green-300">
+                ✅ Approved
+              </div>
+            )}
           </div>
         </div>
 
@@ -277,6 +349,12 @@ function QuoteDetail() {
               quoteId={quoteId}
               qid={qid}
               architectId={architectId}
+              clientName={clientName}
+              quoteStatus={quoteStatus || "Send"}
+              onQuoteStatusChange={(newStatus) => {
+                console.log("QuoteDetail - Status changed to:", newStatus);
+                setQuoteStatus(newStatus);
+              }}
             />
           ) : (
             <QuoteItemizedSection

@@ -32,6 +32,8 @@ function ProjectToDo({ projectId, quoteId }) {
   const [viewMode, setViewMode] = useState(quoteId ? "deliverables" : "tasks"); // ✅ "tasks" or "deliverables"
   const [assignableUsers, setAssignableUsers] = useState([]); // All team members for assignment
   const [updatingDeliverable, setUpdatingDeliverable] = useState(null); // Track which deliverable is being updated
+  const [selectedSpace, setSelectedSpace] = useState(null); // Selected space for filtering deliverables
+  const [availableSpaces, setAvailableSpaces] = useState([]); // List of all spaces from summary
 
   // ✅ Fetch Tasks
   const fetchTasks = async () => {
@@ -96,7 +98,22 @@ function ProjectToDo({ projectId, quoteId }) {
       const data = await fetchQuoteSummary(quoteIdString);
       if (Array.isArray(data)) {
         setSummary(data);
-      } else setSummary([]);
+        // Extract unique spaces from summary
+        const spaces = data
+          .filter(s => s.space)
+          .map(s => ({ name: s.space, id: s._id, spaceId: s.spaceId }))
+          .filter((space, index, self) => 
+            index === self.findIndex(s => s.name === space.name)
+          );
+        setAvailableSpaces(spaces);
+        // Auto-select first space if none selected
+        if (!selectedSpace && spaces.length > 0) {
+          setSelectedSpace(spaces[0].name);
+        }
+      } else {
+        setSummary([]);
+        setAvailableSpaces([]);
+      }
     } catch (error) {
       console.error("Error fetching summary:", error);
       toast.error("Failed to fetch summary");
@@ -122,15 +139,20 @@ function ProjectToDo({ projectId, quoteId }) {
     fetchUsers(); // Fetch team members
   }, [projectId, quoteId]);
 
-  // ✅ Update filtered items when view mode changes
+  // ✅ Update filtered items when view mode or selected space changes
   useEffect(() => {
     if (viewMode === "tasks") {
       setFilteredItems(tasks);
     } else {
-      // Show all deliverables (no space filtering)
-      setFilteredItems(deliverables);
+      // Filter deliverables by selected space
+      if (selectedSpace) {
+        const filtered = deliverables.filter(d => d.space === selectedSpace);
+        setFilteredItems(filtered);
+      } else {
+        setFilteredItems(deliverables);
+      }
     }
-  }, [viewMode, tasks, deliverables]);
+  }, [viewMode, tasks, deliverables, selectedSpace]);
   
   // ✅ Initial load - set filtered items based on view mode
   useEffect(() => {
@@ -273,13 +295,34 @@ function ProjectToDo({ projectId, quoteId }) {
             <FiFilter /> Filter
           </Button>
         </div>
-        <Button
-          className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md flex items-center gap-2"
-          onClick={() => setIsModalOpen(true)}
-        >
-          <FiPlus /> {viewMode === "tasks" ? "New Task" : "New Deliverable"}
-        </Button>
+        {viewMode === "tasks" && (
+          <Button
+            className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md flex items-center gap-2"
+            onClick={() => setIsModalOpen(true)}
+          >
+            <FiPlus /> New Task
+          </Button>
+        )}
       </div>
+
+      {/* Space Tabs (only for deliverables view) */}
+      {viewMode === "deliverables" && availableSpaces.length > 0 && (
+        <div className="flex gap-2 border-b border-gray-200 pb-2 overflow-x-auto">
+          {availableSpaces.map((space) => (
+            <button
+              key={space.id || space.name}
+              onClick={() => setSelectedSpace(space.name)}
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors ${
+                selectedSpace === space.name
+                  ? "bg-red-600 text-white border-b-2 border-red-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {space.name}
+            </button>
+          ))}
+        </div>
+      )}
 
 
       {/* ✅ Table - Tasks or Deliverables */}
@@ -301,7 +344,6 @@ function ProjectToDo({ projectId, quoteId }) {
             ) : (
               <tr>
                 <th className="px-2 py-2 text-center w-8">#</th>
-                <th className="px-2 py-2 w-24">Space</th>
                 <th className="px-2 py-2 w-20">Code</th>
                 <th className="px-2 py-2 w-24">Category</th>
                 <th className="px-2 py-2 w-[30%]">Description</th>
@@ -311,8 +353,8 @@ function ProjectToDo({ projectId, quoteId }) {
                 <th className="px-2 py-2 text-right w-16">GST</th>
                 <th className="px-2 py-2 w-32">Status</th>
                 <th className="px-2 py-2 w-40">Assigned To</th>
+                <th className="px-2 py-2 w-32">Progress</th>
                 <th className="px-2 py-2 text-center w-20">Photo</th>
-                <th className="px-2 py-2 text-center w-20">Action</th>
               </tr>
             )}
           </thead>
@@ -388,16 +430,13 @@ function ProjectToDo({ projectId, quoteId }) {
                 </tr>
               ))
             ) : (
-              // Deliverables Table
+              // Deliverables Table (Read-only)
               filteredItems.map((d, index) => (
                 <tr
                   key={d._id}
                   className="border-t hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-2 py-2 text-center">{index + 1}</td>
-                  <td className="px-2 py-2 truncate font-semibold text-red-700">
-                    {d.space || "-"}
-                  </td>
                   <td className="px-2 py-2 truncate">{d.code || "-"}</td>
                   <td className="px-2 py-2 truncate">{d.category || "-"}</td>
                   <td className="px-2 py-2 truncate max-w-[200px]">
@@ -410,88 +449,50 @@ function ProjectToDo({ projectId, quoteId }) {
                   </td>
                   <td className="px-2 py-2 text-right">{d.gst || 0}%</td>
                   <td className="px-2 py-2">
-                    <select
-                      value={d.status || "PENDING"}
-                      onChange={(e) => handleUpdateDeliverable(d, "status", e.target.value)}
-                      disabled={updatingDeliverable === d._id}
-                      className={`text-xs px-2 py-1 rounded border ${
-                        d.status === "COMPLETED" ? "bg-green-100 text-green-800" :
-                        d.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-800" :
-                        d.status === "ON_HOLD" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-gray-100 text-gray-800"
-                      } ${updatingDeliverable === d._id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                    >
-                      <option value="PENDING">Pending</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="ON_HOLD">On Hold</option>
-                    </select>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      d.status === "COMPLETED" ? "bg-green-100 text-green-800" :
+                      d.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-800" :
+                      d.status === "ON_HOLD" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>
+                      {d.status || "PENDING"}
+                    </span>
                   </td>
                   <td className="px-2 py-2">
-                    <select
-                      value={d.assignedTo?._id || ""}
-                      onChange={(e) => handleUpdateDeliverable(d, "assignedTo", e.target.value || null)}
-                      disabled={updatingDeliverable === d._id}
-                      className={`text-xs px-2 py-1 rounded border w-full ${
-                        updatingDeliverable === d._id ? "opacity-50 cursor-not-allowed bg-gray-100" : "cursor-pointer bg-white"
-                      }`}
-                    >
-                      <option value="">Unassigned</option>
-                      {assignableUsers.map((user) => (
-                        <option key={user._id} value={user._id}>
-                          {user.name} ({user.role})
-                        </option>
-                      ))}
-                    </select>
+                    <span className="text-xs">
+                      {d.assignedTo?.name || "Unassigned"}
+                      {d.assignedTo?.role && (
+                        <span className="text-gray-500 ml-1">({d.assignedTo.role})</span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            (d.progress || 0) === 100 ? "bg-green-600" :
+                            (d.progress || 0) >= 50 ? "bg-blue-600" :
+                            (d.progress || 0) > 0 ? "bg-yellow-500" :
+                            "bg-gray-300"
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(0, d.progress || 0))}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-600 w-10 text-right">
+                        {d.progress || 0}%
+                      </span>
+                    </div>
                   </td>
                   <td className="px-2 py-2 text-center">
                     {d.photo ? (
                       <img
                         src={d.photo}
-                        alt="deliverable"
-                        className="w-8 h-8 rounded object-cover mx-auto"
+                        alt="Deliverable"
+                        className="w-10 h-10 object-cover rounded mx-auto"
                       />
                     ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-center relative">
-                    {editingId === d._id ? (
-                      <button
-                        className="text-green-600 hover:text-green-800 font-medium"
-                        onClick={() => handleSave(d)}
-                      >
-                        Save
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          className="text-gray-500 hover:text-black"
-                          onClick={() =>
-                            setActionMenuId(
-                              actionMenuId === d._id ? null : d._id
-                            )
-                          }
-                        >
-                          <BsThreeDotsVertical />
-                        </button>
-                        {actionMenuId === d._id && (
-                          <div className="absolute right-0 mt-1 w-32 bg-white border shadow-md rounded-md z-10">
-                            <button
-                              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                              onClick={() => handleEdit(d)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                              onClick={() => handleDelete(d)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </>
+                      <span className="text-gray-400 text-xs">No Image</span>
                     )}
                   </td>
                 </tr>

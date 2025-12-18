@@ -27,6 +27,8 @@ import Tasklogs from "./Admin/DashboardPages/Task/Tasklogs";
 import LeadManagement from "./Admin/DashboardPages/Lead/LeadManagement";
 import LeadForm from "./Admin/DashboardPages/Lead/LeadForm";
 import Contract from "./Admin/components/Contract";
+import SignContract from "./Admin/components/Quote/SignContract";
+import ContractManagement from "./Admin/DashboardPages/Contract/ContractManagement";
 // project importss
 import Projects from "./Admin/components/projects/Projects";
 import ProjectForm from "./Admin/components/projects/ProjectForm";
@@ -102,6 +104,7 @@ import LeadInfo from "./Admin/DashboardPages/Lead/LeadInfo";
 import QuoteResponsePage from "./Admin/components/Procurement/QuoteResponsePage";
 import Thankyou from './Admin/components/Procurement/Thankyou'
 import ResponseLogin from "./Admin/pages/ResponseLogin";
+import AdminTools from "./Admin/pages/AdminTools";
 function App() {
   useEffect(() => {
     requestFirebaseNotificationPermission()
@@ -174,6 +177,8 @@ function App() {
         <Route path="/vendormanagement" element={<VendorManagement />} />
         <Route path="/vendormanagementform" element={<VendorManagemenForm />} />
         <Route path="/contract" element={<Contract />} />
+        <Route path="/contracts" element={<ContractManagement />} />
+        <Route path="/sign-contract" element={<SignContract />} />
         {/* vendor */}
         <Route path="/vendors" element={<VendorHome />} />
         {/* Insights Routes */}
@@ -211,6 +216,7 @@ function App() {
         <Route path="/productform" element={<ProductForm />} />
         <Route path="/subsrciption" element={<Subscription />} />
         <Route path="/settings" element={<SettingsDashboard />} />
+        <Route path="/admin-tools" element={<AdminTools />} />
         <Route path="/orders" element={<Order />} />
         <Route path="/addorder" element={<AddOrderForm />} />
         {/* Invoives-routes */}

@@ -1,11 +1,12 @@
 /**
  * Task Progress Service
  * Calculates project progress based on completed tasks
- * Prepares payout calculations
+ * Prepares payout calculations with fees, withheld, and penalties
  */
 
 const Task = require('../models/Tasks');
 const Project = require('../models/Project');
+const { calculatePayoutBreakdown, getTotalPaid } = require('./ledgerService');
 
 /**
  * Calculate project progress based on task weights
@@ -88,12 +89,17 @@ const updateProjectProgress = async (projectId) => {
 };
 
 /**
- * Calculate payout for completed tasks
+ * Calculate payout for completed tasks with fees, withheld, and penalties
  * @param {string} projectId - Project ID
- * @returns {Promise<Object>} Payout calculation
+ * @param {Object} options - Optional parameters
+ * @param {number} options.penaltyPercent - Penalty percentage (default: 0)
+ * @param {string} options.penaltyReason - Reason for penalty (optional)
+ * @returns {Promise<Object>} Payout calculation with breakdown
  */
-const calculatePayout = async (projectId) => {
+const calculatePayout = async (projectId, options = {}) => {
   try {
+    const { penaltyPercent = 0, penaltyReason = '' } = options;
+    
     const tasks = await Task.find({ projectId, status: 'DONE' });
     const project = await Project.findById(projectId);
 
@@ -101,7 +107,8 @@ const calculatePayout = async (projectId) => {
       throw new Error('Project not found');
     }
 
-    const totalPayout = tasks.reduce((sum, task) => {
+    // Calculate gross payout (sum of completed task values)
+    const grossPayout = tasks.reduce((sum, task) => {
       return sum + (task.value || 0);
     }, 0);
 
@@ -109,12 +116,31 @@ const calculatePayout = async (projectId) => {
     const allTasks = await Task.find({ projectId });
     const projectTotal = allTasks.reduce((sum, task) => sum + (task.value || 0), 0);
 
+    // Get current progress
+    const progressData = await calculateProjectProgress(projectId);
+    const progress = progressData.progress;
+
+    // Get previously paid amount from ledger
+    const previousPaid = await getTotalPaid(projectId);
+
+    // Calculate complete payout breakdown with fees, withheld, and penalties
+    const payoutBreakdown = await calculatePayoutBreakdown({
+      grossAmount: grossPayout,
+      progress,
+      previousPaid,
+      projectTotal,
+      penaltyPercent,
+      penaltyReason,
+    });
+
     return {
       projectId,
       projectName: project.name,
-      totalPayout,
+      progress,
+      grossPayout: Math.round(grossPayout * 100) / 100,
       projectTotal,
-      payoutPercentage: projectTotal > 0 ? (totalPayout / projectTotal) * 100 : 0,
+      payoutPercentage: projectTotal > 0 ? (grossPayout / projectTotal) * 100 : 0,
+      previousPaid,
       completedTasks: tasks.length,
       tasks: tasks.map(t => ({
         taskId: t._id,
@@ -122,6 +148,26 @@ const calculatePayout = async (projectId) => {
         value: t.value || 0,
         approvedAt: t.approvedAt,
       })),
+      // Financial breakdown
+      financials: {
+        grossAmount: payoutBreakdown.grossAmount,
+        platformFee: {
+          percent: payoutBreakdown.platformFee.feePercent,
+          amount: payoutBreakdown.platformFee.feeAmount,
+        },
+        withheld: {
+          percent: payoutBreakdown.withheld.withheldPercent,
+          amount: payoutBreakdown.withheld.withheldAmount,
+        },
+        penalty: {
+          percent: payoutBreakdown.penalty.penaltyPercent,
+          amount: payoutBreakdown.penalty.penaltyAmount,
+          reason: payoutBreakdown.penalty.reason,
+        },
+        totalDeductions: payoutBreakdown.deductions.total,
+        finalPayable: payoutBreakdown.finalPayable,
+        breakdown: payoutBreakdown.breakdown,
+      },
     };
   } catch (error) {
     console.error('Error calculating payout:', error);

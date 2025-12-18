@@ -4,6 +4,7 @@ const Project = require('../models/Project');
 const User = require('../models/User');
 const { validateProofs } = require('../services/taskProofValidation');
 const { calculateProjectProgress, updateProjectProgress, calculatePayout } = require('../services/taskProgressService');
+const { submitTask, approveTask, rejectTask } = require('../controllers/taskController');
 
 describe('Task Manager Module', () => {
   let testArchitect;
@@ -424,6 +425,236 @@ describe('Task Manager Module', () => {
 
       const progressData = await calculateProjectProgress(testProject._id);
       expect(progressData.progress).toBeLessThanOrEqual(100);
+    });
+  });
+
+  describe('API Integration Tests - Controller Functions', () => {
+    // Helper to create mock request object
+    const createMockReq = (params, body, user) => ({
+      params,
+      body,
+      user,
+    });
+
+    // Helper to create mock response object
+    const createMockRes = () => {
+      const res = {
+        statusCode: 200,
+        responseData: null,
+      };
+      res.status = (code) => {
+        res.statusCode = code;
+        return res;
+      };
+      res.json = (data) => {
+        res.responseData = data;
+        return res;
+      };
+      return res;
+    };
+
+    test('Should submit task with valid proofs via submitTask controller', async () => {
+      const proofs = [
+        {
+          type: 'photo',
+          url: 'https://example.com/photo1.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/photo2.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/photo3.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+      ];
+
+      const req = createMockReq(
+        { id: testTask._id.toString() },
+        { proofs },
+        testArchitect
+      );
+      const res = createMockRes();
+
+      await submitTask(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData).toBeDefined();
+      expect(res.responseData.message).toBe('Task submitted for review successfully');
+      expect(res.responseData.task.status).toBe('REVIEW');
+      expect(res.responseData.task.proofs.length).toBe(3);
+
+      // Verify task was updated in database
+      const updatedTask = await Task.findById(testTask._id);
+      expect(updatedTask.status).toBe('REVIEW');
+      expect(updatedTask.submittedAt).toBeDefined();
+      expect(updatedTask.submittedBy.toString()).toBe(testArchitect._id.toString());
+    });
+
+    test('Should reject task with reason via rejectTask controller', async () => {
+      // First, set task to REVIEW status
+      testTask.status = 'REVIEW';
+      await testTask.save();
+
+      const rejectionReason = 'Proofs are not clear enough. Please retake photos.';
+      const req = createMockReq(
+        { id: testTask._id.toString() },
+        { rejection_reason: rejectionReason },
+        testArchitect
+      );
+      const res = createMockRes();
+
+      await rejectTask(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData).toBeDefined();
+      expect(res.responseData.message).toBe('Task rejected successfully');
+      expect(res.responseData.task.status).toBe('REJECTED');
+      expect(res.responseData.task.rejection_reason).toBe(rejectionReason);
+
+      // Verify task was updated in database
+      const updatedTask = await Task.findById(testTask._id);
+      expect(updatedTask.status).toBe('REJECTED');
+      expect(updatedTask.rejection_reason).toBe(rejectionReason);
+      expect(updatedTask.rejectedAt).toBeDefined();
+      expect(updatedTask.rejectedBy.toString()).toBe(testArchitect._id.toString());
+    });
+
+    test('Should reject task without reason via rejectTask controller', async () => {
+      testTask.status = 'REVIEW';
+      await testTask.save();
+
+      const req = createMockReq(
+        { id: testTask._id.toString() },
+        { rejection_reason: '' },
+        testArchitect
+      );
+      const res = createMockRes();
+
+      await rejectTask(req, res);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData).toBeDefined();
+      expect(res.responseData.message).toBe('Rejection reason is required');
+    });
+
+    test('Should approve task and update progress via approveTask controller', async () => {
+      // Create additional tasks for progress calculation
+      const task1 = await Task.create({
+        name: 'Task 1',
+        projectId: testProject._id,
+        status: 'DONE',
+        weight_pct: 20,
+        value: 20000,
+      });
+
+      // Set testTask to REVIEW status with proofs
+      testTask.status = 'REVIEW';
+      testTask.proofs = [
+        {
+          type: 'photo',
+          url: 'https://example.com/photo1.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/photo2.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/photo3.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-02'),
+        },
+      ];
+      await testTask.save();
+
+      const req = createMockReq(
+        { id: testTask._id.toString() },
+        {},
+        testArchitect
+      );
+      const res = createMockRes();
+
+      await approveTask(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData).toBeDefined();
+      expect(res.responseData.message).toBe('Task approved successfully');
+      expect(res.responseData.task.status).toBe('DONE');
+      expect(res.responseData.task.progress).toBe(100);
+      expect(res.responseData.progress).toBeDefined();
+      expect(res.responseData.payout).toBeDefined();
+
+      // Verify task was updated in database
+      const updatedTask = await Task.findById(testTask._id);
+      expect(updatedTask.status).toBe('DONE');
+      expect(updatedTask.approvedAt).toBeDefined();
+      expect(updatedTask.approvedBy.toString()).toBe(testArchitect._id.toString());
+
+      // Verify progress calculation
+      expect(res.responseData.progress.progress).toBeGreaterThanOrEqual(0);
+      expect(res.responseData.progress.completedTasks).toBeGreaterThanOrEqual(1);
+      
+      // Verify payout calculation
+      expect(res.responseData.payout.totalPayout).toBeGreaterThanOrEqual(0);
+      expect(res.responseData.payout.projectTotal).toBeGreaterThanOrEqual(0);
+    });
+
+    test('Should allow REJECTED task to be resubmitted via submitTask controller', async () => {
+      // Set task to REJECTED status
+      testTask.status = 'REJECTED';
+      testTask.rejection_reason = 'Previous rejection reason';
+      await testTask.save();
+
+      const proofs = [
+        {
+          type: 'photo',
+          url: 'https://example.com/new-photo1.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-03'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/new-photo2.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-03'),
+        },
+        {
+          type: 'photo',
+          url: 'https://example.com/new-photo3.jpg',
+          gps: { latitude: 12.9716, longitude: 77.5946 },
+          timestamp: new Date('2024-01-03'),
+        },
+      ];
+
+      const req = createMockReq(
+        { id: testTask._id.toString() },
+        { proofs },
+        testArchitect
+      );
+      const res = createMockRes();
+
+      await submitTask(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData).toBeDefined();
+      expect(res.responseData.message).toBe('Task submitted for review successfully');
+      expect(res.responseData.task.status).toBe('REVIEW');
+
+      // Verify task was updated in database
+      const updatedTask = await Task.findById(testTask._id);
+      expect(updatedTask.status).toBe('REVIEW');
+      expect(updatedTask.proofs.length).toBe(3);
     });
   });
 });

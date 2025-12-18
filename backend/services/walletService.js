@@ -1,6 +1,8 @@
 const Wallet = require('../models/Wallet');
 const Project = require('../models/Project');
 const Quote = require('../models/Quote');
+const { notifyEscrowDepositReceived } = require('./notificationService');
+const User = require('../models/User');
 
 /**
  * Wallet Service
@@ -124,6 +126,41 @@ const depositWebhook = async (payload) => {
 
     // Add deposit to wallet
     await wallet.addDeposit(amount, transactionId);
+
+    // Trigger notification for escrow deposit
+    try {
+      const project = await Project.findById(wallet.projectId)
+        .populate('architectId', 'name email');
+      
+      // Get depositor info from metadata or use default
+      const depositedBy = metadata.depositedBy || metadata.userId || null;
+      let depositorUser = null;
+      if (depositedBy) {
+        depositorUser = await User.findById(depositedBy);
+      }
+
+      // Notify project architect
+      if (project?.architectId) {
+        await notifyEscrowDepositReceived({
+          project,
+          amount,
+          depositedBy: depositorUser || { name: 'Client', email: 'client@example.com' },
+          recipient: {
+            email: project.architectId.email,
+            pushToken: null, // TODO: Get from user preferences
+          },
+        });
+      }
+
+      // Notify client (if project has client info)
+      if (project?.client) {
+        // TODO: Get client email from project or lead
+        // For now, skip client notification
+      }
+    } catch (notifError) {
+      console.error('Error sending escrow deposit notification:', notifError);
+      // Don't fail the deposit if notification fails
+    }
 
     return {
       success: true,

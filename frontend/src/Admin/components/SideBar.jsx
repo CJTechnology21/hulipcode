@@ -10,6 +10,7 @@ import {
   FaIdBadge,
   FaGift,
   FaMoneyBillWave,
+  FaFileContract,
 } from "react-icons/fa";
 import { LiaClipboardListSolid } from "react-icons/lia";
 import { MdSupportAgent } from "react-icons/md";
@@ -22,6 +23,7 @@ const topMenuItems = [
   { name: "Projects", icon: FaFolder, path: "/projects" },
   { name: "Leads", icon: FaUserFriends, path: "/leadmanagement" },
   { name: "Quotation", icon: FaFileInvoiceDollar, path: "/quote" },
+  { name: "Contracts", icon: FaFileContract, path: "/contracts" },
   { name: "Procurement", icon: LiaClipboardListSolid, path: "/procurement" },
   { name: "Finance", icon: FaMoneyBillWave, path: "/finance" },
   { name: "Vendors", icon: FaIdBadge, path: "/vendors" },

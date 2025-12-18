@@ -8,7 +8,8 @@ const leadSchema = new mongoose.Schema({
   name: { type: String, required: true },
   isHuelip: { type: Boolean, default: false },
   budget: { type: String, required: true },
-  contact: { type: String, required: true },
+  contact: { type: String, required: true }, // Phone number or email
+  email: { type: String }, // Optional email field for better email handling
   status: { 
     type: String, 
     required: true,

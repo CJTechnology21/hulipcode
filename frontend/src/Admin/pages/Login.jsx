@@ -80,6 +80,19 @@ const Login = () => {
 
       localStorage.setItem("crm_user_id", user.id || user._id);
       localStorage.setItem("crm_role", user.role);
+      
+      // Store user email if available
+      if (user.email) {
+        localStorage.setItem("crm_user_email", user.email);
+      } else if (user.emailOrPhone && user.emailOrPhone.includes('@')) {
+        // Some users might have emailOrPhone instead of email
+        localStorage.setItem("crm_user_email", user.emailOrPhone);
+      }
+      
+      // Store user name if available
+      if (user.name) {
+        localStorage.setItem("crm_user_name", user.name);
+      }
 
       toast.success("Login successful");
 

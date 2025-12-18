@@ -8,6 +8,8 @@ import {
   updateSummaryRow,
   deleteSummaryRow,
   createProjectFromQuote,
+  sendQuoteToClient,
+  patchQuote,
 } from "../../../services/quoteServices";
 import { toast } from "react-toastify";
 
@@ -19,11 +21,18 @@ const QuoteSummary = ({
   quoteId, //  Mongo _id
   qid, //  Human-readable ID (e.g. "Q005")
   architectId,
+  clientName,
+  quoteStatus = "Send", // Quote status: "Send", "In Review", "Approved", etc. (default to "Send")
+  onQuoteStatusChange, // Callback to update parent when status changes
 }) => {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [editingRowId, setEditingRowId] = useState(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isSendingQuote, setIsSendingQuote] = useState(false);
+
+  // Debug: Log quote status
+  console.log("QuoteSummary - quoteStatus:", quoteStatus);
 
   // Filter by section
   const filteredData =
@@ -123,6 +132,41 @@ const QuoteSummary = ({
     } catch (err) {
       console.error("Delete row failed:", err.response?.data || err.message);
       toast.error(err.response?.data?.message || "Failed to delete row");
+    }
+  };
+
+  // Send quote to client (TESTING MODE: Directly approves quote)
+  const handleSendToClient = async () => {
+    if (!quoteId) {
+      toast.error("Quote ID missing!");
+      return;
+    }
+
+    try {
+      setIsSendingQuote(true);
+      toast.info(`Approving quote ${qid} for testing...`);
+      
+      // TESTING MODE: Skip email sending and directly approve quote
+      // This enables "Create Contract" button immediately
+      // TODO: Re-enable email sending when ready for production
+      
+      // Commented out for testing:
+      // const result = await sendQuoteToClient(quoteId);
+      
+      // Update quote status to "Approved" in database
+      await patchQuote(quoteId, { status: "Approved" });
+      
+      // Update status in parent component
+      if (onQuoteStatusChange) {
+        onQuoteStatusChange("Approved");
+      }
+      
+      toast.success(`Quote ${qid} approved! You can now create a contract.`);
+    } catch (err) {
+      console.error("Error approving quote:", err);
+      toast.error("Failed to approve quote. Please try again.");
+    } finally {
+      setIsSendingQuote(false);
     }
   };
 
@@ -301,53 +345,116 @@ const QuoteSummary = ({
         </div>
       </div>
 
-      {/* Terms */}
+      {/* Action Buttons - Always visible when Summary section */}
       {activeSection === "Summary" && (
-        <div className="mt-6">
-          <Button
-            color="red"
-            variant="custom"
-            size="md"
-            className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white"
-            onClick={() => setShowTerms((prev) => !prev)}
-          >
-            Terms & Conditions
-            {showTerms ? <FaChevronUp /> : <FaChevronDown />}
-          </Button>
+        <div className="mt-6 space-y-4">
+          {/* Debug Info */}
+          <div className="text-xs text-gray-500 mb-2">
+            Quote Status: <strong>{quoteStatus || "Not Set"}</strong>
+          </div>
 
-          {showTerms && (
-            <div className="mt-3 text-xs text-gray-700 bg-gray-50 p-4 rounded shadow-inner">
-              <p className="font-semibold mb-2 uppercase">
-                Terms and Conditions for Interior Design & Execution Services
-              </p>
-              <p>
-                This document outlines the terms and conditions governing the
-                engagement between [Your Company Name] and [Client Name].
-              </p>
-              <p className="mt-2 italic">
-                1. Quotation Validity & Acceptance ...
-              </p>
-              <p className="mt-1">2. Payment Terms ...</p>
-              <p className="mt-1">3. Project Scope ...</p>
+          {/* Action Buttons Section */}
+          <div className="flex gap-3 justify-center flex-wrap items-center">
+            {/* Send to Client Button - Show when status is "Send", undefined, or null */}
+            {(quoteStatus === "Send" || !quoteStatus || quoteStatus === null || quoteStatus === undefined) && (
+              <Button
+                color="red"
+                size="md"
+                variant="custom"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md"
+                onClick={handleSendToClient}
+                disabled={isSendingQuote}
+              >
+                {isSendingQuote ? "⏳ Sending..." : "📧 Send to Client"}
+              </Button>
+            )}
 
-              <div className="mt-6 text-center">
-                <Button
-                  color="red"
-                  size="md"
-                  variant="custom"
-                  className="bg-red-700 hover:bg-red-800 text-white"
-                  onClick={handleFinalAction}
-                  disabled={isCreatingProject}
-                >
-                  {isCreatingProject
-                    ? "Creating Project..."
-                    : isHuelip
-                    ? "Sign Contract"
-                    : "Start Project"}
-                </Button>
+            {/* Status Message */}
+            {quoteStatus === "In Review" && (
+              <div className="w-full text-center py-3 px-4 bg-yellow-100 text-yellow-800 rounded border border-yellow-300">
+                <p className="font-semibold">⏳ Quote sent to client. Waiting for approval...</p>
+                <p className="text-sm mt-1">The client will receive an email with the quotation details.</p>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Create Contract Button - Show when status is "Approved" */}
+            {quoteStatus === "Approved" && (
+              <Button
+                color="red"
+                size="md"
+                variant="custom"
+                className="bg-red-700 hover:bg-red-800 text-white px-6 py-2"
+                onClick={async () => {
+                  if (!quoteId) {
+                    toast.error("Quote ID missing!");
+                    return;
+                  }
+                  try {
+                    toast.info("Creating contract...");
+                    const { createContractFromQuote } = await import("../../../services/contractServices");
+                    await createContractFromQuote(quoteId);
+                    toast.success("Contract created successfully! You can now sign it from the Contracts page.");
+                    // Optionally navigate to contracts page
+                    setTimeout(() => {
+                      navigate("/contracts");
+                    }, 1500);
+                  } catch (err) {
+                    console.error("Error creating contract:", err);
+                    toast.error(err.response?.data?.error || "Failed to create contract. Please try again.");
+                  }
+                }}
+              >
+                📄 Create Contract
+              </Button>
+            )}
+
+            {/* Start Project Button - Show only when approved */}
+            {quoteStatus === "Approved" && (
+              <Button
+                color="red"
+                size="md"
+                variant="custom"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+                onClick={handleFinalAction}
+                disabled={isCreatingProject}
+              >
+                {isCreatingProject
+                  ? "Creating Project..."
+                  : "🚀 Start Project"}
+              </Button>
+            )}
+          </div>
+
+          {/* Terms & Conditions Section */}
+          <div className="mt-4">
+            <Button
+              color="red"
+              variant="custom"
+              size="md"
+              className="flex items-center gap-2 bg-red-700 hover:bg-red-800 text-white"
+              onClick={() => setShowTerms((prev) => !prev)}
+            >
+              Terms & Conditions
+              {showTerms ? <FaChevronUp /> : <FaChevronDown />}
+            </Button>
+
+            {showTerms && (
+              <div className="mt-3 text-xs text-gray-700 bg-gray-50 p-4 rounded shadow-inner">
+                <p className="font-semibold mb-2 uppercase">
+                  Terms and Conditions for Interior Design & Execution Services
+                </p>
+                <p>
+                  This document outlines the terms and conditions governing the
+                  engagement between [Your Company Name] and [Client Name].
+                </p>
+                <p className="mt-2 italic">
+                  1. Quotation Validity & Acceptance ...
+                </p>
+                <p className="mt-1">2. Payment Terms ...</p>
+                <p className="mt-1">3. Project Scope ...</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

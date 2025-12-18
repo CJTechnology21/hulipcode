@@ -3,6 +3,12 @@ const Project = require("../models/Project");
 const { checkQuoteAccess, isAdmin, isProfessional } = require("../middleware/aclMiddleware");
 const { createWallet } = require("../services/walletService");
 const { getStateForQuoteProject } = require("../services/projectStateMachine");
+const {
+  createRevision,
+  checkContractSigningBlock,
+  getQuoteRevisions: getQuoteRevisionsService,
+  getOriginalQuote,
+} = require("../services/quoteRevisionService");
 
 const mongoose = require("mongoose");
 
@@ -496,6 +502,17 @@ const createProjectFromQuote = async (req, res) => {
       return res.status(404).json({ message: "Quote not found" });
     }
 
+    // Check if contract signing is blocked (for revisions)
+    const blockCheck = await checkContractSigningBlock(quote);
+    if (blockCheck.blocked) {
+      return res.status(400).json({
+        message: blockCheck.message || "Contract signing is blocked",
+        blocked: true,
+        reason: blockCheck.reason,
+        details: blockCheck,
+      });
+    }
+
     // Pick architect ID — either from request or quote.assigned
     const resolvedArchitectId =
       architectId || (Array.isArray(quote.assigned) ? quote.assigned[0]?._id : null);
@@ -773,6 +790,116 @@ const deleteStandaloneSpace = async (req, res) => {
   }
 };
 
+// Create revision of a quote
+const createQuoteRevision = async (req, res) => {
+  try {
+    const { id } = req.params; // Original quote ID
+    const revisionData = req.body;
+
+    // Check quote access
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({
+          message: access.reason || "Access denied to this quote",
+        });
+      }
+    }
+
+    // Create revision
+    const result = await createRevision(id, revisionData);
+
+    // Populate the revision
+    const populatedRevision = await Quote.findById(result.revision._id)
+      .populate("leadId", "id name budget contact category city")
+      .populate("assigned", "name email")
+      .populate("parent_quote_id", "qid quoteAmount");
+
+    res.status(201).json({
+      message: "Quote revision created successfully",
+      revision: populatedRevision,
+      originalQuote: result.originalQuote,
+      topUpCheck: result.topUpCheck,
+      underPaymentCheck: result.underPaymentCheck,
+      canSignContract: result.canSignContract,
+    });
+  } catch (error) {
+    console.error("Error creating quote revision:", error);
+    res.status(500).json({
+      message: "Error creating quote revision",
+      error: error.message,
+    });
+  }
+};
+
+// Get revisions of a quote
+const getQuoteRevisions = async (req, res) => {
+  try {
+    const { id } = req.params; // Quote ID (original or revision)
+
+    // Check quote access
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({
+          message: access.reason || "Access denied to this quote",
+        });
+      }
+    }
+
+    // Get original quote
+    const originalQuote = await getOriginalQuote(id);
+    
+    // Get all revisions
+    const revisions = await getQuoteRevisionsService(originalQuote._id);
+
+    res.status(200).json({
+      originalQuote,
+      revisions,
+      count: revisions.length,
+    });
+  } catch (error) {
+    console.error("Error fetching quote revisions:", error);
+    res.status(500).json({
+      message: "Error fetching quote revisions",
+      error: error.message,
+    });
+  }
+};
+
+// Check if contract signing is blocked for a quote
+const checkQuoteContractBlock = async (req, res) => {
+  try {
+    const { id } = req.params; // Quote ID
+
+    // Check quote access
+    if (req.user) {
+      const access = await checkQuoteAccess(id, req.user);
+      if (!access.allowed) {
+        return res.status(403).json({
+          message: access.reason || "Access denied to this quote",
+        });
+      }
+    }
+
+    const quote = await Quote.findById(id);
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    // Check contract signing block
+    const blockCheck = await checkContractSigningBlock(quote);
+
+    res.status(200).json(blockCheck);
+  } catch (error) {
+    console.error("Error checking contract block:", error);
+    res.status(500).json({
+      message: "Error checking contract block",
+      error: error.message,
+    });
+  }
+};
+
 // const createProjectFromQuote = async (req, res) => {
 //   try {
 //     const { id } = req.params;
@@ -824,6 +951,220 @@ const deleteStandaloneSpace = async (req, res) => {
 //   }
 // };
 
+// Send quote to client via email
+const sendQuoteToClient = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const emailAdapter = require("../services/adapters/emailAdapter");
+    const Lead = require("../models/Lead");
+    const User = require("../models/User");
+
+    const quote = await Quote.findById(id)
+      .populate("leadId", "name contact email")
+      .populate("assigned", "name email");
+
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    // Get client email - try multiple sources
+    let clientEmail = null;
+    const lead = quote.leadId;
+    
+    console.log("=== Finding Client Email ===");
+    console.log("Lead:", lead?.name, "Contact:", lead?.contact, "Email:", lead?.email);
+    
+    // Priority 1: Check if lead has dedicated email field
+    if (lead?.email && lead.email.includes("@")) {
+      clientEmail = lead.email.trim();
+      console.log("✅ Found email in lead.email field:", clientEmail);
+    }
+    // Priority 2: Check if contact field contains email
+    else if (lead?.contact && lead.contact.includes("@")) {
+      clientEmail = lead.contact.trim();
+      console.log("✅ Found email in lead.contact field:", clientEmail);
+    }
+    // Priority 3: Try to find user by lead name or contact (phone number)
+    else {
+      console.log("Contact is not an email, searching User model...");
+      const user = await User.findOne({
+        $or: [
+          { name: { $regex: new RegExp(lead?.name || "", "i") } },
+          { phoneNumber: lead?.contact }
+        ]
+      }).select("email name phoneNumber");
+      
+      console.log("User found:", user ? { name: user.name, email: user.email, phone: user.phoneNumber } : "None");
+      
+      if (user?.email) {
+        clientEmail = user.email.trim();
+        console.log("✅ Found email in User model:", clientEmail);
+      }
+    }
+
+    if (!clientEmail) {
+      console.error("❌ Client email not found!");
+      console.error("Lead details:", {
+        name: lead?.name,
+        contact: lead?.contact,
+        isEmail: lead?.contact?.includes("@")
+      });
+      
+      return res.status(400).json({ 
+        success: false,
+        message: "Client email not found. Please ensure the lead has an email address in the contact field or the client is registered as a user with an email.",
+        details: {
+          leadName: lead?.name,
+          leadContact: lead?.contact,
+          suggestion: "Please update the lead's contact field with an email address (e.g., client@example.com) or ensure the client is registered as a user with an email."
+        }
+      });
+    }
+
+    // Calculate totals
+    const totalAmount = quote.summary?.reduce((sum, row) => sum + (Number(row.amount) || 0), 0) || 0;
+    const totalTax = quote.summary?.reduce((sum, row) => sum + (Number(row.tax) || 0), 0) || 0;
+    const total = totalAmount + totalTax;
+
+    // Generate quote details HTML
+    const quoteDetailsHTML = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #dc2626;">Quotation ${quote.qid}</h2>
+        <p><strong>Client:</strong> ${lead?.name || "N/A"}</p>
+        <p><strong>Total Amount:</strong> ₹${Number(total).toLocaleString("en-IN")}</p>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString("en-IN")}</p>
+        
+        <h3 style="margin-top: 30px;">Quote Summary</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+          <thead>
+            <tr style="background-color: #dc2626; color: white;">
+              <th style="padding: 10px; border: 1px solid #ddd;">Space</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Work Packages</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Items</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Amount</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Tax</th>
+              <th style="padding: 10px; border: 1px solid #ddd;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${quote.summary?.map((row, index) => `
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">${row.space || "-"}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${row.workPackages || "-"}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${row.items || "-"}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">₹${Number(row.amount || 0).toLocaleString("en-IN")}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">₹${Number(row.tax || 0).toLocaleString("en-IN")}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">₹${Number((row.amount || 0) + (row.tax || 0)).toLocaleString("en-IN")}</td>
+              </tr>
+            `).join("") || "<tr><td colspan='6' style='text-align: center; padding: 20px;'>No items in quote</td></tr>"}
+          </tbody>
+          <tfoot>
+            <tr style="background-color: #f9fafb; font-weight: bold;">
+              <td colspan="3" style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total:</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">₹${Number(totalAmount).toLocaleString("en-IN")}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">₹${Number(totalTax).toLocaleString("en-IN")}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; color: #dc2626;">₹${Number(total).toLocaleString("en-IN")}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 5px;">
+          <p style="margin-bottom: 15px;"><strong>Please review this quotation and approve it to proceed with contract signing.</strong></p>
+          <p style="margin-bottom: 10px;">To approve this quotation, please click the link below:</p>
+          <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/quote/approve/${quote._id}" 
+             style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+            Approve Quotation
+          </a>
+        </div>
+
+        <p style="margin-top: 30px; color: #666; font-size: 12px;">
+          This is an automated email from Huelip Platform. Please do not reply to this email.
+        </p>
+      </div>
+    `;
+
+    const quoteDetailsText = `
+Quotation ${quote.qid}
+
+Client: ${lead?.name || "N/A"}
+Total Amount: ₹${Number(total).toLocaleString("en-IN")}
+Date: ${new Date().toLocaleDateString("en-IN")}
+
+Quote Summary:
+${quote.summary?.map((row, index) => 
+  `${index + 1}. ${row.space || "-"} - Work Packages: ${row.workPackages || "-"}, Items: ${row.items || "-"}, Amount: ₹${Number(row.amount || 0).toLocaleString("en-IN")}, Tax: ₹${Number(row.tax || 0).toLocaleString("en-IN")}, Total: ₹${Number((row.amount || 0) + (row.tax || 0)).toLocaleString("en-IN")}`
+).join("\n") || "No items in quote"}
+
+Total Amount: ₹${Number(totalAmount).toLocaleString("en-IN")}
+Total Tax: ₹${Number(totalTax).toLocaleString("en-IN")}
+Grand Total: ₹${Number(total).toLocaleString("en-IN")}
+
+Please review this quotation and approve it to proceed with contract signing.
+To approve: ${process.env.FRONTEND_URL || "http://localhost:3000"}/quote/approve/${quote._id}
+    `;
+
+    // Send email
+    await emailAdapter.send({
+      to: clientEmail,
+      subject: `Quotation ${quote.qid} - Review Required`,
+      body: quoteDetailsText,
+      html: quoteDetailsHTML,
+      data: { quoteId: quote._id, qid: quote.qid }
+    });
+
+    // Update quote status to "In Review"
+    quote.status = "In Review";
+    quote.sentToClientAt = new Date();
+    await quote.save();
+
+    res.status(200).json({
+      message: "Quote sent to client successfully",
+      quote: quote,
+      emailSent: true,
+      clientEmail: clientEmail
+    });
+  } catch (error) {
+    console.error("Error sending quote to client:", error);
+    res.status(500).json({ 
+      message: "Error sending quote to client", 
+      error: error.message 
+    });
+  }
+};
+
+// Client approves quote
+const approveQuote = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await Quote.findById(id)
+      .populate("leadId", "name");
+
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    if (quote.status === "Approved") {
+      return res.status(400).json({ message: "Quote is already approved" });
+    }
+
+    // Update quote status to "Approved"
+    quote.status = "Approved";
+    quote.clientApprovedAt = new Date();
+    await quote.save();
+
+    res.status(200).json({
+      message: "Quote approved successfully",
+      quote: quote
+    });
+  } catch (error) {
+    console.error("Error approving quote:", error);
+    res.status(500).json({ 
+      message: "Error approving quote", 
+      error: error.message 
+    });
+  }
+};
 
 module.exports = {
   // Quote
@@ -864,12 +1205,21 @@ module.exports = {
   createProjectFromQuote,
   getDeliverablesByQuoteId,
 
+  // Revisions
+  createQuoteRevision,
+  getQuoteRevisions,
+  checkQuoteContractBlock,
+
   // Standalone Spaces
   getStandaloneSpaces,
   createStandaloneSpace,
   getStandaloneSpaceById,
   updateStandaloneSpace,
   deleteStandaloneSpace,
+
+  // Client Approval
+  sendQuoteToClient,
+  approveQuote,
 };
 
 // const Quote = require("../models/Quote");

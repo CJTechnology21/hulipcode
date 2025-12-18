@@ -14,9 +14,11 @@ const axiosInstance = axios.create({
 export const signupUser = (data) =>
   axiosInstance.post("/api/auth/signup", data).then(res => res.data);
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (emailOrPhone, password) => {
+  // Send both email and emailOrPhone so backend can handle either
   const response = await axiosInstance.post("/api/auth/login", {
-    email,
+    email: emailOrPhone,      // Backend will check if this is valid email
+    emailOrPhone: emailOrPhone, // Backend will also check this field
     password,
   });
   return response.data;
