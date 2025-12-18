@@ -1,16 +1,13 @@
-# Node
+# dependencies
 node_modules/
+
+# environment
 .env
+.env.*
 
-# React build
-frontend/build/
+# secrets
+*serviceAccountKey*.json
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-#seviceAccountkey
-backend/serviceAccountKey.json
+# build
+dist/
+build/
