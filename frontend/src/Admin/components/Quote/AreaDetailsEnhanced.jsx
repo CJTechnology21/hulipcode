@@ -26,7 +26,7 @@ const categories = [
   "Toilet",
 ];
 
-const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, standaloneSpaceId }) => {
+const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, standaloneSpaceId, isReadOnly = false }) => {
   const [spaceData, setSpaceData] = useState(null);
   const [areaName, setAreaName] = useState("");
   const [category, setCategory] = useState("");
@@ -204,7 +204,7 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
               Area Name
             </label>
             <div className="flex items-center gap-1">
-              {editingAreaName ? (
+              {!isReadOnly && editingAreaName ? (
                 <input
                   type="text"
                   value={areaName}
@@ -230,13 +230,15 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
                     readOnly
                     className="border rounded px-2 py-1.5 w-full text-sm font-semibold bg-gray-50"
                   />
-                  <button
-                    onClick={() => setEditingAreaName(true)}
-                    className="text-red-700 hover:text-red-900 flex-shrink-0"
-                    title="Edit"
-                  >
-                    <FaEdit className="text-sm" />
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setEditingAreaName(true)}
+                      className="text-red-700 hover:text-red-900 flex-shrink-0"
+                      title="Edit"
+                    >
+                      <FaEdit className="text-sm" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -245,7 +247,7 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
             <label className="text-red-700 font-bold text-xs block mb-1">
               Select Category
             </label>
-            {editingCategory ? (
+            {!isReadOnly && editingCategory ? (
               <DropDown
                 name="category"
                 value={category}
@@ -265,13 +267,15 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
                   readOnly
                   className="border rounded px-2 py-1.5 w-full text-sm font-semibold bg-gray-50"
                 />
-                <button
-                  onClick={() => setEditingCategory(true)}
-                  className="text-red-700 hover:text-red-900 flex-shrink-0"
-                  title="Edit"
-                >
-                  <FaEdit className="text-sm" />
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setEditingCategory(true)}
+                    className="text-red-700 hover:text-red-900 flex-shrink-0"
+                    title="Edit"
+                  >
+                    <FaEdit className="text-sm" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -283,13 +287,15 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
             <label className="text-red-700 font-bold text-xs">
               Enter Area Dimensions
             </label>
-            <Button
-              variant="custom"
-              onClick={() => setShowSpaceModal(true)}
-              className="flex items-center gap-1 bg-red-700 text-white text-xs px-2 py-1 rounded"
-            >
-              <FaPlus className="text-xs" /> Add
-            </Button>
+            {!isReadOnly && (
+              <Button
+                variant="custom"
+                onClick={() => setShowSpaceModal(true)}
+                className="flex items-center gap-1 bg-red-700 text-white text-xs px-2 py-1 rounded"
+              >
+                <FaPlus className="text-xs" /> Add
+              </Button>
+            )}
           </div>
           {[
             { label: "Length", val: length, setVal: setLength, editing: editingLength, setEditing: setEditingLength },
@@ -300,7 +306,7 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
               <span className="text-xs font-bold text-red-700 w-14">
                 {dim.label}
               </span>
-              {dim.editing ? (
+              {!isReadOnly && dim.editing ? (
                 <input
                   type="number"
                   value={dim.val}
@@ -326,13 +332,15 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
                     readOnly
                     className="border rounded px-2 py-1 w-16 font-bold text-xs text-center bg-gray-50"
                   />
-                  <button
-                    onClick={() => dim.setEditing(true)}
-                    className="text-red-700 hover:text-red-900 flex-shrink-0"
-                    title="Edit"
-                  >
-                    <FaEdit className="text-xs" />
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => dim.setEditing(true)}
+                      className="text-red-700 hover:text-red-900 flex-shrink-0"
+                      title="Edit"
+                    >
+                      <FaEdit className="text-xs" />
+                    </button>
+                  )}
                 </>
               )}
               <span className="text-xs font-bold">{displayUnit}</span>
@@ -346,7 +354,7 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
             <label className="text-red-700 font-bold text-sm">
               Door & Window Dimensions
             </label>
-            {spaceId && (
+            {spaceId && !isReadOnly && (
               <Button
                 variant="custom"
                 onClick={() => {
@@ -373,23 +381,27 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
                   <span className="font-semibold">{item.h || 0} {displayUnit}</span>
                   <span className="text-red-700 font-bold ml-1">W</span>
                   <span className="font-semibold">{item.w || 0} {displayUnit}</span>
-                  <button
-                    onClick={() => {
-                      setEditingOpening(item);
-                      setShowOpeningModal(true);
-                    }}
-                    className="text-blue-500 hover:text-blue-700 ml-2"
-                    title="Edit"
-                  >
-                    <FaEdit className="text-xs" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteOpening(item._id)}
-                    className="text-red-600 hover:text-red-700 ml-1"
-                    title="Delete"
-                  >
-                    <FaTrash className="text-xs" />
-                  </button>
+                  {!isReadOnly && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingOpening(item);
+                          setShowOpeningModal(true);
+                        }}
+                        className="text-blue-500 hover:text-blue-700 ml-2"
+                        title="Edit"
+                      >
+                        <FaEdit className="text-xs" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOpening(item._id)}
+                        className="text-red-600 hover:text-red-700 ml-1"
+                        title="Delete"
+                      >
+                        <FaTrash className="text-xs" />
+                      </button>
+                    </>
+                  )}
                 </div>
               ))
             )}
@@ -476,7 +488,7 @@ const AreaDetailsEnhanced = ({ quoteId, spaceId, summaryId, onAddDeliverable, st
               Custom
             </Button>
           </div>
-          {onAddDeliverable && (
+          {onAddDeliverable && !isReadOnly && (
             <Button
               variant="custom"
               onClick={onAddDeliverable}

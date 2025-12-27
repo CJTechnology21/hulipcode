@@ -46,12 +46,37 @@ const contractRoutes = require('./routes/contractRoutes')
 const ledgerRoutes = require('./routes/ledgerRoutes')
 const webhookRoutes = require('./routes/webhookRoutes')
 const adminRoutes = require('./routes/adminRoutes')
+const portfolioRoutes = require('./routes/portfolioRoutes')
+const portfolioProfileRoutes = require('./routes/portfolioProfileRoutes')
+const shortlistRoutes = require('./routes/shortlistRoutes')
 
-// Connect to MongoDB (async, but don't block server startup)
-connectDB().catch(err => {
-  console.error('❌ Failed to connect to MongoDB. Server will start but database operations will fail.');
-  console.error('Please check your MONGO_URI in .env file and ensure MongoDB is running.');
-});
+// Connect to MongoDB with retry logic
+let dbConnected = false;
+const connectWithRetry = async (retries = 5, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await connectDB();
+      dbConnected = true;
+      console.log('✅ Database connection established');
+      return;
+    } catch (err) {
+      console.error(`❌ Connection attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log(`⏳ Retrying in ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error('❌ Failed to connect to MongoDB after all retries.');
+        console.error('Please check:');
+        console.error('   1. MongoDB is running (local or Atlas)');
+        console.error('   2. MONGO_URI in .env file is correct');
+        console.error('   3. Network connectivity');
+        dbConnected = false;
+      }
+    }
+  }
+};
+
+connectWithRetry();
 
 const app = express();
 
@@ -80,11 +105,16 @@ app.use(cors({
 //  Middleware to parse JSON
 app.use(express.json());
 
+// Serve static files from uploads directory (for local storage fallback)
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 //  Route registrations
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/favourites', favouriteRoutes);
+app.use('/api/shortlist', shortlistRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/subscribe', subscribeRoutes);
@@ -118,6 +148,8 @@ app.use('/api/contracts', contractRoutes)
 app.use('/api/ledger', ledgerRoutes)
 app.use('/webhooks', webhookRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/portfolio', portfolioRoutes)
+app.use('/api/portfolio-profile', portfolioProfileRoutes)
 // app.use("/api/categories",categoryRoutes);
 // app.use("/api/subcategories",subcategoryRoutes)
 

@@ -15,6 +15,11 @@ export const createUser = async (userData) => {
   return res.data;
 };
 
+export const getUserProfile = async () => {
+  const res = await axiosInstance.get("/api/user/me");
+  return res.data;
+};
+
 export const updateUser = async (userId, userData) => {
   const res = await axiosInstance.put(`/api/user/${userId}`, userData, {
     headers: { "Content-Type": "application/json" },

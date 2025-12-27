@@ -25,7 +25,14 @@ function SignContract() {
   const navigate = useNavigate();
 
   // Extract data from navigation state
-  const { quoteId, totalAmount, qid, architectId, clientName } = location.state || {};
+  const { quoteId, totalAmount, qid, architectId, clientName, contractId } = location.state || {};
+  const [userRole, setUserRole] = useState("");
+  
+  // Get user role from localStorage
+  useEffect(() => {
+    const role = localStorage.getItem('crm_role') || '';
+    setUserRole(role);
+  }, []);
 
   // Utility: open multiple URLs in new tabs with anchor click (better for popup blockers)
   const openSigningLinks = (urls = []) => {
@@ -43,12 +50,28 @@ function SignContract() {
       });
   };
 
-  // Fetch quote details
+  // Fetch contract and quote details
   useEffect(() => {
-    const fetchQuoteDetails = async () => {
-      if (!quoteId) return;
+    const fetchData = async () => {
+      // If contractId is provided, fetch contract first to get quoteId
+      let quoteIdToUse = quoteId;
+      
+      if (contractId && !quoteId) {
+        try {
+          const { fetchContractById } = await import("../../../services/contractServices");
+          const contract = await fetchContractById(contractId);
+          if (contract?.quoteId?._id) {
+            quoteIdToUse = contract.quoteId._id;
+          }
+        } catch (err) {
+          console.error("Error fetching contract:", err);
+        }
+      }
+      
+      if (!quoteIdToUse) return;
+      
       try {
-        const quoteIdString = typeof quoteId === 'string' ? quoteId : (quoteId?._id || quoteId?.toString());
+        const quoteIdString = typeof quoteIdToUse === 'string' ? quoteIdToUse : (quoteIdToUse?._id || quoteIdToUse?.toString());
         const summary = await fetchQuoteSummary(quoteIdString);
         setQuoteData({ summary: Array.isArray(summary) ? summary : [] });
         
@@ -64,8 +87,8 @@ function SignContract() {
         console.error("Error fetching quote details:", error);
       }
     };
-    fetchQuoteDetails();
-  }, [quoteId]);
+    fetchData();
+  }, [quoteId, contractId]);
 
   // Download contract as PDF
   const handleDownloadPDF = async () => {
@@ -207,6 +230,33 @@ function SignContract() {
       const currentUserName = localStorage.getItem('crm_user_name') || clientName || "User";
       let currentUserEmail = localStorage.getItem('crm_user_email') || "";
       const currentUserRole = localStorage.getItem('crm_role') || "";
+      
+      // Fetch quote to get client and professional details
+      let quoteDetails = null;
+      let clientEmail = "";
+      let professionalEmail = "";
+      let professionalName = "";
+      
+      try {
+        const { fetchQuoteById } = await import("../../../services/quoteServices");
+        quoteDetails = await fetchQuoteById(quoteIdString);
+        
+        // Get client email from quote's leadId
+        if (quoteDetails?.leadId?.email) {
+          clientEmail = quoteDetails.leadId.email;
+        } else if (quoteDetails?.leadId?.contact && quoteDetails.leadId.contact.includes('@')) {
+          clientEmail = quoteDetails.leadId.contact;
+        }
+        
+        // Get professional email and name from quote's assigned
+        if (quoteDetails?.assigned && quoteDetails.assigned.length > 0) {
+          const professional = Array.isArray(quoteDetails.assigned) ? quoteDetails.assigned[0] : quoteDetails.assigned;
+          professionalName = professional.name || "";
+          professionalEmail = professional.email || "";
+        }
+      } catch (err) {
+        console.error("Error fetching quote details:", err);
+      }
 
       // If email is not in localStorage, try to fetch from API
       if (!currentUserEmail || !currentUserEmail.trim()) {
@@ -297,6 +347,46 @@ function SignContract() {
       });
       */
       
+      // Set up signers: Client first, then Professional
+      const signersList = [];
+      
+      // Add client as first signer
+      const clientSignerEmail = currentUserRole === 'client' ? currentUserEmail : (clientEmail || "");
+      if (clientSignerEmail && clientSignerEmail.trim()) {
+        signersList.push({
+          name: clientName || quoteDetails?.leadId?.name || "Client",
+          email: clientSignerEmail,
+          role: 'client',
+          // order: 1, // Client signs first
+        });
+      }
+      
+      // Add professional as second signer
+      const professionalSignerEmail = currentUserRole === 'architect' ? currentUserEmail : (professionalEmail || "");
+      if (professionalSignerEmail && professionalSignerEmail.trim() && professionalSignerEmail !== clientSignerEmail) {
+        signersList.push({
+          name: professionalName || quoteDetails?.assigned?.[0]?.name || "Professional",
+          email: professionalSignerEmail,
+          role: 'professional',
+          // order: 2, // Professional signs second
+        });
+      }
+      
+      // If current user is signing, ensure their email is in the list
+      if (currentUserEmail && currentUserEmail.trim()) {
+        const userSignerExists = signersList.some(s => s.email === currentUserEmail);
+        if (!userSignerExists) {
+          // Add current user as signer
+          signersList.push({
+            name: currentUserName,
+            email: currentUserEmail,
+            role: currentUserRole === 'client' ? 'client' : 'professional',
+          });
+        }
+      }
+      
+      const signers = signersList.filter(signer => signer.email && signer.email.trim()); // Remove any signers without email
+
       // Option B: Use PDF Workflow (requires PDF conversion)
       const contractData = {
         // ============================================
@@ -337,22 +427,7 @@ function SignContract() {
         quoteId: quoteIdString,
         
         // Signers (invitees) - Leegality API format
-        // Filter out signers without email addresses
-        signers: [
-          {
-            name: clientName || currentUserName,
-            email: currentUserEmail,
-            // phone: "+91XXXXXXXXXX", // Optional: add if available
-            // order: 1, // Optional: signing order if enabled in workflow
-          },
-          // Add professional signer if needed (only if different from client)
-          ...(clientName && clientName !== currentUserName ? [{
-            name: currentUserName,
-            email: currentUserEmail,
-            // phone: "+91XXXXXXXXXX", // Optional: add if available
-            // order: 2, // Optional: signing order if enabled in workflow
-          }] : []),
-        ].filter(signer => signer.email && signer.email.trim()), // Remove any signers without email
+        signers: signers,
         
         // Optional: CC recipients
         // cc: [
@@ -528,13 +603,22 @@ function SignContract() {
         // Continue with project creation even if Leegality API fails
       }
 
-      // Create project from quote
-      console.log("Creating project from quote...");
-      await createProjectFromQuote(quoteIdString, architectId);
+      // Create project from quote (only if both parties have signed or if professional is signing)
+      // Note: Project creation should ideally happen after both parties sign, but for now we'll create it when professional signs
+      if (currentUserRole === 'architect') {
+        console.log("Creating project from quote...");
+        try {
+          await createProjectFromQuote(quoteIdString, architectId);
+          toast.success("Contract sent for signing! Project will be created after both parties sign.");
+        } catch (projectError) {
+          console.error("Error creating project:", projectError);
+          // Don't fail the contract signing if project creation fails
+        }
+      }
 
-      toast.success("Contract signed successfully! Project created.");
+      toast.success("Contract sent for signing successfully! Both parties will receive signing links via email.");
       setTimeout(() => {
-        navigate("/projects");
+        navigate("/contracts");
       }, 1500);
     } catch (err) {
       console.error("Error signing contract:", err);

@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   FaChartBar,
@@ -17,17 +17,18 @@ import { MdSupportAgent } from "react-icons/md";
 import { IoIosSettings } from "react-icons/io";
 import logo from "../images/main.png";
 
-// Menu Configs
-const topMenuItems = [
-  { name: "Insights", icon: FaChartBar, path: "/insights" },
-  { name: "Projects", icon: FaFolder, path: "/projects" },
-  { name: "Leads", icon: FaUserFriends, path: "/leadmanagement" },
-  { name: "Quotation", icon: FaFileInvoiceDollar, path: "/quote" },
-  { name: "Contracts", icon: FaFileContract, path: "/contracts" },
-  { name: "Procurement", icon: LiaClipboardListSolid, path: "/procurement" },
-  { name: "Finance", icon: FaMoneyBillWave, path: "/finance" },
-  { name: "Vendors", icon: FaIdBadge, path: "/vendors" },
-  { name: "Settings", icon: IoIosSettings, path: "/settings" },
+// Base Menu Configs
+const baseTopMenuItems = [
+  { name: "Insights", icon: FaChartBar, path: "/insights", roles: ["admin", "architect"] },
+  { name: "Projects", icon: FaFolder, path: "/projects", roles: ["admin", "architect", "client"] },
+  { name: "Leads", icon: FaUserFriends, path: "/leadmanagement", roles: ["admin", "architect", "client"] },
+  { name: "Quotation", icon: FaFileInvoiceDollar, path: "/quote", roles: ["admin", "architect"] },
+  { name: "Quotation Requests", icon: FaFileInvoiceDollar, path: "/client-quotations", roles: ["client"] },
+  { name: "Contracts", icon: FaFileContract, path: "/contracts", roles: ["admin", "architect", "client"] },
+  { name: "Procurement", icon: LiaClipboardListSolid, path: "/procurement", roles: ["admin", "architect"] },
+  { name: "Finance", icon: FaMoneyBillWave, path: "/finance", roles: ["admin", "architect"] },
+  { name: "Vendors", icon: FaIdBadge, path: "/vendors", roles: ["admin", "architect"] },
+  { name: "Settings", icon: IoIosSettings, path: "/settings", roles: ["admin", "architect", "client"] },
 ];
 
 const bottomMenuItems = [
@@ -39,6 +40,27 @@ const SideBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(true);
+  
+  // Get user role from localStorage - initialize immediately to avoid empty menu
+  const [userRole, setUserRole] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('crm_role') || '';
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    const role = localStorage.getItem('crm_role') || '';
+    setUserRole(role);
+  }, []);
+
+  // Filter menu items based on user role
+  const topMenuItems = baseTopMenuItems.filter(item => {
+    if (!item.roles || item.roles.length === 0) return true;
+    // If userRole is not set yet, show all items temporarily
+    if (!userRole) return true;
+    return item.roles.includes(userRole);
+  });
 
   const handleItemClick = (path) => {
     const isSamePath = location.pathname === path;
@@ -53,6 +75,8 @@ const SideBar = () => {
 
   const renderMenuItem = ({ name, icon: Icon, path }) => {
     const isActive = location.pathname === path;
+    // Show "Requirement" instead of "Leads" for clients
+    const displayName = name === "Leads" && userRole === "client" ? "Requirement" : name;
 
     return (
       <li key={name}>
@@ -70,7 +94,7 @@ const SideBar = () => {
           <Icon
             className={`text-xl ${isActive ? "text-white" : "text-black"}`}
           />
-          {!collapsed && <span className="ml-3 font-semibold">{name}</span>}
+          {!collapsed && <span className="ml-3 font-semibold">{displayName}</span>}
         </button>
       </li>
     );

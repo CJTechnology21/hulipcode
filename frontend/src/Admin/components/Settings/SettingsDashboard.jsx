@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../Header";
 import SideBar from "../SideBar";
 import FirmDetails from "./FirmDetails";
@@ -7,24 +7,45 @@ import Portfolio from "./Portfolio";
 import Review from "./Review";
 import Charges from "./Charges";
 import ProjectProtfolio from "./ProjectPortfolio";
+import Profile from "./Profile";
 
-const tabs = [
+const professionalTabs = [
+  "Profile",
   "Firm Details",
   "Project Portfolio",
   "Team member",
   "Portfolio",
   "Review",
   "Charges",
-  "Logout",
+];
+
+const clientTabs = [
+  "Profile",
 ];
 
 function SettingsDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabMenuOpen, setTabMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("Firm Details");
+  const [userRole, setUserRole] = useState("");
+  const [activeSection, setActiveSection] = useState("Profile");
+
+  useEffect(() => {
+    const role = localStorage.getItem('crm_role') || '';
+    setUserRole(role);
+    // Set default section based on role
+    if (role === 'client') {
+      setActiveSection("Profile");
+    } else {
+      setActiveSection("Profile");
+    }
+  }, []);
+
+  const tabs = userRole === 'client' ? clientTabs : professionalTabs;
 
   const renderRightPanel = () => {
     switch (activeSection) {
+      case "Profile":
+        return <Profile />;
       case "Firm Details":
         return <FirmDetails />;
       case "Project Portfolio":

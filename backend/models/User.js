@@ -4,9 +4,10 @@ const addressSchema = new mongoose.Schema({
   address: { type: String, trim: true },
   gst: { type: String, trim: true },
   addressLine1: { type: String, trim: true },
+  area: { type: String, trim: true }, // Added area field
   city: { type: String, trim: true },
   state: { type: String, trim: true },
-  zip: { type: String, trim: true },
+  zip: { type: String, trim: true }, // This is pincode
   country: { type: String, trim: true },
 }, { _id: true });
 
@@ -37,6 +38,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  fatherName: { type: String, trim: true }, // Father name / Husband name
   phoneNumber: {
     type: String,
     match: /^[0-9]{10,15}$/,

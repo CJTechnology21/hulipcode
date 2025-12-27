@@ -806,7 +806,7 @@ import OpeningModal from "./OpeningModal";
 import { initialItems } from "./initialLeads";
 import { fetchDeliverables, updateSummaryRow } from "../../../services/quoteServices";
 
-const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
+const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId, isReadOnly = false }) => {
   // useEffect so state resets when switching sections
   const [areaName, setAreaName] = useState(spaceRow?.space || "");
   const [category, setCategory] = useState(spaceRow?.category || "");
@@ -908,6 +908,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
         spaceId={summaryId}
         summaryId={summaryId}
         standaloneSpaceId={spaceRow?.spaceId} // Pass the standalone space ID from summary
+        isReadOnly={isReadOnly}
         onSpaceUpdated={() => { /* Optional: handle space updates if needed */ }}
       />
 
@@ -915,7 +916,9 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
       <DeliverablesTableEnhanced
         quoteId={quoteId}
         spaceId={summaryId}
+        isReadOnly={isReadOnly}
         onAddDeliverable={() => {
+          if (isReadOnly) return;
           console.log("Add deliverable clicked - quoteId:", quoteId, "summaryId:", summaryId, "spaceRow:", spaceRow);
           if (!summaryId) {
             toast.error("Please select a space first. Summary ID is missing.");
@@ -928,6 +931,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
           setShowDeliverableModal(true);
         }}
         onDeliverableAddedOrUpdated={async () => {
+          if (isReadOnly) return;
           setRefreshDeliverables((prev) => prev + 1);
           // Update summary totals after deliverable operation
           if (quoteId && summaryId) {
@@ -952,7 +956,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
       />
 
       {/* Add Deliverable */}
-      {summaryId && quoteId && (
+      {summaryId && quoteId && !isReadOnly && (
         <DeliverableModal
           isOpen={showDeliverableModal}
           onClose={() => setShowDeliverableModal(false)}
@@ -963,7 +967,7 @@ const QuoteItemizedSection = ({ spaceRow, quoteId, isHuelip, summaryId }) => {
       )}
 
       {/* Edit Deliverable */}
-      {summaryId && quoteId && (
+      {summaryId && quoteId && !isReadOnly && (
         <DeliverableEditModal
           isOpen={showEditModal}
           item={selectedItem}

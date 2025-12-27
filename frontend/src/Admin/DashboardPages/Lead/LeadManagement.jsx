@@ -47,6 +47,8 @@ export default function Leads() {
   const [reminderTime, setReminderTime] = useState("");
   const [filters, setFilters] = useState({});
   const [leadList, setLeadList] = useState([]);
+  const [isProfessional, setIsProfessional] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,17 +57,31 @@ export default function Leads() {
   //eslint-disable-next-line
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const fieldMap = {
-    1: "id",
-    2: "name",
-    3: "budget",
-    4: "contact",
-    5: "status",
-    6: "category",
-    7: "update",
-    8: "assigned.name",
-    9: "followUp",
-    10: "source",
+  // Field map for filtering - different for professionals vs others
+  const getFieldMap = () => {
+    if (isProfessional) {
+      return {
+        1: "id",
+        2: "createdBy.name", // Client Name
+        3: "propertyDetails",
+        4: "budget",
+        5: "style",
+        6: "requirements",
+        7: "address",
+      };
+    }
+    return {
+      1: "id",
+      2: "name",
+      3: "budget",
+      4: "contact",
+      5: "status",
+      6: "category",
+      7: "update",
+      8: "assigned.name",
+      9: "followUp",
+      10: "source",
+    };
   };
 
   // Fetch leads from API
@@ -76,7 +92,9 @@ export default function Leads() {
       setLeadList(leads);
       setError(null);
     } catch (err) {
-      setError(err.message || "Error loading leads");
+      const currentUserRole = localStorage.getItem('crm_role') || '';
+      const isCli = currentUserRole === 'client';
+      setError(err.message || (isCli ? "Error loading requirements" : "Error loading leads"));
     } finally {
       setLoading(false);
     }
@@ -86,7 +104,17 @@ export default function Leads() {
     loadLeads();
   }, []);
 
+  // Check if current user is a professional or client
+  useEffect(() => {
+    const currentUserRole = localStorage.getItem('crm_role') || '';
+    const isProf = currentUserRole === 'architect';
+    const isCli = currentUserRole === 'client';
+    setIsProfessional(isProf);
+    setIsClient(isCli);
+  }, []);
+
   const filteredLeads = leadList.filter((lead) => {
+    const fieldMap = getFieldMap();
     return Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
       const fieldPath = fieldMap[key];
@@ -165,7 +193,7 @@ export default function Leads() {
 
   const handleSave = async () => {
     if (!editRowId) {
-      toast.error("No lead selected for update.");
+      toast.error(isClient ? "No requirement selected for update." : "No lead selected for update.");
       return;
     }
 
@@ -178,10 +206,10 @@ export default function Leads() {
         )
       );
 
-      toast.success("Lead updated successfully!");
+      toast.success(isClient ? "Requirement updated successfully!" : "Lead updated successfully!");
     } catch (err) {
       console.error("Update failed", err);
-      toast.error("Failed to update lead.");
+      toast.error(isClient ? "Failed to update requirement." : "Failed to update lead.");
     } finally {
       setEditRowId(null);
       setEditFormData({});
@@ -195,7 +223,7 @@ export default function Leads() {
 
   const handleDelete = async (id) => {
     if (!id) {
-      toast.error("Invalid lead ID.");
+      toast.error(isClient ? "Invalid requirement ID." : "Invalid lead ID.");
       return;
     }
 
@@ -204,10 +232,10 @@ export default function Leads() {
 
       setLeadList((prev) => prev.filter((lead) => lead._id !== id));
 
-      toast.success("Lead deleted successfully!");
+      toast.success(isClient ? "Requirement deleted successfully!" : "Lead deleted successfully!");
     } catch (err) {
       console.error("Delete failed", err);
-      toast.error("Failed to delete lead.");
+      toast.error(isClient ? "Failed to delete requirement." : "Failed to delete lead.");
     } finally {
       closeMenu();
     }
@@ -257,43 +285,62 @@ export default function Leads() {
     };
   };
 
+  // Get display labels based on user role
+  const getDisplayLabel = (label) => {
+    if (isClient) {
+      return label.replace(/Lead(s)?/gi, (match) => {
+        if (match.toLowerCase() === 'leads') return 'Requirements';
+        if (match.toLowerCase() === 'lead') return 'Requirement';
+        return match;
+      });
+    }
+    return label;
+  };
+
   return (
-    <Layout title="Leads Manager">
+    <Layout title={isClient ? "Requirement Manager" : "Leads Manager"}>
       <div className="flex flex-col flex-1 overflow-y-auto bg-gray-100">
         <div className="p-4 space-y-4">
           {/* Tabs */}
           <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center gap-3">
-            {tabs.map((tab) => (
-              <Button
-                key={tab.label}
-                variant="custom"
-                onClick={() => setActiveTab(tab.label)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border font-medium ${
-                  activeTab === tab.label
-                    ? "bg-[#a00000] text-white"
-                    : "bg-gray-100 text-black"
-                }`}
-              >
-                {tab.label}
-                <span className="bg-white text-black rounded-full px-2 py-0.5 text-sm">
-                  {tab.count}
-                </span>
-              </Button>
-            ))}
+            {tabs.map((tab) => {
+              const displayLabel = isClient ? getDisplayLabel(tab.label) : tab.label;
+              return (
+                <Button
+                  key={tab.label}
+                  variant="custom"
+                  onClick={() => setActiveTab(tab.label)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border font-medium ${
+                    activeTab === tab.label
+                      ? "bg-[#a00000] text-white"
+                      : "bg-gray-100 text-black"
+                  }`}
+                >
+                  {displayLabel}
+                  <span className="bg-white text-black rounded-full px-2 py-0.5 text-sm">
+                    {tab.count}
+                  </span>
+                </Button>
+              );
+            })}
             <div className="ml-auto flex gap-2">
-              <Button
-                variant="custom"
-                className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2"
-              >
-                Leads Config
-              </Button>
-              <Button
-                variant="custom"
-                className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2"
-                onClick={() => navigate("/leadform")}
-              >
-                <FaPlus /> Add Leads
-              </Button>
+              {!isProfessional && (
+                <>
+                  <Button
+                    variant="custom"
+                    className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2"
+                  >
+                    {isClient ? "Requirement Config" : "Leads Config"}
+                  </Button>
+                  <Button
+                    variant="custom"
+                    className="bg-[#a00000] text-white px-4 py-2 rounded-md flex items-center gap-2"
+                    onClick={() => navigate("/leadform")}
+                  >
+                    <FaPlus /> {isClient ? "Add Requirement" : "Add Leads"}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -311,62 +358,58 @@ export default function Leads() {
               <table className="w-full border-collapse mt-2 text-sm">
                 <thead>
                   <tr className="text-left bg-gray-100">
-                    {[
-                      "S.no",
-                      "Lead ID",
-                      "Name",
-                      "Budget",
-                      "Contact no.",
-                      "Email",
-                      "Status",
-                      "Category",
-                      "Last Update",
-                      "Assigned to",
-                      "Follow Up",
-                      "Source",
-                      "",
-                    ].map((head, i) => (
-                      <th
-                        key={i}
-                        className="px-3 py-2 font-bold whitespace-nowrap"
-                      >
-                        {head === "S.no" ? <BsFilter /> : head}
-                      </th>
-                    ))}
+                    {isProfessional ? (
+                      // Professional view: Only specific columns
+                      [
+                        "S.no",
+                        "Lead ID",
+                        "Client Name",
+                        "Property Details",
+                        "Budget",
+                        "Style",
+                        "Requirements",
+                        "Address",
+                      ].map((head, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2 font-bold whitespace-nowrap"
+                        >
+                          {head === "S.no" ? <BsFilter /> : head}
+                        </th>
+                      ))
+                    ) : (
+                      // Admin/Client view: All columns
+                      [
+                        "S.no",
+                        isClient ? "Requirement ID" : "Lead ID",
+                        "Name",
+                        "Budget",
+                        "Contact no.",
+                        "Email",
+                        "Status",
+                        "Category",
+                        "Last Update",
+                        "Assigned to",
+                        "Follow Up",
+                        "Source",
+                        "",
+                      ].map((head, i) => (
+                        <th
+                          key={i}
+                          className="px-3 py-2 font-bold whitespace-nowrap"
+                        >
+                          {head === "S.no" ? <BsFilter /> : head}
+                        </th>
+                      ))
+                    )}
                   </tr>
 
                   {/* Filters Row */}
                   <tr className="bg-white">
-                    {Array.from({ length: 13 }).map((_, idx) => (
-                      <td key={idx} className="px-3 py-2">
-                        {idx === 5 || idx === 6 ? (
-                          <select
-                            value={filters[idx] || ""}
-                            onChange={(e) =>
-                              setFilters({ ...filters, [idx]: e.target.value })
-                            }
-                            className={`w-full h-9 px-2 border rounded-lg text-xs ${
-                              idx === 5
-                                ? statusColorMap[filters[idx]] || "bg-gray-100"
-                                : categoryColorMap[filters[idx]] ||
-                                  "bg-gray-100"
-                            }`}
-                          >
-                            <option value="">Select</option>
-                            {idx === 5 &&
-                              Object.keys(statusColorMap).map((status) => (
-                                <option key={status} value={status}>
-                                  {status}
-                                </option>
-                              ))}
-                            {idx === 6 &&
-                              Object.keys(categoryColorMap).map((category) => (
-                                <option key={category} value={category}>
-                                  {category}
-                                </option>
-                              ))}
-                          </select>
-                        ) : idx === 11 || idx === 12 ? null : (
+                    {isProfessional ? (
+                      // Professional view: 8 columns (S.no, Lead ID, Client Name, Property Details, Budget, Style, Requirements, Address)
+                      Array.from({ length: 8 }).map((_, idx) => (
+                        <td key={idx} className="px-3 py-2">
                           <SearchBar
                             value={filters[idx] || ""}
                             onChange={(e) =>
@@ -375,9 +418,52 @@ export default function Leads() {
                             placeholder="Search"
                             className="h-9 text-xs bg-gray-100"
                           />
-                        )}
-                      </td>
-                    ))}
+                        </td>
+                      ))
+                    ) : (
+                      // Admin/Client view: All columns
+                      Array.from({ length: 13 }).map((_, idx) => (
+                        <td key={idx} className="px-3 py-2">
+                          {idx === 5 || idx === 6 ? (
+                            <select
+                              value={filters[idx] || ""}
+                              onChange={(e) =>
+                                setFilters({ ...filters, [idx]: e.target.value })
+                              }
+                              className={`w-full h-9 px-2 border rounded-lg text-xs ${
+                                idx === 5
+                                  ? statusColorMap[filters[idx]] || "bg-gray-100"
+                                  : categoryColorMap[filters[idx]] ||
+                                    "bg-gray-100"
+                              }`}
+                            >
+                              <option value="">Select</option>
+                              {idx === 5 &&
+                                Object.keys(statusColorMap).map((status) => (
+                                  <option key={status} value={status}>
+                                    {status}
+                                  </option>
+                                ))}
+                              {idx === 6 &&
+                                Object.keys(categoryColorMap).map((category) => (
+                                  <option key={category} value={category}>
+                                    {category}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : idx === 11 || idx === 12 ? null : (
+                            <SearchBar
+                              value={filters[idx] || ""}
+                              onChange={(e) =>
+                                setFilters({ ...filters, [idx]: e.target.value })
+                              }
+                              placeholder="Search"
+                              className="h-9 text-xs bg-gray-100"
+                            />
+                          )}
+                        </td>
+                      ))
+                    )}
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -385,169 +471,232 @@ export default function Leads() {
                     <React.Fragment key={lead._id}>
                       <tr className="border-b hover:bg-gray-50">
                         <td
-                          onClick={() => toggleRow(lead._id)}
+                          onClick={() => !isProfessional && toggleRow(lead._id)}
                           className="px-3 py-3"
                         >
                           {index + 1}
                         </td>
                         <td
-                          onClick={() => toggleRow(lead._id)}
+                          onClick={() => !isProfessional && toggleRow(lead._id)}
                           className="px-3 py-3"
                         >
-                          {lead.id} {/* still display custom Lead ID */}
+                          {lead.id}
                         </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <input
-                              value={editFormData.name}
-                              onChange={(e) => handleEditChange(e, "name")}
-                              className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
-                            />
-                          ) : (
-                            lead.name
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <input
-                              value={editFormData.budget}
-                              onChange={(e) => handleEditChange(e, "budget")}
-                              className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
-                            />
-                          ) : (
-                            lead.budget
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <input
-                              value={editFormData.contact}
-                              onChange={(e) => handleEditChange(e, "contact")}
-                              className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
-                            />
-                          ) : (
-                            lead.contact
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <input
-                              type="email"
-                              value={editFormData.email || ""}
-                              onChange={(e) => handleEditChange(e, "email")}
-                              className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
-                              placeholder="Enter email"
-                            />
-                          ) : (
-                            <span className="text-sm">{lead.email || "-"}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <select
-                              value={editFormData.status}
-                              onChange={(e) => handleEditChange(e, "status")}
-                              className={`w-full p-2 border border-red-500 rounded-md text-sm ${
-                                statusColorMap[editFormData.status] || ""
-                              }`}
-                            >
-                              <option value="">Select status</option>
-                              {Object.keys(statusColorMap).map((status) => (
-                                <option key={status} value={status}>
-                                  {status}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span
-                              className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center truncate ${
-                                statusColorMap[lead.status] || ""
-                              }`}
-                              title={lead.status}
-                            >
-                              {lead.status}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {editRowId === lead._id ? (
-                            <select
-                              value={editFormData.category}
-                              onChange={(e) => handleEditChange(e, "category")}
-                              className={`w-full p-2 border border-red-500 rounded-md text-sm ${
-                                categoryColorMap[editFormData.category] || ""
-                              }`}
-                            >
-                              <option value="">Select category</option>
-                              {Object.keys(categoryColorMap).map((category) => (
-                                <option key={category} value={category}>
-                                  {category}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span
-                              className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center truncate ${
-                                categoryColorMap[lead.category] || ""
-                              }`}
-                            >
-                              {lead.category}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <div
-                            onClick={() => openModal(lead)}
-                            className="bg-white border px-3 py-2 rounded text-xs cursor-pointer hover:bg-gray-100"
-                          >
-                            {(() => {
-                              const { text, date, time } = getUpdate(
-                                lead.update
-                              );
-                              return (
-                                <>
-                                  <div className="mb-1">{text}</div>
-                                  <div className="text-gray-400 text-[10px]">
-                                    DATE:{" "}
-                                    {formatDateTime(
-                                      { date, time },
-                                      lead.createdAt
-                                    )}
-                                    {lead.updatedAt && text !== "No updates yet"
-                                      ? " (Updated)"
-                                      : ""}
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2">
+                        {isProfessional ? (
+                          // Professional view: New fields only
+                          <>
+                            {/* Client Name */}
+                            <td className="px-3 py-3">
+                              {lead.createdBy?.name || lead.name || "-"}
+                            </td>
+                            {/* Property Details */}
+                            <td className="px-3 py-3">
+                              <span className="text-sm">{lead.propertyDetails || "-"}</span>
+                            </td>
+                            {/* Budget */}
+                            <td className="px-3 py-3">
+                              <span className="text-sm">{lead.budget || "-"}</span>
+                            </td>
+                            {/* Style */}
+                            <td className="px-3 py-3">
+                              <span className="text-sm">{lead.style || "-"}</span>
+                            </td>
+                            {/* Requirements */}
+                            <td className="px-3 py-3">
+                              <span 
+                                className="text-sm block max-w-xs truncate" 
+                                title={lead.requirements || ""}
+                              >
+                                {lead.requirements || "-"}
+                              </span>
+                            </td>
+                            {/* Address */}
+                            <td className="px-3 py-3">
+                              <span 
+                                className="text-sm block max-w-xs truncate" 
+                                title={lead.address || ""}
+                              >
+                                {lead.address || "-"}
+                              </span>
+                            </td>
+                          </>
+                        ) : (
+                          // Admin/Client view: Original fields
+                          <>
+                            {/* Name */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <input
+                                  value={editFormData.name}
+                                  onChange={(e) => handleEditChange(e, "name")}
+                                  className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
+                                />
+                              ) : (
+                                lead.name
+                              )}
+                            </td>
+                            {/* Budget */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <input
+                                  value={editFormData.budget}
+                                  onChange={(e) => handleEditChange(e, "budget")}
+                                  className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
+                                />
+                              ) : (
+                                lead.budget
+                              )}
+                            </td>
+                            {/* Contact no. */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <input
+                                  value={editFormData.contact}
+                                  onChange={(e) => handleEditChange(e, "contact")}
+                                  className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
+                                />
+                              ) : (
+                                lead.contact
+                              )}
+                            </td>
+                            {/* Email */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <input
+                                  type="email"
+                                  value={editFormData.email || ""}
+                                  onChange={(e) => handleEditChange(e, "email")}
+                                  className="w-full p-2 border border-red-500 rounded-md bg-white text-sm"
+                                  placeholder="Enter email"
+                                />
+                              ) : (
+                                <span className="text-sm">{lead.email || "-"}</span>
+                              )}
+                            </td>
+                            {/* Status */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <select
+                                  value={editFormData.status}
+                                  onChange={(e) => handleEditChange(e, "status")}
+                                  className={`w-full p-2 border border-red-500 rounded-md text-sm ${
+                                    statusColorMap[editFormData.status] || ""
+                                  }`}
+                                >
+                                  <option value="">Select status</option>
+                                  {Object.keys(statusColorMap).map((status) => (
+                                    <option key={status} value={status}>
+                                      {status}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span
+                                  className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center truncate ${
+                                    statusColorMap[lead.status] || ""
+                                  }`}
+                                  title={lead.status}
+                                >
+                                  {lead.status}
+                                </span>
+                              )}
+                            </td>
+                            {/* Category */}
+                            <td className="px-3 py-3">
+                              {editRowId === lead._id ? (
+                                <select
+                                  value={editFormData.category}
+                                  onChange={(e) => handleEditChange(e, "category")}
+                                  className={`w-full p-2 border border-red-500 rounded-md text-sm ${
+                                    categoryColorMap[editFormData.category] || ""
+                                  }`}
+                                >
+                                  <option value="">Select category</option>
+                                  {Object.keys(categoryColorMap).map((category) => (
+                                    <option key={category} value={category}>
+                                      {category}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span
+                                  className={`inline-block max-w-[180px] px-2 py-1 rounded-full text-xs text-center truncate ${
+                                    categoryColorMap[lead.category] || ""
+                                  }`}
+                                >
+                                  {lead.category}
+                                </span>
+                              )}
+                            </td>
+                          </>
+                        )}
+                        {/* Last Update - only for non-professionals */}
+                        {!isProfessional && (
+                          <td>
                             <div
-                              className={`w-6 h-6 text-xs rounded-full text-center font-bold flex items-center justify-center ${
-                                lead.assigned?.color || "bg-gray-300"
-                              }`}
+                              onClick={() => openModal(lead)}
+                              className="bg-white border px-3 py-2 rounded text-xs cursor-pointer hover:bg-gray-100"
                             >
-                              {lead.assigned?.name
-                                ? lead.assigned.name.charAt(0).toUpperCase()
-                                : "?"}
+                              {(() => {
+                                const { text, date, time } = getUpdate(
+                                  lead.update
+                                );
+                                return (
+                                  <>
+                                    <div className="mb-1">{text}</div>
+                                    <div className="text-gray-400 text-[10px]">
+                                      DATE:{" "}
+                                      {formatDateTime(
+                                        { date, time },
+                                        lead.createdAt
+                                      )}
+                                      {lead.updatedAt && text !== "No updates yet"
+                                        ? " (Updated)"
+                                        : ""}
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
-                            <span>{lead.assigned?.name || "Unassigned"}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <Button
-                            variant="custom"
-                            onClick={() => openReminderModal(lead._id)}
-                          >
-                            <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-2xl" />
-                          </Button>
-                        </td>
-                        <td className="px-3 py-3">
-                          {getSourceIcon(lead.source)}
-                        </td>
-                        <td className="px-3 py-3 relative">
+                          </td>
+                        )}
+                        {/* Assigned to - only for non-professionals */}
+                        {!isProfessional && (
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-6 h-6 text-xs rounded-full text-center font-bold flex items-center justify-center ${
+                                  lead.assigned?.color || "bg-gray-300"
+                                }`}
+                              >
+                                {lead.assigned?.name
+                                  ? lead.assigned.name.charAt(0).toUpperCase()
+                                  : "?"}
+                              </div>
+                              <span>{lead.assigned?.name || "Unassigned"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {/* Follow Up - only for non-professionals */}
+                        {!isProfessional && (
+                          <td className="px-3 py-3">
+                            <Button
+                              variant="custom"
+                              onClick={() => openReminderModal(lead._id)}
+                            >
+                              <FaCalendarAlt className="text-gray-600 hover:text-red-600 transition text-2xl" />
+                            </Button>
+                          </td>
+                        )}
+                        {/* Source - only for non-professionals */}
+                        {!isProfessional && (
+                          <td className="px-3 py-3">
+                            {getSourceIcon(lead.source)}
+                          </td>
+                        )}
+                        {/* Actions - only for non-professionals */}
+                        {!isProfessional && (
+                          <td className="px-3 py-3 relative">
                           {editRowId === lead._id ? (
                             <div className="flex gap-2">
                               <Button
@@ -623,7 +772,8 @@ export default function Leads() {
                               </Button>
                             </div>
                           )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
 
                       {/* Expanded Row */}

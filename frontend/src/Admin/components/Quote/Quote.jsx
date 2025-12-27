@@ -41,11 +41,17 @@ function Quote() {
         id: item._id,
         leadId: item.leadId?.id || "",
         leadIdMongo: item.leadId?._id,
-        name: item.leadId?.name || "",
+        name: item.leadId?.name || item.leadId?.createdBy?.name || `Client - ${item.leadId?.id || ""}`,
+        createdByName: item.leadId?.createdBy?.name || "",
         budget: item.leadId?.budget || "",
         contact: item.leadId?.contact || "",
         quoteAmount: item.quoteAmount,
         city: item.location || "",
+        // New lead fields
+        propertyDetails: item.leadId?.propertyDetails || "",
+        style: item.leadId?.style || "",
+        requirements: item.leadId?.requirements || "",
+        address: item.leadId?.address || "",
         assigned:
           item.assigned?.map((a) => ({
             _id: a?._id,
@@ -83,6 +89,11 @@ function Quote() {
             contact: lead.contact,
             category: lead.category,
             source: lead.source,
+            propertyDetails: lead.propertyDetails,
+            style: lead.style,
+            requirements: lead.requirements,
+            address: lead.address,
+            assigned: lead.assigned, // Include assigned professional from lead
           }))
           .filter((lead) => !quotedClientIds.has(lead._id));
         setAvailableClients(filtered);
@@ -226,7 +237,7 @@ function Quote() {
   return (
     <Layout title="Quotation">
       <ToastContainer />
-      <div className="bg-white shadow px-6 py-4 flex justify-end items-center">
+        <div className="bg-white shadow px-6 py-4 flex justify-end items-center gap-3">
         <button
           className="bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-red-800"
           onClick={() => setShowModal(true)}
@@ -237,7 +248,7 @@ function Quote() {
 
       <div className="p-4 sm:p-6 flex-1 flex flex-col gap-6">
         <div className="bg-white rounded-xl shadow overflow-x-auto p-4">
-          <table className="min-w-[1000px] w-full text-sm text-left">
+          <table className="min-w-[1200px] w-full text-sm text-left">
             <thead className="bg-gray-100 text-xs text-gray-600">
               <tr>
                 {[
@@ -245,11 +256,11 @@ function Quote() {
                   "Q-ID",
                   "Name",
                   "Lead ID",
+                  "Property Details",
                   "Budget",
-                  "Contact no.",
-                  "Quote Amount",
-                  "City/ Area",
-                  "Assigned to",
+                  "Style",
+                  "Requirements",
+                  "Address",
                   "Status",
                   "Action",
                 ].map((head, i) => (
@@ -317,90 +328,20 @@ function Quote() {
                         className="border border-red-500 px-2 py-1 rounded w-full text-sm"
                       />
                     ) : (
-                      <span className="font-bold">{lead.name || ""}</span>
+                      <span className="font-bold">{lead.name || lead.createdByName || "Unnamed Client"}</span>
                     )}
                   </td>
                   <td className="px-3 py-2">{lead.leadId || ""}</td>
+                  <td className="px-3 py-2 max-w-xs truncate" title={lead.propertyDetails || ""}>
+                    {lead.propertyDetails || "-"}
+                  </td>
                   <td className="px-3 py-2">{lead.budget || ""}</td>
-                  <td className="px-3 py-2">
-                    {editingIndex === i ? (
-                      <input
-                        value={editedData.contact || ""}
-                        onChange={(e) =>
-                          setEditedData({
-                            ...editedData,
-                            contact: e.target.value,
-                          })
-                        }
-                        className="border border-red-500 px-2 py-1 rounded w-full text-sm"
-                      />
-                    ) : (
-                      lead.contact || ""
-                    )}
+                  <td className="px-3 py-2">{lead.style || "-"}</td>
+                  <td className="px-3 py-2 max-w-xs truncate" title={lead.requirements || ""}>
+                    {lead.requirements || "-"}
                   </td>
-                  <td className="px-3 py-2">
-                    {editingIndex === i ? (
-                      <input
-                        value={editedData.quoteAmount || ""}
-                        onChange={(e) =>
-                          setEditedData({
-                            ...editedData,
-                            quoteAmount: e.target.value,
-                          })
-                        }
-                        className="border border-red-500 px-2 py-1 rounded w-full text-sm"
-                      />
-                    ) : (
-                      lead.quoteAmount || ""
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    {editingIndex === i ? (
-                      <input
-                        value={editedData.city || ""}
-                        onChange={(e) =>
-                          setEditedData({ ...editedData, city: e.target.value })
-                        }
-                        className="border border-red-500 px-2 py-1 rounded w-full text-sm"
-                      />
-                    ) : (
-                      lead.city || ""
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    {editingIndex === i ? (
-                      <select
-                        multiple
-                        value={editedData.assignedIds || []}
-                        onChange={(e) => {
-                          const options = Array.from(
-                            e.target.selectedOptions
-                          ).map((opt) => opt.value);
-                          setEditedData({
-                            ...editedData,
-                            assignedIds: options,
-                          });
-                        }}
-                        className="border border-red-500 px-2 py-1 rounded text-sm w-full"
-                      >
-                        {architects.map((arch) => (
-                          <option key={arch._id} value={arch._id}>
-                            {arch.name || ""}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex gap-1">
-                        {lead.assigned?.map((a, idx) => (
-                          <div
-                            key={idx}
-                            className="w-6 h-6 rounded-full bg-yellow-400 text-xs flex items-center justify-center font-bold"
-                          >
-                            {a?.name?.[0] || ""}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <td className="px-3 py-2 max-w-xs truncate" title={lead.address || ""}>
+                    {lead.address || "-"}
                   </td>
                   <td className="px-3 py-2">
                     {editingIndex === i ? (
@@ -479,13 +420,26 @@ function Quote() {
           selectedClient={selectedClient}
           setSelectedClient={setSelectedClient}
           onClose={() => setShowModal(false)}
-          onProceed={(amount, architectId) => {
-            if (selectedClient && amount && architectId) {
+          onProceed={() => {
+            if (selectedClient && selectedClient.assigned) {
+              // Use the lead's assigned professional automatically
+              // Handle both populated object and ObjectId string
+              const assignedProfessionalId = selectedClient.assigned._id 
+                ? selectedClient.assigned._id 
+                : (typeof selectedClient.assigned === 'string' 
+                    ? selectedClient.assigned 
+                    : null);
+              
+              if (!assignedProfessionalId) {
+                toast.error("This lead has no assigned professional. Please assign a professional to the lead first.");
+                return;
+              }
+              
               const newQuoteData = {
                 leadId: selectedClient._id,
-                quoteAmount: amount,
+                quoteAmount: 0, // Will be set later in the quote detail
                 city: "N/A",
-                assigned: [architectId],
+                assigned: [assignedProfessionalId], // Use lead's assigned professional
               };
               setShowSendOptions({ newQuoteData, selectedClient });
             }

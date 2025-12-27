@@ -118,7 +118,6 @@ function CategoryBar() {
                               to={`/${hoveredCategory.toLowerCase()}/${name
                                 .toLowerCase()
                                 .replace(/\s+/g, "-")}`}
-                             iting
                               className="hover:text-blue-500"
                             >
                               {name}

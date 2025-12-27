@@ -1,354 +1,494 @@
-import React, { useState } from "react";
-import Button from "../components/Button";
-import {
-  FaBackward,
-  FaShare,
-  FaRegHeart,
-  FaStar,
-  FaRegCommentDots,
-  FaUser,
-  FaEnvelope,
-  FaPhoneAlt,
-  FaFacebookF,
-} from "react-icons/fa";
-import { MdVerified } from "react-icons/md";
-import { LuOrigami } from "react-icons/lu";
-import { HiOutlineDotsHorizontal } from "react-icons/hi";
-import { HiMiniCurrencyDollar } from "react-icons/hi2";
-import { TbCircleDashed } from "react-icons/tb";
-import { SiGmail } from "react-icons/si";
-
-const portfolioProjects = [
-  {
-    title: "Modern Villa",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Urban Design",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Interior Concept",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Landscape",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Eco Building",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Luxury Tower",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Office Space",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Boutique Hotel",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Green Campus",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Museum Concept",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Eco Villa",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-  {
-    title: "Contemporary Loft",
-    image:
-      "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=",
-  },
-];
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import HomeHeader from "./HomeHeader";
+import { getPortfolioProfileByArchitectId } from "../services/portfolioProfileServices";
+import { getPortfoliosByArchitectId } from "../services/portfolioServices";
+import { FaChevronLeft, FaChevronRight, FaFacebook, FaInstagram, FaCheck } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 function HomeArchitectDetails() {
-  const [expanded, setExpanded] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [portfolioProfile, setPortfolioProfile] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [enquiryForm, setEnquiryForm] = useState({
+    name: "",
+    email: "",
+    phone: ""
+  });
+  const [otherProjectsStartIndex, setOtherProjectsStartIndex] = useState(0);
+  const autoSlideInterval = useRef(null);
 
-  const handleToggle = () => setExpanded(!expanded);
-  const [showAll, setShowAll] = useState(false);
+  // Handle viewing a project from other projects section
+  const handleViewProject = (projectIndex) => {
+    setCurrentProjectIndex(projectIndex);
+    setCurrentImageIndex(0);
+    // Scroll to top of project section
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  const showMoreProjects = () => {
-    if (showAll) {
-      setVisibleCount(6);
-      setShowAll(false);
+  // Get architect ID from location state or URL params
+  const architectId = location.state?.architectId || location.state?.portfolioProfile?.architectId?._id;
+
+  useEffect(() => {
+    if (architectId) {
+      loadData();
     } else {
-      setVisibleCount(portfolioProjects.length);
-      setShowAll(true);
+      toast.error("Professional not found");
+      navigate("/professional");
+    }
+  }, [architectId]);
+
+  // Auto-slide images for the main project
+  useEffect(() => {
+    const currentProject = projects[currentProjectIndex];
+    if (currentProject && currentProject.images && currentProject.images.length > 1) {
+      // Reset image index when project changes
+      setCurrentImageIndex(0);
+      
+      autoSlideInterval.current = setInterval(() => {
+        setCurrentImageIndex((prev) => {
+          const maxIndex = currentProject.images.length - 1;
+          return prev < maxIndex ? prev + 1 : 0;
+        });
+      }, 3000);
+    }
+
+    return () => {
+      if (autoSlideInterval.current) {
+        clearInterval(autoSlideInterval.current);
+      }
+    };
+  }, [projects, currentProjectIndex]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [profileData, projectsData] = await Promise.all([
+        getPortfolioProfileByArchitectId(architectId),
+        getPortfoliosByArchitectId(architectId)
+      ]);
+      
+      setPortfolioProfile(profileData);
+      setProjects(projectsData || []);
+      
+      if (projectsData && projectsData.length > 0) {
+        setCurrentProjectIndex(0);
+        setCurrentImageIndex(0);
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast.error("Failed to load professional details");
+      navigate("/professional");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const openModal = (project) => {
-    setSelectedProject(project);
-    setModalOpen(true);
+  const handleImageNavigation = (direction) => {
+    const currentProject = projects[currentProjectIndex];
+    if (!currentProject || !currentProject.images || currentProject.images.length === 0) return;
+    
+    const maxIndex = currentProject.images.length - 1;
+    
+    if (direction === "next") {
+      setCurrentImageIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+    } else {
+      setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
+    }
+    
+    // Reset auto-slide timer
+    if (autoSlideInterval.current) {
+      clearInterval(autoSlideInterval.current);
+    }
   };
 
-  const closeModal = () => {
-    setSelectedProject(null);
-    setModalOpen(false);
+  const handleThumbnailClick = (index) => {
+    setCurrentImageIndex(index);
   };
+
+  const handleOtherProjectsNavigation = (direction) => {
+    if (projects.length <= 1) return;
+    const maxIndex = projects.length - 1;
+    if (direction === "next") {
+      setOtherProjectsStartIndex((prev) => (prev < maxIndex - 2 ? prev + 1 : 0));
+    } else {
+      setOtherProjectsStartIndex((prev) => (prev > 0 ? prev - 1 : maxIndex - 2));
+    }
+  };
+
+  const handleEnquirySubmit = (e) => {
+    e.preventDefault();
+    // TODO: Implement enquiry submission
+    toast.success("Enquiry submitted successfully!");
+    setEnquiryForm({ name: "", email: "", phone: "" });
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <HomeHeader />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading professional details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!portfolioProfile || projects.length === 0) {
+    return (
+      <div>
+        <HomeHeader />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-600">No projects found for this professional</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentProject = projects[currentProjectIndex] || projects[0];
+  // Get other projects (all except the currently displayed one)
+  const otherProjects = projects.filter((_, index) => index !== currentProjectIndex);
+  const currentImage = currentProject?.images?.[currentImageIndex] || currentProject?.images?.[0];
+
   return (
-    <div className="w-full">
-      {/* Top Banner */}
-      <div className="w-full bg-black text-white h-64 mt-0">
-        <Button className="ml-6 mb-4">
-          <FaBackward />
-        </Button>
-        <div className="w-40 h-40 bg-blue-300 rounded-md ml-20 mt-36">
-          <img
-            className="object-fit h-40 w-40 rounded-md"
-            src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png"
-            alt=""
-          />
-        </div>
-        <div className="mt-6 ml-20">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-3xl font-bold font-mono text-red-400 whitespace-nowrap">
-              Architect Name — architect@gmail.com
-            </h2>
-            <div className="flex items-center space-x-3 ml-6">
-              <Button color="blue" size="lg" variant="icon">
-                <MdVerified size={28} />
-              </Button>
-              <Button color="gold" size="lg" variant="icon">
-                <LuOrigami size={28} />
-              </Button>
-              <Button color="black" size="lg" variant="icon">
-                <HiOutlineDotsHorizontal size={28} />
-              </Button>
-              <Button color="red" size="lg" variant="icon">
-                <FaRegHeart size={28} />
-              </Button>
-              <Button color="green" size="lg" variant="icon">
-                <FaShare size={28} />
-              </Button>
-              <div className="ml-2 flex space-x-3">
-                <Button color="pink" size="lg" className="px-6 py-2 rounded-md">
-                  Invite to Bid
-                </Button>
-                <Button
-                  variant="filled"
-                  color="pink"
-                  size="lg"
-                  className="px-6 py-2 rounded-md bg-pink-700 text-white hover:bg-pink-800"
-                >
-                  Contact
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <HomeHeader />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <button
+          onClick={() => navigate("/professional")}
+          className="mb-6 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+        >
+          <FaChevronLeft /> Back
+        </button>
 
-      {/* Content Area */}
-      <div className="bg-white text-black px-10 py-4 flex justify-between mt-36 ml-6">
-        {/* Left Side */}
-        <div className="ml-4 mr-8 max-w-[60%]">
-          <div className="flex items-center gap-6 text-yellow-500 font-semibold text-xl">
-            <span className="flex items-center gap-2">
-              {[...Array(5)].map((_, i) => (
-                <FaStar key={i} size={30} />
-              ))}
-              <span className="text-black ml-2 text-2xl">4.9</span>
-            </span>
-            <span className="flex items-center space-x-2 text-gray-400">
-              <FaRegCommentDots size={32} />
-              <span className="text-black text-xl">7209</span>
-            </span>
-            <span className="flex items-center space-x-2 text-black text-xl">
-              <HiMiniCurrencyDollar className="text-green-600" size={32} />
-              <span>10.0</span>
-            </span>
-            <span className="flex items-center space-x-2 text-black text-xl">
-              <TbCircleDashed className="text-blue-700" size={32} />
-              <span>100%</span>
-            </span>
-          </div>
-
-          <div className="mt-6">
-            <h2 className="font-bold text-2xl">
-              Project Manager, Civil Architect
-            </h2>
-            <p className="font-semibold text-lg flex items-center space-x-2 mt-4">
-              <span>7000+</span>
-              <FaStar className="text-yellow-500" />
-              <span>Reviews</span>
-            </p>
-            <p className="font-semibold text-lg mt-4">
-              2000+ satisfied clients. Glowing Reviews! Elevate Your Business
-              with Expertise in SEO ✌
-            </p>
-            <p className="font-medium text-base mt-4">
-              I specialize in innovative solutions and seamless project
-              execution across a wide range of construction disciplines.
-            </p>
-            <div className="mt-4">
-              <p
-                className={`font-medium text-base transition-all duration-300 ${
-                  expanded ? "" : "line-clamp-3"
-                }`}
-              >
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga ad
-                reprehenderit dolores delectus dolorem sequi distinctio magni
-                suscipit ratione illum, magnam quas deserunt enim earum...
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Side - Portfolio Profile Info */}
+          <div className="lg:w-1/3">
+            <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+            {/* Portfolio Name and Completed Projects */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {portfolioProfile.portfolioName || portfolioProfile.architectId?.name}
+              </h1>
+              <p className="text-gray-600">
+                {portfolioProfile.completedProjects || 0} Completed Projects
               </p>
-              <button
-                onClick={handleToggle}
-                className="text-blue-600 hover:underline mt-2 text-sm"
-              >
-                {expanded ? "Show Less" : "Read More...."}
-              </button>
             </div>
-            <ul className="list-none mt-4 space-y-2">
-              {[
-                "Why Elite Information Tech?",
-                "7000+ Freelancer.com Reviews (#1 in SEO, Internet Marketing)",
-                "15+ Years of Professional Experience",
-                "2000+ Satisfied Clients",
-                "24x7 Customer Support",
-                "Assured Job Completion On Time & On Budget",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start">
-                  <FaStar className="text-yellow-500 mt-1 mr-2" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
 
-        {/* Right Side Verifications */}
-        <div className="w-96 h-64 rounded-md border border-black p-4 bg-white shadow-md mt-10 mr-24">
-          <h2 className="text-xl font-semibold mb-4">Verifications</h2>
-          <div className="flex justify-between items-center text-green-600 text-xl mb-6 px-4">
-            <FaUser />
-            <FaEnvelope />
-            <FaPhoneAlt />
-            <SiGmail />
-            <FaFacebookF />
-          </div>
-          <div className="space-y-3 px-2 text-gray-700">
-            <div className="flex justify-between">
-              <span>On Time</span>
-              <span>98%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>On Budget</span>
-              <span>95%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Accept Rate</span>
-              <span>93%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Repeat Hire Rate</span>
-              <span>88%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Portfolio Section */}
-      <div className="w-full px-10 py-8 mt-6">
-        <h2 className="text-2xl font-bold mb-6">Portfolio</h2>
-        <div className="grid grid-cols-3 gap-10 max-w-[1400px] mx-auto">
-          {portfolioProjects.slice(0, visibleCount).map((project, i) => (
-            <div
-              key={i}
-              onClick={() => openModal(project)}
-              className="relative group overflow-hidden rounded-xl shadow-md h-[250px] cursor-pointer"
-            >
-              <img
-                src={project.image}
-                alt={project.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-center py-2 text-lg font-semibold opacity-0 group-hover:opacity-100 transition">
-                {project.title}
+            {/* About Us */}
+            {portfolioProfile.description && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">About us</h2>
+                <p className="text-gray-700 text-sm">
+                  {portfolioProfile.description}
+                </p>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
 
-        {/* Show More Button */}
+            {/* Address */}
+            {portfolioProfile.address && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Address</h2>
+                <p className="text-gray-700 text-sm">{portfolioProfile.address}</p>
+              </div>
+            )}
 
-        {portfolioProjects.length > 6 && (
-          <div className="flex justify-center mt-6">
-            <Button
-              onClick={showMoreProjects}
-              variant="custom"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            >
-              {showAll ? "Show Less" : "Show More"}
-            </Button>
-          </div>
-        )}
-      </div>
-      {modalOpen && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full relative flex gap-6">
-            {/* Close Button */}
-            <button
-              className="absolute top-2 right-2 text-gray-700 hover:text-red-600 text-xl"
-              onClick={closeModal}
-            >
-              ✕
-            </button>
+            {/* Socials */}
+            {(portfolioProfile.socialLinks?.facebook || portfolioProfile.socialLinks?.instagram) && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Socials</h2>
+                <div className="flex gap-4">
+                  {portfolioProfile.socialLinks.facebook && (
+                    <a
+                      href={portfolioProfile.socialLinks.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <FaFacebook size={24} />
+                    </a>
+                  )}
+                  {portfolioProfile.socialLinks.instagram && (
+                    <a
+                      href={portfolioProfile.socialLinks.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-600 hover:text-pink-800"
+                    >
+                      <FaInstagram size={24} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
-            {/* Left: Image */}
-            <div className="w-1/2">
-              <img
-                src={selectedProject.image}
-                alt={selectedProject.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
+            {/* Accreditations */}
+            {portfolioProfile.accreditations && portfolioProfile.accreditations.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Accreditations</h2>
+                <div className="space-y-2">
+                  {portfolioProfile.accreditations.map((acc, index) => (
+                    <div key={index} className="bg-gray-100 px-3 py-2 rounded text-sm">
+                      {acc}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* Right: Content */}
-            <div className="w-1/2 flex flex-col justify-center">
-              <h2 className="text-3xl font-bold mb-4">
-                {selectedProject.title}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                This is a detailed view of{" "}
-                <strong>{selectedProject.title}</strong>. You can add a full
-                project description, timeline, team members, design philosophy,
-                or anything else you want to showcase here.
-              </p>
-              <div className="mt-auto">
+            {/* Send an enquiry form */}
+            <div className="bg-white border rounded-lg p-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Send an enquiry</h2>
+              <form onSubmit={handleEnquirySubmit} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={enquiryForm.name}
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Your Email Address"
+                  value={enquiryForm.email}
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+                <input
+                  type="tel"
+                  placeholder="Your Phone Number"
+                  value={enquiryForm.phone}
+                  onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                />
                 <button
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  type="submit"
+                  className="w-full bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition-colors"
                 >
-                  Close
+                  Next
                 </button>
+              </form>
+              <div className="mt-4 space-y-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <FaCheck className="text-teal-500" />
+                  <span>Non-obligatory consultation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaCheck className="text-teal-500" />
+                  <span>1-on-1 with an interior designer</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaCheck className="text-teal-500" />
+                  <span>Open discussion about your home</span>
+                </div>
               </div>
             </div>
+            </div>
+          </div>
+
+          {/* Right Side - Current Project */}
+          <div className="lg:w-2/3 space-y-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {currentProject.name}
+            </h2>
+
+            {/* Main Project Image */}
+            {currentImage && (
+              <div className="relative mb-4">
+                <img
+                  src={currentImage}
+                  alt={currentProject.name}
+                  className="w-full h-96 object-cover rounded-lg"
+                />
+                {currentProject.images && currentProject.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => handleImageNavigation("prev")}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                    >
+                      <FaChevronLeft />
+                    </button>
+                    <button
+                      onClick={() => handleImageNavigation("next")}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                    >
+                      <FaChevronRight />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Project Budget and Timeframe */}
+            <div className="flex gap-6 mb-4">
+              <div>
+                <span className="text-gray-600">PROJECT BUDGET</span>
+                <p className="text-lg font-semibold">
+                  ${currentProject.budget?.toLocaleString() || "N/A"}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-600">PROJECT TIMEFRAME</span>
+                <p className="text-lg font-semibold">{currentProject.timeframe || "N/A"}</p>
+              </div>
+            </div>
+
+            {/* Image Thumbnails */}
+            {currentProject.images && currentProject.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+                {currentProject.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleThumbnailClick(index)}
+                    className={`flex-shrink-0 w-24 h-24 rounded overflow-hidden border-2 ${
+                      index === currentImageIndex
+                        ? "border-teal-500"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${currentProject.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Tags */}
+            {currentProject.type && (
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-gray-100 text-teal-600 rounded-full text-sm">
+                  {currentProject.type}
+                </span>
+                <span className="px-3 py-1 bg-gray-100 text-teal-600 rounded-full text-sm">
+                  Modern
+                </span>
+                <span className="px-3 py-1 bg-gray-100 text-teal-600 rounded-full text-sm">
+                  Scandinavian
+                </span>
+              </div>
+            )}
+
+            {/* Other Projects Section - Bottom of Right Side */}
+            {otherProjects.length > 0 && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Other Projects by {portfolioProfile.portfolioName || portfolioProfile.architectId?.name} ({otherProjects.length})
+                  </h2>
+                  {otherProjects.length > 3 && (
+                    <div className="flex gap-2">
+                      <span className="text-sm text-gray-600">PREV/NEXT</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  {otherProjects.length > 3 && (
+                    <>
+                      <button
+                        onClick={() => handleOtherProjectsNavigation("prev")}
+                        className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-md hover:bg-gray-50"
+                      >
+                        <FaChevronLeft />
+                      </button>
+                      <button
+                        onClick={() => handleOtherProjectsNavigation("next")}
+                        className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-md hover:bg-gray-50"
+                      >
+                        <FaChevronRight />
+                      </button>
+                    </>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-hidden">
+                    {otherProjects
+                      .slice(otherProjectsStartIndex, otherProjectsStartIndex + 3)
+                      .map((project) => {
+                        // Find the actual index of this project in the original projects array
+                        const actualIndex = projects.findIndex(p => p._id === project._id);
+                        return (
+                        <div
+                          key={project._id}
+                          className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                        >
+                          {project.images && project.images.length > 0 && (
+                            <div className="relative h-48 group">
+                              <img
+                                src={project.images[0]}
+                                alt={project.name}
+                                className="w-full h-full object-cover"
+                              />
+                              {project.images.length > 1 && (
+                                <>
+                                  <button
+                                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
+                                  >
+                                    <FaChevronLeft size={12} />
+                                  </button>
+                                  <button
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
+                                  >
+                                    <FaChevronRight size={12} />
+                                  </button>
+                                  <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                                    {Array.from({ length: Math.min(project.images.length, 5) }).map((_, i) => (
+                                      <div
+                                        key={i}
+                                        className="w-1.5 h-1.5 rounded-full bg-white bg-opacity-70"
+                                      />
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          <div className="p-4">
+                            <p className="text-sm text-gray-600 mb-1">
+                              {portfolioProfile.portfolioName || portfolioProfile.architectId?.name}
+                            </p>
+                            <h3 className="font-semibold text-gray-900 mb-2">{project.name}</h3>
+                            <p className="text-sm text-gray-500 mb-3">
+                              {project.budget && `Renovated for $${project.budget.toLocaleString()}`}
+                              {project.timeframe && ` • ${project.timeframe}`}
+                            </p>
+                            {project.type && (
+                              <div className="flex flex-wrap gap-2 mb-4">
+                                <span className="px-2 py-1 bg-gray-100 text-teal-600 text-xs rounded">
+                                  {project.type}
+                                </span>
+                              </div>
+                            )}
+                            <button 
+                              onClick={() => handleViewProject(actualIndex)}
+                              className="w-full bg-teal-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-teal-600 transition-colors"
+                            >
+                              View Projects
+                            </button>
+                          </div>
+                        </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

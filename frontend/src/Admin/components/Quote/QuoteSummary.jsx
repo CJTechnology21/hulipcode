@@ -24,6 +24,7 @@ const QuoteSummary = ({
   clientName,
   quoteStatus = "Send", // Quote status: "Send", "In Review", "Approved", etc. (default to "Send")
   onQuoteStatusChange, // Callback to update parent when status changes
+  isReadOnly = false, // If true, disable all editing functionality
 }) => {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
@@ -55,13 +56,25 @@ const QuoteSummary = ({
     `Rs ${Number(amount || 0).toLocaleString("en-IN")}/-`;
 
   // ✅ FIXED: Pass both Mongo _id and qid to Contract page
+  // ✅ UPDATED: Allow professionals (architects) to create project directly regardless of Huelip status
   const handleFinalAction = async () => {
-    if (isHuelip) {
-      if (!quoteId) {
-        toast.error("Quote ID missing!");
-        return;
-      }
+    console.log("🔘 Start Project button clicked!");
+    console.log("📋 Current state:", { quoteId, architectId, isHuelip, quoteStatus });
+    
+    if (!quoteId) {
+      console.error("❌ Quote ID missing!");
+      toast.error("Quote ID missing!");
+      return;
+    }
 
+    // Check if current user is a professional (architect)
+    const currentUserRole = localStorage.getItem('crm_role') || '';
+    const isProfessional = currentUserRole === 'architect';
+    console.log("👤 User role:", currentUserRole, "Is Professional:", isProfessional);
+
+    // For professionals: always create project directly, regardless of Huelip status
+    // For non-professionals with Huelip: navigate to contract page
+    if (isHuelip && !isProfessional) {
       navigate("/contract", {
         state: {
           quoteId, // ✅ Mongo _id (for API call)
@@ -70,35 +83,55 @@ const QuoteSummary = ({
           architectId,
         },
       });
-    } else {
-      // ✅ For Non-Huelip: Create project directly and then navigate
-      if (!quoteId) {
-        toast.error("Quote ID missing!");
+      return;
+    }
+
+    // For professionals or Non-Huelip: Create project directly
+    if (!architectId) {
+      toast.error("Architect ID missing! Cannot create project.");
+      return;
+    }
+
+    try {
+      setIsCreatingProject(true);
+      console.log("🚀 Starting project creation:", { quoteId, architectId });
+      toast.info("Creating project from quote...");
+      
+      const response = await createProjectFromQuote(quoteId, architectId);
+      console.log("✅ Project creation response:", response);
+      
+      if (!response || !response.project) {
+        console.error("❌ Invalid response from server:", response);
+        toast.error("Project creation failed: Invalid response from server");
         return;
       }
-
-      if (!architectId) {
-        toast.error("Architect ID missing! Cannot create project.");
-        return;
-      }
-
-      try {
-        setIsCreatingProject(true);
-        toast.info("Creating project from quote...");
-        
-        await createProjectFromQuote(quoteId, architectId);
-        
-        toast.success("Project created successfully!");
-        navigate("/projects");
-      } catch (err) {
-        console.error("Error creating project:", err);
-        toast.error(
-          err.response?.data?.message ||
-            "Failed to create project. Please try again."
-        );
-      } finally {
-        setIsCreatingProject(false);
-      }
+      
+      // Wait a moment to ensure project is fully saved in database
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log("✅ Project created successfully, navigating to projects page");
+      toast.success("Project created successfully!");
+      
+      // Navigate with a flag to trigger refresh
+      navigate("/projects", { 
+        state: { refresh: true, newProjectId: response?.project?._id } 
+      });
+    } catch (err) {
+      console.error("❌ Error creating project:", err);
+      console.error("❌ Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      toast.error(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+          "Failed to create project. Please try again."
+      );
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -135,7 +168,7 @@ const QuoteSummary = ({
     }
   };
 
-  // Send quote to client (TESTING MODE: Directly approves quote)
+  // Send quote to client
   const handleSendToClient = async () => {
     if (!quoteId) {
       toast.error("Quote ID missing!");
@@ -144,27 +177,20 @@ const QuoteSummary = ({
 
     try {
       setIsSendingQuote(true);
-      toast.info(`Approving quote ${qid} for testing...`);
+      toast.info(`Sending quote ${qid} to client...`);
       
-      // TESTING MODE: Skip email sending and directly approve quote
-      // This enables "Create Contract" button immediately
-      // TODO: Re-enable email sending when ready for production
-      
-      // Commented out for testing:
-      // const result = await sendQuoteToClient(quoteId);
-      
-      // Update quote status to "Approved" in database
-      await patchQuote(quoteId, { status: "Approved" });
+      // Send quote to client - this sets status to "In Review"
+      const result = await sendQuoteToClient(quoteId);
       
       // Update status in parent component
       if (onQuoteStatusChange) {
-        onQuoteStatusChange("Approved");
+        onQuoteStatusChange("In Review");
       }
       
-      toast.success(`Quote ${qid} approved! You can now create a contract.`);
+      toast.success(`Quote ${qid} sent to client successfully! Client can now review and accept/reject it.`);
     } catch (err) {
-      console.error("Error approving quote:", err);
-      toast.error("Failed to approve quote. Please try again.");
+      console.error("Error sending quote to client:", err);
+      toast.error(err.response?.data?.message || "Failed to send quote to client. Please try again.");
     } finally {
       setIsSendingQuote(false);
     }
@@ -185,8 +211,12 @@ const QuoteSummary = ({
             <th className="py-2 px-2">Amount</th>
             <th className="py-2 px-2">Tax</th>
             <th className="py-2 px-2">Total</th>
-            <th className="py-2 px-2">Edit</th>
-            <th className="py-2 px-2">Delete</th>
+            {!isReadOnly && (
+              <>
+                <th className="py-2 px-2">Edit</th>
+                <th className="py-2 px-2">Delete</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -195,7 +225,7 @@ const QuoteSummary = ({
               <tr key={row._id} className="border-b">
                 <td className="py-2 px-2">{index + 1}</td>
 
-                {editingRowId === row._id ? (
+                {!isReadOnly && editingRowId === row._id ? (
                   <>
                     <td className="py-2 px-2">
                       <input
@@ -305,25 +335,29 @@ const QuoteSummary = ({
                         (Number(row.amount) || 0) + (Number(row.tax) || 0)
                       )}
                     </td>
-                    <td
-                      className="py-2 px-2 text-red-700 hover:cursor-pointer"
-                      onClick={() => setEditingRowId(row._id)}
-                    >
-                      <FaEdit size={18} />
-                    </td>
-                    <td
-                      className="py-2 px-2 text-red-700 hover:cursor-pointer"
-                      onClick={() => handleDeleteRow(row._id)}
-                    >
-                      <MdDelete size={18} />
-                    </td>
+                    {!isReadOnly && (
+                      <>
+                        <td
+                          className="py-2 px-2 text-red-700 hover:cursor-pointer"
+                          onClick={() => setEditingRowId(row._id)}
+                        >
+                          <FaEdit size={18} />
+                        </td>
+                        <td
+                          className="py-2 px-2 text-red-700 hover:cursor-pointer"
+                          onClick={() => handleDeleteRow(row._id)}
+                        >
+                          <MdDelete size={18} />
+                        </td>
+                      </>
+                    )}
                   </>
                 )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="9" className="text-center py-4 text-gray-500 italic">
+              <td colSpan={isReadOnly ? "7" : "9"} className="text-center py-4 text-gray-500 italic">
                 No data available
               </td>
             </tr>
@@ -345,8 +379,8 @@ const QuoteSummary = ({
         </div>
       </div>
 
-      {/* Action Buttons - Always visible when Summary section */}
-      {activeSection === "Summary" && (
+      {/* Action Buttons - Hide for read-only mode */}
+      {activeSection === "Summary" && !isReadOnly && (
         <div className="mt-6 space-y-4">
           {/* Debug Info */}
           <div className="text-xs text-gray-500 mb-2">
@@ -392,15 +426,16 @@ const QuoteSummary = ({
                   try {
                     toast.info("Creating contract...");
                     const { createContractFromQuote } = await import("../../../services/contractServices");
-                    await createContractFromQuote(quoteId);
+                    const contract = await createContractFromQuote(quoteId);
+                    console.log("✅ Contract created:", contract);
                     toast.success("Contract created successfully! You can now sign it from the Contracts page.");
-                    // Optionally navigate to contracts page
+                    // Navigate to contracts page (without refresh flag to avoid loops)
                     setTimeout(() => {
-                      navigate("/contracts");
+                      navigate("/contracts", { replace: true });
                     }, 1500);
                   } catch (err) {
                     console.error("Error creating contract:", err);
-                    toast.error(err.response?.data?.error || "Failed to create contract. Please try again.");
+                    toast.error(err.response?.data?.error || err.response?.data?.message || "Failed to create contract. Please try again.");
                   }
                 }}
               >

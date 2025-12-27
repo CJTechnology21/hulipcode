@@ -26,11 +26,21 @@ import {
   fetchQuoteById,
   sendQuoteToClient,
   patchQuote,
+  updateSummaryRow,
+  fetchDeliverables,
+  getDeliverablesByQuoteId,
 } from "../../../services/quoteServices";
 import Button from "../../../components/Button";
 import { getClientType } from "../../../services/leadServices";
 
 function QuoteDetail() {
+  // Check if user is a client (read-only mode)
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('crm_role') || '';
+    setIsClient(userRole === 'client');
+  }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -89,6 +99,55 @@ function QuoteDetail() {
     }
   }, [showImportTemplateModal]);
 
+  // Function to recalculate summary totals from deliverables
+  const recalculateAllSummaryTotals = React.useCallback(async (summaryEntries) => {
+    if (!quoteId || !summaryEntries || summaryEntries.length === 0) return;
+
+    try {
+      // Recalculate totals for each summary entry
+      for (const summaryEntry of summaryEntries) {
+        if (!summaryEntry._id) continue; // Skip entries without _id
+
+        try {
+          // Fetch deliverables for this summary entry
+          const deliverables = await fetchDeliverables(quoteId, summaryEntry._id);
+          
+          // Calculate totals from deliverables
+          let totalItems = deliverables?.length || 0;
+          let totalAmount = 0;
+          let totalTax = 0;
+          
+          if (deliverables && deliverables.length > 0) {
+            deliverables.forEach((item) => {
+              const amount = (item.qty || 0) * (item.rate || 0);
+              const gstAmount = amount * ((item.gst || 0) / 100);
+              totalAmount += amount;
+              totalTax += gstAmount;
+            });
+          }
+
+          // Update summary entry with calculated totals
+          const summaryData = {
+            space: summaryEntry.space,
+            spaceId: summaryEntry.spaceId,
+            workPackages: summaryEntry.workPackages || 0,
+            items: totalItems,
+            amount: totalAmount,
+            tax: totalTax,
+            total: totalAmount + totalTax,
+          };
+
+          await updateSummaryRow(quoteId, summaryEntry._id, summaryData);
+        } catch (err) {
+          console.error(`Error recalculating totals for summary ${summaryEntry._id}:`, err);
+          // Continue with other entries even if one fails
+        }
+      }
+    } catch (err) {
+      console.error("Error recalculating summary totals:", err);
+    }
+  }, [quoteId]);
+
   // Fetch Quote Summary and Status initially
   useEffect(() => {
     const loadQuoteData = async () => {
@@ -119,8 +178,16 @@ function QuoteDetail() {
         });
         setSummary(summaryData);
 
+        // Recalculate all summary totals from deliverables
+        await recalculateAllSummaryTotals(summaryData);
+
+        // Re-fetch summary after recalculation to get updated values
+        const updatedData = await fetchQuoteSummary(quoteId);
+        const updatedSummaryData = Array.isArray(updatedData) ? updatedData : [];
+        setSummary(updatedSummaryData);
+
         //  Dynamically build sections from spaces
-        const dynamicSpaces = (Array.isArray(data) ? data : []).map(
+        const dynamicSpaces = (Array.isArray(updatedData) ? updatedData : []).map(
           (s) => s.space
         );
         setSections(["Summary", ...dynamicSpaces]);
@@ -130,7 +197,22 @@ function QuoteDetail() {
     };
 
     loadQuoteData();
-  }, [quoteId]);
+  }, [quoteId, recalculateAllSummaryTotals]);
+
+  // Recalculate summary totals when Summary section is viewed (with debounce to avoid too many calls)
+  useEffect(() => {
+    if (activeSection === "Summary" && summary.length > 0 && quoteId) {
+      const timer = setTimeout(async () => {
+        await recalculateAllSummaryTotals(summary);
+        // Refresh summary after recalculation
+        const updatedData = await fetchQuoteSummary(quoteId);
+        const updatedSummaryData = Array.isArray(updatedData) ? updatedData : [];
+        setSummary(updatedSummaryData);
+      }, 500); // Small delay to avoid too many rapid recalculations
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeSection]); // Only depend on activeSection to avoid infinite loops
 
   // --- Save Summary Handler ---
   const handleSaveSummary = async () => {
@@ -179,10 +261,17 @@ function QuoteDetail() {
     try {
       const data = await fetchQuoteSummary(quoteId);
       const summaryData = Array.isArray(data) ? data : [];
-      setSummary(summaryData);
+      
+      // Recalculate all summary totals from deliverables
+      await recalculateAllSummaryTotals(summaryData);
+      
+      // Re-fetch summary after recalculation to get updated values
+      const updatedData = await fetchQuoteSummary(quoteId);
+      const updatedSummaryData = Array.isArray(updatedData) ? updatedData : [];
+      setSummary(updatedSummaryData);
 
       // Update dynamic sections
-      const dynamicSpaces = summaryData.map((s) => s.space);
+      const dynamicSpaces = updatedSummaryData.map((s) => s.space);
       setSections(["Summary", ...dynamicSpaces]);
     } catch (err) {
       console.error("Error refreshing summary:", err);
@@ -241,77 +330,82 @@ function QuoteDetail() {
           ))}
           <span className="text-red-800 font-bold text-xl ml-2">»</span>
 
-          {/* Action Buttons */}
-          <div className="ml-auto flex space-x-2">
-            <Button
-              variant="custom"
-              className="flex items-center gap-1 bg-red-700 text-white text-sm px-3 py-1 rounded-full"
-              onClick={() => setShowNewSpaceView(true)}
-            >
-              <FaPlus className="text-xs" /> Add Space
-            </Button>
-
-            <Button
-              variant="custom"
-              className="bg-red-700 hover:bg-red-800 text-white text-sm px-3 py-1 rounded flex items-center gap-1"
-              onClick={() => setShowImportTemplateModal(true)}
-            >
-              <FaFileImport /> Import Template
-            </Button>
-            <Button
-              variant="custom"
-              className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
-              onClick={() => setShowActionModal(true)}
-            >
-              Action
-            </Button>
-            <Button
-              variant="custom"
-              className="bg-green-700 hover:bg-green-800 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
-              onClick={handleSaveSummary}
-            >
-              <FaSave /> Save Summary
-            </Button>
-            
-            {/* Send to Client Button - Show when status is "Send" or undefined */}
-            {(quoteStatus === "Send" || !quoteStatus) && (
+          {/* Action Buttons - Hide for clients (read-only mode) */}
+          {!isClient && (
+            <div className="ml-auto flex space-x-2">
               <Button
                 variant="custom"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
-                onClick={async () => {
-                  if (!quoteId) {
-                    toast.error("Quote ID missing!");
-                    return;
-                  }
-                  try {
-                    setIsSendingQuote(true);
-                    toast.info("Approving quote for testing...");
-                    
-                    // TESTING MODE: Skip email sending and directly approve quote
-                    // This enables "Create Contract" button immediately
-                    // TODO: Re-enable email sending when ready for production
-                    
-                    // Commented out for testing:
-                    // const result = await sendQuoteToClient(quoteId);
-                    
-                    // Update quote status to "Approved" in database
-                    await patchQuote(quoteId, { status: "Approved" });
-                    
-                    // Update status in component state
-                    setQuoteStatus("Approved");
-                    toast.success("Quote approved! You can now create a contract.");
-                  } catch (err) {
-                    console.error("Error approving quote:", err);
-                    toast.error("Failed to approve quote. Please try again.");
-                  } finally {
-                    setIsSendingQuote(false);
-                  }
-                }}
-                disabled={isSendingQuote}
+                className="flex items-center gap-1 bg-red-700 text-white text-sm px-3 py-1 rounded-full"
+                onClick={() => setShowNewSpaceView(true)}
               >
-                {isSendingQuote ? "⏳ Sending..." : "📧 Send to Client"}
+                <FaPlus className="text-xs" /> Add Space
               </Button>
-            )}
+
+              <Button
+                variant="custom"
+                className="bg-red-700 hover:bg-red-800 text-white text-sm px-3 py-1 rounded flex items-center gap-1"
+                onClick={() => setShowImportTemplateModal(true)}
+              >
+                <FaFileImport /> Import Template
+              </Button>
+              <Button
+                variant="custom"
+                className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
+                onClick={() => setShowActionModal(true)}
+              >
+                Action
+              </Button>
+              <Button
+                variant="custom"
+                className="bg-green-700 hover:bg-green-800 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
+                onClick={handleSaveSummary}
+              >
+                <FaSave /> Save Summary
+              </Button>
+              
+              {/* Send to Client Button - Show when status is "Send" or undefined */}
+              {(quoteStatus === "Send" || !quoteStatus) && (
+                <Button
+                  variant="custom"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded flex items-center gap-1"
+                  onClick={async () => {
+                    if (!quoteId) {
+                      toast.error("Quote ID missing!");
+                      return;
+                    }
+                    try {
+                      setIsSendingQuote(true);
+                      toast.info("Sending quote to client...");
+                      
+                      // Send quote to client - this sets status to "In Review"
+                      const result = await sendQuoteToClient(quoteId);
+                      
+                      // Update status in component state
+                      setQuoteStatus("In Review");
+                      toast.success("Quote sent to client successfully! Client can now review and accept/reject it.");
+                    } catch (err) {
+                      console.error("Error sending quote to client:", err);
+                      toast.error(err.response?.data?.message || "Failed to send quote to client. Please try again.");
+                    } finally {
+                      setIsSendingQuote(false);
+                    }
+                  }}
+                  disabled={isSendingQuote}
+                >
+                  {isSendingQuote ? "⏳ Sending..." : "📧 Send to Client"}
+                </Button>
+              )}
+            </div>
+          )}
+          
+          {/* Read-only indicator for clients */}
+          {isClient && (
+            <div className="ml-auto">
+              <div className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded flex items-center gap-1 border border-blue-300">
+                👁️ Read-Only View
+              </div>
+            </div>
+          )}
             
             {/* Status Badge - Show when quote is sent */}
             {quoteStatus === "In Review" && (
@@ -326,7 +420,6 @@ function QuoteDetail() {
                 ✅ Approved
               </div>
             )}
-          </div>
         </div>
 
         {/* Content */}
@@ -355,6 +448,7 @@ function QuoteDetail() {
                 console.log("QuoteDetail - Status changed to:", newStatus);
                 setQuoteStatus(newStatus);
               }}
+              isReadOnly={isClient}
             />
           ) : (
             <QuoteItemizedSection
@@ -370,6 +464,7 @@ function QuoteDetail() {
                 console.warn("Summary item missing _id:", foundSummary);
                 return foundSummary?._id;
               })()}
+              isReadOnly={isClient}
             />
           )}
         </div>

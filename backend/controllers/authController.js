@@ -6,8 +6,8 @@ const { OAuth2Client } = require('google-auth-library');
 
 // Validation utils
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-// Accept any 10-digit phone number (matching frontend validation)
-const isValidPhoneNumber = (phoneNumber) => /^\d{10}$/.test(phoneNumber);
+// Accept 10-15 digit phone number (matching model validation)
+const isValidPhoneNumber = (phoneNumber) => /^[0-9]{10,15}$/.test(phoneNumber);
 
 // Google OAuth2 setup
 const oauth2Client = new OAuth2Client(
@@ -65,7 +65,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Name must be at least 2 characters' });
 
     if (!phoneNumber || !isValidPhoneNumber(phoneNumber))
-      return res.status(400).json({ message: 'Enter a valid phone number (10 digits)' });
+      return res.status(400).json({ message: 'Enter a valid phone number (10-15 digits)' });
 
     if (!email || !isValidEmail(email))
       return res.status(400).json({ message: 'Enter a valid email address' });
@@ -103,7 +103,59 @@ const registerUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Signup Error:', err);
-    res.status(500).json({ message: 'Server error during registration' });
+    
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors 
+      });
+    }
+    
+    // Handle duplicate key errors (unique constraint violations)
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const fieldName = field === 'email' ? 'Email' : field === 'phoneNumber' ? 'Phone number' : field;
+      return res.status(400).json({ 
+        message: `${fieldName} already exists. Please use a different ${fieldName.toLowerCase()}.` 
+      });
+    }
+    
+    // Handle specific error messages
+    if (err.message) {
+      // Check if it's a role validation error
+      if (err.message.includes('role') || err.message.includes('enum')) {
+        return res.status(400).json({ 
+          message: 'Invalid role selected. Please choose a valid role.' 
+        });
+      }
+      
+      // Check if it's a phone number validation error
+      if (err.message.includes('phoneNumber') || err.message.includes('match')) {
+        return res.status(400).json({ 
+          message: 'Invalid phone number format. Please enter a valid 10-15 digit phone number.' 
+        });
+      }
+      
+      // Check if it's an email validation error
+      if (err.message.includes('email') || err.message.includes('match')) {
+        return res.status(400).json({ 
+          message: 'Invalid email format. Please enter a valid email address.' 
+        });
+      }
+      
+      // Return the error message if it's user-friendly
+      if (err.message.length < 200) {
+        return res.status(400).json({ message: err.message });
+      }
+    }
+    
+    // Generic server error for unexpected cases
+    res.status(500).json({ 
+      message: 'Server error during registration. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -150,11 +202,28 @@ const loginUser = async (req, res) => {
     
     // Check if MongoDB is connected
     const mongoose = require('mongoose');
-    if (mongoose.connection.readyState !== 1) {
-      console.error('❌ MongoDB is not connected. ReadyState:', mongoose.connection.readyState);
-      return res.status(503).json({ 
-        message: 'Database connection unavailable. Please try again in a moment.' 
-      });
+    const readyState = mongoose.connection.readyState;
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    if (readyState !== 1) {
+      console.error('❌ MongoDB is not connected. ReadyState:', readyState);
+      console.error('   ReadyState values: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting');
+      
+      // If connecting, wait a bit and retry
+      if (readyState === 2) {
+        console.log('⏳ MongoDB is connecting, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (mongoose.connection.readyState === 1) {
+          console.log('✅ MongoDB connected after wait');
+        } else {
+          return res.status(503).json({ 
+            message: 'Database is connecting. Please try again in a moment.' 
+          });
+        }
+      } else {
+        return res.status(503).json({ 
+          message: 'Database connection unavailable. Please check if MongoDB is running and MONGO_URI is correct in .env file.' 
+        });
+      }
     }
     
     // Find user by email OR phone number

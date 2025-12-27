@@ -22,7 +22,11 @@ const createQuote = async (req, res) => {
     const savedQuote = await newQuote.save();
 
     const populated = await Quote.findById(savedQuote._id)
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email");
 
     res.status(201).json(populated);
@@ -40,14 +44,24 @@ const getQuotes = async (req, res) => {
     // Admin and Professional (architect) see all quotes
     if (req.user && (isAdmin(req.user) || isProfessional(req.user))) {
       quotes = await Quote.find()
-        .populate("leadId", "id name budget contact category city")
+        .populate({
+          path: "leadId",
+          select: "id name budget contact category city propertyDetails style requirements address",
+          populate: { path: "createdBy", select: "name email" }
+        })
         .populate("assigned", "name email")
+        .populate("sentByProfessional", "name email")
         .sort({ createdAt: -1 });
     } else if (req.user) {
       // For homeowners, filter quotes based on user access
       const allQuotes = await Quote.find()
-        .populate("leadId", "id name budget contact category city")
+        .populate({
+          path: "leadId",
+          select: "id name budget contact category city propertyDetails style requirements address",
+          populate: { path: "createdBy", select: "name email" }
+        })
         .populate("assigned", "name email")
+        .populate("sentByProfessional", "name email")
         .sort({ createdAt: -1 });
       
       const accessibleQuotes = [];
@@ -75,8 +89,13 @@ const getQuotes = async (req, res) => {
 const getQuoteById = async (req, res) => {
   try {
     const quote = await Quote.findById(req.params.id)
-      .populate("leadId", "id name budget contact category city")
-      .populate("assigned", "name email");
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
+      .populate("assigned", "name email")
+      .populate("sentByProfessional", "name email");
 
     if (!quote) return res.status(404).json({ message: "Quote not found" });
 
@@ -108,7 +127,11 @@ const updateQuote = async (req, res) => {
     const updatedQuote = await Quote.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     })
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email");
 
     if (!updatedQuote) return res.status(404).json({ message: "Quote not found" });
@@ -175,7 +198,11 @@ const addSummaryToQuote = async (req, res) => {
       { $push: { summary: { $each: rows } } },
       { new: true }
     )
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email");
 
     if (!updatedQuote) {
@@ -254,7 +281,11 @@ const updateSummaryRow = async (req, res) => {
       },
       { new: true }
     )
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email");
 
     if (!updatedQuote) {
@@ -286,7 +317,11 @@ const deleteSummaryRow = async (req, res) => {
       { $pull: { summary: { _id: new mongoose.Types.ObjectId(spaceId) } } },
       { new: true }
     )
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email");
 
     if (!updatedQuote) {
@@ -494,17 +529,65 @@ const createProjectFromQuote = async (req, res) => {
     const { id } = req.params; // this is the quoteId
     const { architectId } = req.body;
 
+    console.log("🚀 createProjectFromQuote called:", { quoteId: id, architectId });
+
     const quote = await Quote.findById(id)
-      .populate("leadId", "name city category")
+      .populate({
+        path: "leadId",
+        select: "id name address category propertyDetails budget createdBy",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name _id");
 
     if (!quote) {
+      console.error("❌ Quote not found:", id);
       return res.status(404).json({ message: "Quote not found" });
+    }
+
+    console.log("✅ Quote found:", { 
+      quoteId: quote._id, 
+      qid: quote.qid,
+      leadId: quote.leadId?._id,
+      assigned: quote.assigned 
+    });
+    
+    // Debug: Log lead data to see what's available
+    console.log("📋 Lead data (before fetch):", {
+      leadId: quote.leadId?._id,
+      leadName: quote.leadId?.name,
+      leadAddress: quote.leadId?.address,
+      leadPropertyDetails: quote.leadId?.propertyDetails,
+      leadCategory: quote.leadId?.category,
+      leadIdDisplay: quote.leadId?.id,
+      createdBy: quote.leadId?.createdBy ? {
+        name: quote.leadId.createdBy.name,
+        email: quote.leadId.createdBy.email
+      } : null,
+      isPopulated: quote.leadId && typeof quote.leadId === 'object' && quote.leadId.name !== undefined
+    });
+
+    // If leadId is not populated (it's just an ObjectId), fetch it separately
+    let leadData = quote.leadId;
+    if (quote.leadId && (!quote.leadId.name && !quote.leadId.propertyDetails && !quote.leadId.address)) {
+      // leadId is likely just an ObjectId, not populated - fetch the full lead
+      const Lead = require("../models/Lead");
+      const leadIdToFetch = quote.leadId._id || quote.leadId;
+      leadData = await Lead.findById(leadIdToFetch)
+        .populate("createdBy", "name email")
+        .select("id name address category propertyDetails budget createdBy");
+      console.log("📋 Fetched lead separately:", {
+        leadId: leadData?._id,
+        name: leadData?.name,
+        address: leadData?.address,
+        propertyDetails: leadData?.propertyDetails,
+        createdByName: leadData?.createdBy?.name
+      });
     }
 
     // Check if contract signing is blocked (for revisions)
     const blockCheck = await checkContractSigningBlock(quote);
     if (blockCheck.blocked) {
+      console.error("❌ Contract signing blocked:", blockCheck);
       return res.status(400).json({
         message: blockCheck.message || "Contract signing is blocked",
         blocked: true,
@@ -513,22 +596,100 @@ const createProjectFromQuote = async (req, res) => {
       });
     }
 
-    // Pick architect ID — either from request or quote.assigned
-    const resolvedArchitectId =
-      architectId || (Array.isArray(quote.assigned) ? quote.assigned[0]?._id : null);
+    // Pick architect ID — prioritize logged-in user if they're a professional
+    // This ensures the person who clicks "Start Project" becomes the project architect
+    const { isProfessional } = require("../middleware/aclMiddleware");
+    let resolvedArchitectId = null;
+    
+    // If logged-in user is a professional, use their ID (they're starting the project)
+    if (req.user && isProfessional(req.user)) {
+      resolvedArchitectId = req.user._id;
+      console.log("👤 Using logged-in professional as architect:", resolvedArchitectId.toString());
+    } else {
+      // Otherwise, use the architectId from request body or quote
+      resolvedArchitectId = architectId;
+      
+      if (!resolvedArchitectId) {
+        if (Array.isArray(quote.assigned) && quote.assigned.length > 0) {
+          resolvedArchitectId = quote.assigned[0]?._id || quote.assigned[0];
+        } else if (quote.assigned) {
+          resolvedArchitectId = quote.assigned._id || quote.assigned;
+        }
+      }
+      
+      // Convert to ObjectId if it's a string
+      if (resolvedArchitectId && typeof resolvedArchitectId === 'string') {
+        if (mongoose.Types.ObjectId.isValid(resolvedArchitectId)) {
+          resolvedArchitectId = new mongoose.Types.ObjectId(resolvedArchitectId);
+        }
+      }
+    }
+
+    console.log("👤 Resolved architect ID:", resolvedArchitectId?.toString(), "Type:", typeof resolvedArchitectId);
 
     if (!resolvedArchitectId) {
+      console.error("❌ Architect ID missing");
       return res
         .status(400)
         .json({ message: "Architect ID is missing in both quote and request body" });
     }
 
+    // Use leadData if we fetched it separately, otherwise use quote.leadId
+    const lead = leadData || quote.leadId;
+    
+    // Get client name - prioritize lead name, fallback to createdBy name, then use propertyDetails or quote ID
+    let clientName = "Unknown Client";
+    if (lead) {
+      if (lead.name) {
+        clientName = lead.name;
+      } else if (lead.createdBy?.name) {
+        clientName = lead.createdBy.name;
+      } else if (lead.id) {
+        clientName = `Client - ${lead.id}`;
+      } else if (quote.qid) {
+        clientName = `Client - ${quote.qid}`;
+      }
+    } else if (quote.qid) {
+      clientName = `Client - ${quote.qid}`;
+    }
+    
+    // Get project name - use propertyDetails if available, otherwise use client name with quote ID
+    let projectName = "Unnamed Project";
+    if (lead) {
+      if (lead.propertyDetails) {
+        projectName = lead.propertyDetails;
+      } else if (lead.name) {
+        projectName = `${lead.name} - ${quote.qid || "Project"}`;
+      } else if (lead.createdBy?.name) {
+        projectName = `${lead.createdBy.name} - ${quote.qid || "Project"}`;
+      } else if (lead.id) {
+        projectName = `Project - ${lead.id}`;
+      } else if (quote.qid) {
+        projectName = `Project - ${quote.qid}`;
+      }
+    } else if (quote.qid) {
+      projectName = `Project - ${quote.qid}`;
+    }
+    
+    // Get location - use address from lead
+    let location = "Unknown Location";
+    if (lead?.address) {
+      location = lead.address;
+    }
+    
+    console.log("📝 Resolved project data:", {
+      projectName,
+      clientName,
+      location,
+      category: lead?.category || "RESIDENTIAL"
+    });
+    
     // ✅ Include quoteId reference when creating the project
     const projectData = {
-      name: quote.leadId?.name || "Unnamed Project",
-      client: quote.leadId?.name || "Unknown Client",
-      location: quote.leadId?.city || "Unknown Location",
-      category: quote.leadId?.category || "RESIDENTIAL",
+      name: projectName,
+      client: clientName,
+      location: location,
+      category: lead?.category || "RESIDENTIAL",
       status: getStateForQuoteProject(), // CONTRACT_SIGNED - project created from signed quote
       progress: 0,
       cashFlow: quote.quoteAmount || 0,
@@ -538,8 +699,16 @@ const createProjectFromQuote = async (req, res) => {
       leadId: quote.leadId?._id || null, // optional but helpful for cross lookup
     };
 
+    console.log("📝 Project data to create:", projectData);
+
     const newProject = new Project(projectData);
     await newProject.save();
+    
+    console.log("✅ Project created successfully:", {
+      projectId: newProject._id,
+      projectName: newProject.name,
+      architectId: newProject.architectId
+    });
 
     // ✅ Create escrow wallet for the project
     try {
@@ -581,8 +750,8 @@ const getDeliverablesByQuoteId = async (req, res) => {
       return res.status(400).json({ message: "Invalid quote ID format" });
     }
 
-    // Find the quote by ID and only return summary.deliverables
-    const quote = await Quote.findById(quoteId).select("summary.deliverables summary.space");
+    // Find the quote by ID - use lean() to get plain objects with all fields including _id
+    const quote = await Quote.findById(quoteId).select("summary").lean();
 
     if (!quote) {
       return res.status(404).json({ message: "Quote not found" });
@@ -590,9 +759,13 @@ const getDeliverablesByQuoteId = async (req, res) => {
 
     // Flatten all deliverables from each summary row
     const User = require("../models/User");
-    const allDeliverablesPromises = quote.summary.flatMap(summary => 
-      (summary.deliverables || []).map(async (del) => {
-        const delObj = del.toObject();
+    const allDeliverablesPromises = quote.summary.flatMap((summary, summaryIndex) => {
+      // With lean(), summary is already a plain object, so _id should be directly accessible
+      const summaryId = summary._id;
+      
+      return (summary.deliverables || []).map(async (del) => {
+        // With lean(), del is already a plain object
+        const delObj = del;
         // Populate assignedTo if it exists
         if (delObj.assignedTo) {
           try {
@@ -603,13 +776,42 @@ const getDeliverablesByQuoteId = async (req, res) => {
             delObj.assignedTo = null;
           }
         }
-        return {
+        
+        // Ensure spaceId is properly set - use summary._id or summary.spaceId
+        const spaceIdValue = summaryId || summary.spaceId;
+        
+        // Convert to string if it exists
+        let spaceIdString = null;
+        if (spaceIdValue) {
+          if (typeof spaceIdValue === 'object' && spaceIdValue.toString) {
+            spaceIdString = spaceIdValue.toString();
+          } else if (typeof spaceIdValue === 'string') {
+            spaceIdString = spaceIdValue;
+          } else {
+            spaceIdString = String(spaceIdValue);
+          }
+        }
+        
+        if (!spaceIdString) {
+          console.warn("⚠️ Summary missing _id for deliverable:", {
+            summaryId: summaryId,
+            summarySpaceId: summary.spaceId,
+            summary: summary,
+            space: summary.space,
+            deliverableId: delObj._id,
+            summaryKeys: Object.keys(summary || {})
+          });
+        }
+        
+        const result = {
           ...delObj,
           space: summary.space || "Unnamed Space",
-          spaceId: summary._id // Include summary ID for updates
+          spaceId: spaceIdString // Include summary ID for updates
         };
-      })
-    );
+        
+        return result;
+      });
+    });
     
     const allDeliverables = await Promise.all(allDeliverablesPromises);
 
@@ -811,7 +1013,11 @@ const createQuoteRevision = async (req, res) => {
 
     // Populate the revision
     const populatedRevision = await Quote.findById(result.revision._id)
-      .populate("leadId", "id name budget contact category city")
+      .populate({
+        path: "leadId",
+        select: "id name budget contact category city propertyDetails style requirements address",
+        populate: { path: "createdBy", select: "name email" }
+      })
       .populate("assigned", "name email")
       .populate("parent_quote_id", "qid quoteAmount");
 
@@ -1112,9 +1318,13 @@ To approve: ${process.env.FRONTEND_URL || "http://localhost:3000"}/quote/approve
       data: { quoteId: quote._id, qid: quote.qid }
     });
 
-    // Update quote status to "In Review"
+    // Update quote status to "In Review" and track who sent it
     quote.status = "In Review";
     quote.sentToClientAt = new Date();
+    // Store the professional who sent the quote (current user)
+    if (req.user) {
+      quote.sentByProfessional = req.user._id;
+    }
     await quote.save();
 
     res.status(200).json({
@@ -1161,6 +1371,39 @@ const approveQuote = async (req, res) => {
     console.error("Error approving quote:", error);
     res.status(500).json({ 
       message: "Error approving quote", 
+      error: error.message 
+    });
+  }
+};
+
+// Client rejects quote
+const rejectQuote = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await Quote.findById(id)
+      .populate("leadId", "name");
+
+    if (!quote) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    if (quote.status === "Rejected") {
+      return res.status(400).json({ message: "Quote is already rejected" });
+    }
+
+    // Update quote status to "Rejected"
+    quote.status = "Rejected";
+    await quote.save();
+
+    res.status(200).json({
+      message: "Quote rejected successfully",
+      quote: quote
+    });
+  } catch (error) {
+    console.error("Error rejecting quote:", error);
+    res.status(500).json({ 
+      message: "Error rejecting quote", 
       error: error.message 
     });
   }
@@ -1220,6 +1463,7 @@ module.exports = {
   // Client Approval
   sendQuoteToClient,
   approveQuote,
+  rejectQuote,
 };
 
 // const Quote = require("../models/Quote");

@@ -3,14 +3,14 @@ import { useAuth } from "../../context/AuthContext";
 import {
   getConnectedArchitectsAPI,
   getProjectsAPI,
-  updateProfileAPI,
 } from "../../services/mockServices"; // mock APIs for your domain
+import { updateUser } from "../../services/userServices";
 import ClipLoader from "react-spinners/ClipLoader";
 import Button from "../../components/Button";
 import { FaUser, FaBuilding, FaProjectDiagram, FaEdit, FaSave, FaTimes } from "react-icons/fa";
 
 export default function ClientProfileView() {
-  const { user, loading: authLoading, setUser } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phoneNumber: "" });
@@ -68,11 +68,24 @@ export default function ClientProfileView() {
   const saveProfile = async () => {
     setLoading(true);
     try {
-      await updateProfileAPI(profileForm);
-      setUser((prev) => ({ ...prev, ...profileForm }));
+      if (!user?._id) {
+        alert("User ID missing. Please refresh the page.");
+        return;
+      }
+      // Update user profile using real API
+      await updateUser(user._id, {
+        name: profileForm.name,
+        phoneNumber: profileForm.phoneNumber,
+        email: profileForm.email,
+      });
+      // Refresh user data from server to get updated name
+      if (refreshUser) {
+        await refreshUser();
+      }
       setEditingProfile(false);
-    } catch {
-      alert("Failed to update profile");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert(error.response?.data?.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }

@@ -12,7 +12,8 @@ const DeliverablesTableEnhanced = ({
   quoteId, 
   spaceId, 
   onAddDeliverable,
-  onDeliverableAddedOrUpdated 
+  onDeliverableAddedOrUpdated,
+  isReadOnly = false
 }) => {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -62,12 +63,14 @@ const DeliverablesTableEnhanced = ({
 
   // Edit handler - open sidebar when row is clicked
   const handleRowClick = (item) => {
+    if (isReadOnly) return;
     setSelectedItem(item);
     setIsModalOpen(true);
   };
 
   // Edit button handler
   const handleEdit = (item, e) => {
+    if (isReadOnly) return;
     e.stopPropagation();
     setSelectedItem(item);
     setIsModalOpen(true);
@@ -192,9 +195,11 @@ const DeliverablesTableEnhanced = ({
                   <th className="border border-gray-300 px-2 py-2 text-right font-semibold">
                     Total
                   </th>
-                  <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
-                    Action
-                  </th>
+                  {!isReadOnly && (
+                    <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                      Action
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -206,8 +211,8 @@ const DeliverablesTableEnhanced = ({
                   return (
                     <tr
                       key={item._id}
-                      className="hover:bg-red-50 transition-colors cursor-pointer"
-                      onClick={() => handleRowClick(item)}
+                      className={`transition-colors ${isReadOnly ? "" : "hover:bg-red-50 cursor-pointer"}`}
+                      onClick={() => !isReadOnly && handleRowClick(item)}
                     >
                       <td className="border border-gray-300 px-2 py-2 text-center">
                         {idx + 1}
@@ -262,24 +267,26 @@ const DeliverablesTableEnhanced = ({
                       <td className="border border-gray-300 px-2 py-2 text-right font-semibold">
                         ₹{totalWithGST.toLocaleString("en-IN")}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={(e) => handleEdit(item, e)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Edit"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            onClick={(e) => handleDelete(item._id, e)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Delete"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
+                      {!isReadOnly && (
+                        <td className="border border-gray-300 px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={(e) => handleEdit(item, e)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={(e) => handleDelete(item._id, e)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -290,13 +297,16 @@ const DeliverablesTableEnhanced = ({
 
         {/* Bottom Section: Add Item Button and Total Amount */}
         <div className="flex justify-between items-center mt-6">
-          <Button
-            variant="custom"
-            onClick={onAddDeliverable}
-            className="flex items-center gap-2 bg-red-700 hover:bg-red-900 text-white px-6 py-2 rounded-lg font-semibold"
-          >
-            <FaPlus /> Add Item
-          </Button>
+          {!isReadOnly && (
+            <Button
+              variant="custom"
+              onClick={onAddDeliverable}
+              className="flex items-center gap-2 bg-red-700 hover:bg-red-900 text-white px-6 py-2 rounded-lg font-semibold"
+            >
+              <FaPlus /> Add Item
+            </Button>
+          )}
+          {isReadOnly && <div></div>}
 
           <div className="flex flex-col items-end">
             <div className="text-sm text-gray-600 mb-1">

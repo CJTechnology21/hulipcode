@@ -52,6 +52,7 @@ const {
     // Client Approval
     sendQuoteToClient,
     approveQuote,
+    rejectQuote,
 } = require("../controllers/quoteController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -111,6 +112,7 @@ router.get("/:id/check-contract-block", protect, checkQuoteContractBlock);
 // CLIENT APPROVAL ROUTES
 router.post("/:id/send-to-client", protect, sendQuoteToClient);
 router.post("/:id/approve", approveQuote); // Public route for client approval via email link
+router.post("/:id/reject", rejectQuote); // Public route for client rejection
 
 module.exports = router;
 

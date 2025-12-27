@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
@@ -6,44 +7,37 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import {  fetchArchitects } from "../../../services/leadServices";
+import { fetchArchitects } from "../../../services/leadServices";
 import { createLead } from "../../../services/leadServices";
-const schema = yup.object().shape({
-  name: yup.string().required("Name is required"),
-  budget: yup.string().required("Budget is required"),
-  contact: yup.string().required("Contact is required"),
-  email: yup.string().email("Please enter a valid email address").nullable(),
-  status: yup.string().required("Status is required"),
-  category: yup.string().required("Category is required"),
-  assigned: yup.string().required("Assigned User is required"),
-  source: yup.string().required("Source is required"),
-  reminderDate: yup.string().nullable(),
-  reminderTime: yup.string().nullable(),
-  update: yup.string().nullable(),
-  isHuelip: yup.boolean(),
-});
-
-const STATUS_OPTIONS = [
-  "Not Assigned",
-  "Assigned",
-  "Requirement Gathered",
-  "Estimate Shared",
-  "Visit Planned",
-  "Pending on Client Decision",
-  "On Hold",
-  "Not Interested",
-  "Quotation Approved",
-];
-
-const CATEGORY_OPTIONS = ["RESIDENTIAL", "COMMERCIAL"];
-const SOURCE_OPTIONS = ["Google", "Facebook", "Instagram", "Huelip"];
+import { getShortlistedProfessionals } from "../../../services/shortlistServices";
+import { useAuth } from "../../../context/AuthContext";
+// Schema will be created dynamically based on whether user is a client
+const createSchema = (isClient) => {
+  return yup.object().shape({
+    propertyDetails: yup.string().required("Property details is required"),
+    budget: yup.string().required("Budget is required"),
+    style: yup.string().nullable(),
+    requirements: yup.string().nullable(),
+    address: yup.string().required("Address is required"),
+    assigned: isClient ? yup.string().nullable() : yup.string().required("Assigned User is required"),
+    isHuelip: yup.boolean(),
+  });
+};
 
 function LeadForm() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [architects, setArchitects] = useState([]);
   const [loadingArchitects, setLoadingArchitects] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
+  const [shortlistedProfessionals, setShortlistedProfessionals] = useState([]);
+  const [loadingShortlist, setLoadingShortlist] = useState(false);
+  
+  // Check if user is a client
+  const userRole = localStorage.getItem('crm_role') || user?.role || '';
+  const isClient = userRole === 'client';
+  
   const {
     register,
     handleSubmit,
@@ -51,54 +45,120 @@ function LeadForm() {
     formState: { errors, isSubmitting },
     reset,
   } = useForm({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(createSchema(isClient)),
     defaultValues: {
-      name: "",
-      isHuelip: false,
+      propertyDetails: "",
       budget: "",
-      contact: "",
-      email: "",
-      status: "Not Assigned",
-      category: "RESIDENTIAL",
-      update: "",
+      style: "",
+      requirements: "",
+      address: "",
       assigned: "",
-      source: "",
-      reminderDate: "",
-      reminderTime: "",
+      isHuelip: false,
     },
   });
 
-  // Fetch architects on mount
+  // Fetch shortlisted professionals if user is a client
   useEffect(() => {
-    const loadArchitects = async () => {
-      setLoadingArchitects(true);
-      try {
-        const data = await fetchArchitects();
-        setArchitects(data);
-      } catch (err) {
-        console.error("Error fetching architects", err);
-        toast.error("Failed to load architects");
-      } finally {
-        setLoadingArchitects(false);
-      }
-    };
-    loadArchitects();
-  }, []);
+    if (isClient) {
+      const loadShortlisted = async () => {
+        setLoadingShortlist(true);
+        try {
+          const data = await getShortlistedProfessionals();
+          setShortlistedProfessionals(data || []);
+          
+          // If no shortlisted professionals, show message and redirect
+          if (!data || data.length === 0) {
+            toast.warning("Please shortlist professionals first before adding a lead.");
+            setTimeout(() => {
+              navigate("/professional");
+            }, 2000);
+          }
+        } catch (err) {
+          console.error("Error fetching shortlisted professionals", err);
+          // If error, still allow form submission (might be admin)
+        } finally {
+          setLoadingShortlist(false);
+        }
+      };
+      loadShortlisted();
+    }
+  }, [isClient, navigate]);
+
+  // Fetch architects on mount (for non-client users)
+  useEffect(() => {
+    if (!isClient) {
+      const loadArchitects = async () => {
+        setLoadingArchitects(true);
+        try {
+          const data = await fetchArchitects();
+          setArchitects(data);
+        } catch (err) {
+          console.error("Error fetching architects", err);
+          toast.error("Failed to load architects");
+        } finally {
+          setLoadingArchitects(false);
+        }
+      };
+      loadArchitects();
+    }
+  }, [isClient]);
 
   // Handle form submit
   const onSubmit = async (data) => {
-  try {
-    const payload = { ...data };
-    delete payload.id; // ensure no duplicate id gets sent
-    await createLead(payload);
-    toast.success("Lead saved successfully!");
-    reset();
-    setSearchTerm("");
-  } catch (err) {
-    console.error("Create Lead Error:", err.response?.data || err.message);
-    toast.error(err.response?.data?.message || "Error saving lead");
-  }
-};
+    try {
+      // If client and no shortlisted professionals, prevent submission
+      if (isClient && (!shortlistedProfessionals || shortlistedProfessionals.length === 0)) {
+        toast.error("Please shortlist at least one professional before adding a lead.");
+        navigate("/professional");
+        return;
+      }
+
+      const payload = { ...data };
+      delete payload.id; // ensure no duplicate id gets sent
+      
+      // Set default status for new leads
+      payload.status = "Assigned";
+      
+      // If client, create lead for each shortlisted professional
+      if (isClient && shortlistedProfessionals.length > 0) {
+        const professionalIds = shortlistedProfessionals.map((shortlist) => {
+          // Handle both populated and non-populated professionalId
+          if (shortlist.professionalId && typeof shortlist.professionalId === 'object') {
+            return shortlist.professionalId._id || shortlist.professionalId;
+          }
+          return shortlist.professionalId;
+        }).filter(Boolean); // Remove any undefined/null values
+        
+        if (professionalIds.length === 0) {
+          toast.error("No valid professionals found in shortlist.");
+          return;
+        }
+        
+        // Create leads for all shortlisted professionals
+        const leadPromises = professionalIds.map((professionalId) => {
+          const leadPayload = {
+            ...payload,
+            assigned: professionalId,
+            status: "Assigned", // Auto-assign status
+          };
+          return createLead(leadPayload);
+        });
+        
+        await Promise.all(leadPromises);
+        toast.success(`Lead saved successfully and assigned to ${professionalIds.length} professional(s)!`);
+      } else {
+        // For non-clients, use the existing flow
+        await createLead(payload);
+        toast.success("Lead saved successfully!");
+      }
+      
+      reset();
+      setSearchTerm("");
+    } catch (err) {
+      console.error("Create Lead Error:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Error saving lead");
+    }
+  };
 
   // const onSubmit = async (data) => {
   //   try {
@@ -119,21 +179,21 @@ function LeadForm() {
   );
 
   return (
-    <Layout title="Add New Lead">
+    <Layout title={isClient ? "Add New Requirement" : "Add New Lead"}>
       <div className="max-w-9xl p-4 m-4 bg-white rounded-xl min-h-screen relative">
-        <h2 className="text-2xl font-bold mb-8">Add Leads</h2>
+        <h2 className="text-2xl font-bold mb-8">{isClient ? "Add Requirement" : "Add Leads"}</h2>
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 bg-white p-4 rounded-lg"
         >
-          {/* Name */}
+          {/* Property Details */}
           <div>
-            <label className="block font-semibold mb-1">Name</label>
+            <label className="block font-semibold mb-1">Property Details</label>
             <Input
-              name="name"
-              placeholder="Enter name"
+              name="propertyDetails"
+              placeholder="Enter property details"
               register={register}
-              error={errors.name}
+              error={errors.propertyDetails}
             />
           </div>
 
@@ -148,185 +208,138 @@ function LeadForm() {
             />
           </div>
 
-          {/* Contact */}
+          {/* Style */}
           <div>
-            <label className="block font-semibold mb-1">Contact</label>
+            <label className="block font-semibold mb-1">Style</label>
             <Input
-              name="contact"
-              placeholder="Enter contact number"
+              name="style"
+              placeholder="Enter style"
               register={register}
-              error={errors.contact}
+              error={errors.style}
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block font-semibold mb-1">
-              Email <span className="text-gray-500 text-sm">(Required for quote approval)</span>
-            </label>
-            <Input
-              name="email"
-              type="email"
-              placeholder="Enter email address"
-              register={register}
-              error={errors.email}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block font-semibold mb-1">Status</label>
-            <select
-              {...register("status")}
-              className="w-full border rounded p-3"
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-            {errors.status && (
-              <p className="text-red-500 text-sm">{errors.status.message}</p>
-            )}
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block font-semibold mb-1">Category</label>
-            <select
-              {...register("category")}
-              className="w-full border rounded p-3"
-            >
-              {CATEGORY_OPTIONS.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            {errors.category && (
-              <p className="text-red-500 text-sm">{errors.category.message}</p>
-            )}
-          </div>
-
-          {/* Assigned Architect Search */}
-          <div className="relative">
-            <label className="block font-semibold mb-1">Assigned User</label>
-            <input
-              type="text"
-              placeholder="Search project..."
-              className={`w-full border rounded p-3 ${
-                errors.assigned ? "border-red-500" : ""
-              }`}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-            />
-            <input type="hidden" {...register("assigned")} />
-
-            {/* Modal-like dropdown */}
-            {showDropdown && (
-              <div
-                className="absolute left-0 mt-1 w-full bg-white border rounded shadow-lg z-20"
-                style={{
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                }}
-              >
-                {loadingArchitects ? (
-                  <p className="p-3">Loading...</p>
-                ) : filteredArchitects.length > 0 ? (
-                  filteredArchitects.map((arch) => (
-                    <div
-                      key={arch._id}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        // Fill ID into visible search bar
-                        setSearchTerm(arch._id);
-                        // Also keep in hidden assigned field
-                        setValue("assigned", arch._id);
-                        // Close dropdown
-                        setShowDropdown(false);
-                      }}
-                    >
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold uppercase">
-                        {(arch.name || "")
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">
-                          {arch.name || "Unnamed"}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="p-3 text-gray-500">No results found</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Source */}
-          <div>
-            <label className="block font-semibold mb-1">Source</label>
-            <select
-              {...register("source")}
-              className="w-full border rounded p-3"
-            >
-              <option value="">Select source</option>
-              {SOURCE_OPTIONS.map((src) => (
-                <option key={src} value={src}>
-                  {src}
-                </option>
-              ))}
-            </select>
-            {errors.source && (
-              <p className="text-red-500 text-sm">{errors.source.message}</p>
-            )}
-          </div>
-
-          {/* Reminder Date */}
-          <div>
-            <label className="block font-semibold mb-1">Reminder Date</label>
-            <Input
-              name="reminderDate"
-              type="date"
-              register={register}
-              error={errors.reminderDate}
-            />
-          </div>
-
-          {/* Reminder Time */}
-          <div>
-            <label className="block font-semibold mb-1">Reminder Time</label>
-            <Input
-              name="reminderTime"
-              type="time"
-              register={register}
-              error={errors.reminderTime}
-            />
-          </div>
-
-          {/* Update */}
+          {/* Requirements */}
           <div className="xl:col-span-3">
-            <label className="block font-semibold mb-1">Update</label>
+            <label className="block font-semibold mb-1">Requirements</label>
             <textarea
-              {...register("update")}
+              {...register("requirements")}
               className="w-full border rounded p-3"
               rows="3"
+              placeholder="Enter requirements"
             />
-            {errors.update && (
-              <p className="text-red-500 text-sm">{errors.update.message}</p>
+            {errors.requirements && (
+              <p className="text-red-500 text-sm">{errors.requirements.message}</p>
+            )}
+          </div>
+
+          {/* Address */}
+          <div className="xl:col-span-3">
+            <label className="block font-semibold mb-1">Address</label>
+            <Input
+              name="address"
+              placeholder="Enter address"
+              register={register}
+              error={errors.address}
+            />
+          </div>
+
+          {/* Assigned User Field */}
+          <div className="relative xl:col-span-3">
+            <label className="block font-semibold mb-1">Assigned To</label>
+            {isClient ? (
+              // For clients: Show shortlisted professionals count (read-only)
+              <div>
+                <input
+                  type="text"
+                  readOnly
+                  value={
+                    loadingShortlist
+                      ? "Loading..."
+                      : shortlistedProfessionals.length > 0
+                      ? `${shortlistedProfessionals.length} Professional(s)`
+                      : "No professionals shortlisted"
+                  }
+                  className={`w-full border rounded p-3 bg-gray-50 cursor-not-allowed ${
+                    shortlistedProfessionals.length === 0 ? "border-red-300" : ""
+                  }`}
+                  placeholder="Shortlisted professionals will be auto-assigned"
+                />
+                {shortlistedProfessionals.length === 0 && (
+                  <p className="text-red-500 text-sm mt-1">
+                    Please shortlist professionals first. Redirecting to Professional page...
+                  </p>
+                )}
+                {shortlistedProfessionals.length > 0 && (
+                  <p className="text-gray-500 text-sm mt-1">
+                    Lead will be assigned to all {shortlistedProfessionals.length} shortlisted professional(s)
+                  </p>
+                )}
+                <input type="hidden" {...register("assigned")} />
+              </div>
+            ) : (
+              // For non-clients: Show architect search dropdown
+              <>
+                <input
+                  type="text"
+                  placeholder="Search professional..."
+                  className={`w-full border rounded p-3 ${
+                    errors.assigned ? "border-red-500" : ""
+                  }`}
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setShowDropdown(true);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                />
+                <input type="hidden" {...register("assigned")} />
+
+                {/* Modal-like dropdown */}
+                {showDropdown && (
+                  <div
+                    className="absolute left-0 mt-1 w-full bg-white border rounded shadow-lg z-20"
+                    style={{
+                      maxHeight: "300px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {loadingArchitects ? (
+                      <p className="p-3">Loading...</p>
+                    ) : filteredArchitects.length > 0 ? (
+                      filteredArchitects.map((arch) => (
+                        <div
+                          key={arch._id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            // Fill ID into visible search bar
+                            setSearchTerm(arch.name || arch._id);
+                            // Also keep in hidden assigned field
+                            setValue("assigned", arch._id);
+                            // Close dropdown
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold uppercase">
+                            {(arch.name || "")
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500">
+                              {arch.name || "Unnamed"}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="p-3 text-gray-500">No results found</p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -354,3 +367,4 @@ function LeadForm() {
 }
 
 export default LeadForm;
+

@@ -5,14 +5,22 @@ const Counter = require('./Counter'); // import the shared Counter model
 // Lead schema
 const leadSchema = new mongoose.Schema({
   id: { type: String }, // custom display ID, not unique
-  name: { type: String, required: true },
-  isHuelip: { type: Boolean, default: false },
+  // New simplified fields
+  propertyDetails: { type: String, required: true },
   budget: { type: String, required: true },
-  contact: { type: String, required: true }, // Phone number or email
-  email: { type: String }, // Optional email field for better email handling
+  style: { type: String },
+  requirements: { type: String },
+  address: { type: String, required: true },
+  isHuelip: { type: Boolean, default: false },
+  assigned: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Client who created the lead
+  // Legacy fields (optional for backward compatibility)
+  name: { type: String },
+  contact: { type: String },
+  email: { type: String },
   status: { 
     type: String, 
-    required: true,
+    default: 'Not Assigned',
     enum: [
       'Not Assigned',
       'Assigned',
@@ -27,7 +35,6 @@ const leadSchema = new mongoose.Schema({
   },
   category: { type: String, enum: ['RESIDENTIAL', 'COMMERCIAL','INDUSTRIAL','RETAIL'] },
   update: { type: String },
-  assigned: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   source: { type: String },
   reminder: {
     date: { type: String },

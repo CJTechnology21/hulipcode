@@ -36,6 +36,7 @@ import ProjectForm from "./Admin/components/projects/ProjectForm";
 import Quote from "./Admin/components/Quote/Quote";
 import QuoteTask from "./Admin/components/Quote/QuoteTask";
 import QuoteForm from "./Admin/components/Quote/QuoteForm";
+import ClientQuotations from "./Admin/components/Quote/ClientQuotations";
 // product imports
 import Product from "./Admin/components/Product/Product";
 import ProductForm from "./Admin/components/Product/ProductForm";
@@ -57,6 +58,7 @@ import Ecom from "./client/Ecom";
 import Shop from "./client/Shop";
 import About from "./client/About";
 import Contact from "./client/Contact";
+import Professional from "./pages/Professional";
 import SingleProductPage from "./client/components/SingleProductPage";
 import UserProfile from "./client/components/UserProfile";
 import Favourites from "./client/components/Favourites";
@@ -204,6 +206,7 @@ function App() {
         <Route path="/quotedetails" element={<QuoteDetail />} />
         <Route path="/quoteform" element={<QuoteForm />} />
         <Route path="/quotemanager" element={<QuoteManager />} />
+        <Route path="/client-quotations" element={<ClientQuotations />} />
         {/* Procurement Routes */}
         <Route path="/procurement" element={<Procurement />} />
         <Route path="/addmaterials" element={<AddMaterialsScreen />} />
@@ -217,6 +220,7 @@ function App() {
         <Route path="/subsrciption" element={<Subscription />} />
         <Route path="/settings" element={<SettingsDashboard />} />
         <Route path="/admin-tools" element={<AdminTools />} />
+        <Route path="/professional" element={<Professional />} />
         <Route path="/orders" element={<Order />} />
         <Route path="/addorder" element={<AddOrderForm />} />
         {/* Invoives-routes */}

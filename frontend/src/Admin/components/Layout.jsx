@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Header from "../components/Header";
-import SideBar from "../components/SideBar";
+import Header from "./Header";
+import SideBar from "./SideBar";
 
 function Layout({ title, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -9,9 +9,9 @@ function Layout({ title, children }) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-20 bg-white border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 border-r transform transition-transform duration-300 ease-in-out md:translate-x-0 md:relative md:block ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:relative md:block`}
+        }`}
       >
         <SideBar />
       </div>

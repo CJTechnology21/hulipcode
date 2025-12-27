@@ -12,7 +12,7 @@ const {
 } = require("../controllers/leadController");
 
 router.post("/", protect, createLead);
-router.get("/", getLeads);
+router.get("/", protect, getLeads); // Add protect middleware to access req.user
 router.get("/:id", getLeadById);
 router.put("/:id", protect, updateLead);
 router.patch("/:id", protect, patchLead);

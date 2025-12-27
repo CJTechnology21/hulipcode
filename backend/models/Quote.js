@@ -107,6 +107,7 @@ const quoteSchema = new mongoose.Schema(
     },
     // Client approval tracking
     sentToClientAt: { type: Date }, // When quote was sent to client
+    sentByProfessional: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Professional who sent the quote to client
     clientApprovedAt: { type: Date }, // When client approved the quote
     // Revision tracking fields
     isRevision: { type: Boolean, default: false },

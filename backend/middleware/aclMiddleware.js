@@ -170,7 +170,7 @@ const checkQuoteAccess = async (quoteId, user) => {
   }
 
   const quote = await Quote.findById(quoteId)
-    .populate('leadId', 'assigned')
+    .populate('leadId', 'assigned createdBy')
     .populate('assigned', '_id');
 
   if (!quote) {
@@ -203,12 +203,19 @@ const checkQuoteAccess = async (quoteId, user) => {
     return { allowed: true };
   }
 
-  // Homeowner (client) - can access if owns the lead
+  // Homeowner (client) - can access if created the lead (createdBy) or is assigned to the lead
   if (isHomeowner(user)) {
     if (quote.leadId) {
       const lead = await Lead.findById(quote.leadId._id || quote.leadId);
-      if (lead && lead.assigned && lead.assigned.toString() === user._id.toString()) {
-        return { allowed: true };
+      if (lead) {
+        // Check if client created the lead (createdBy field)
+        if (lead.createdBy && lead.createdBy.toString() === user._id.toString()) {
+          return { allowed: true };
+        }
+        // Also check if client is assigned to the lead (assigned field)
+        if (lead.assigned && lead.assigned.toString() === user._id.toString()) {
+          return { allowed: true };
+        }
       }
     }
     return { allowed: false, reason: 'Homeowner does not own this quote\'s lead' };

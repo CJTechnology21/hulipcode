@@ -171,20 +171,65 @@ const handleEsignCallback = async (req, res) => {
           }
 
           // Determine if client or professional signed
-          // This logic depends on your signer identification
-          // For now, we'll check if it's the first signer (client) or second (professional)
-          const isClient = contract.leegalitySigningLinks[0]?.signerEmail === invitee.email;
+          // Check by comparing email with quote's leadId (client) or assigned (professional)
+          const Lead = require("../models/Lead");
+          const User = require("../models/User");
           
-          if (isClient) {
-            await contract.markClientSigned(
-              contract.quoteId?.leadId || null,
-              documentId
-            );
+          let isClient = false;
+          let clientUserId = null;
+          let professionalUserId = null;
+          
+          // Check if signer is the client (by checking quote's leadId.createdBy)
+          if (contract.quoteId?.leadId) {
+            const lead = await Lead.findById(contract.quoteId.leadId._id || contract.quoteId.leadId);
+            if (lead?.createdBy) {
+              const clientUser = await User.findById(lead.createdBy);
+              if (clientUser && clientUser.email === invitee.email) {
+                isClient = true;
+                clientUserId = clientUser._id;
+              }
+            }
+          }
+          
+          // If not client, check if signer is the professional (by checking quote's assigned)
+          if (!isClient && contract.quoteId?.assigned) {
+            const assignedArray = Array.isArray(contract.quoteId.assigned) 
+              ? contract.quoteId.assigned 
+              : [contract.quoteId.assigned];
+            
+            for (const assigned of assignedArray) {
+              const professionalUser = await User.findById(assigned._id || assigned);
+              if (professionalUser && professionalUser.email === invitee.email) {
+                professionalUserId = professionalUser._id;
+                break;
+              }
+            }
+          }
+          
+          // Mark signature based on role
+          if (isClient && clientUserId) {
+            await contract.markClientSigned(clientUserId, documentId);
+            console.log(`✅ Client signed: ${invitee.email}`);
+          } else if (professionalUserId) {
+            await contract.markProfessionalSigned(professionalUserId, documentId);
+            console.log(`✅ Professional signed: ${invitee.email}`);
           } else {
-            // Assume professional/architect
-            const project = await Project.findById(contract.projectId);
-            if (project?.architectId) {
-              await contract.markProfessionalSigned(project.architectId, documentId);
+            // Fallback: use first signer as client, second as professional
+            const isFirstSigner = contract.leegalitySigningLinks[0]?.signerEmail === invitee.email;
+            if (isFirstSigner) {
+              // Try to find client user by email
+              const clientUser = await User.findOne({ email: invitee.email, role: 'client' });
+              if (clientUser) {
+                await contract.markClientSigned(clientUser._id, documentId);
+                console.log(`✅ Client signed (fallback): ${invitee.email}`);
+              }
+            } else {
+              // Try to find professional user by email
+              const professionalUser = await User.findOne({ email: invitee.email, role: 'architect' });
+              if (professionalUser) {
+                await contract.markProfessionalSigned(professionalUser._id, documentId);
+                console.log(`✅ Professional signed (fallback): ${invitee.email}`);
+              }
             }
           }
         }

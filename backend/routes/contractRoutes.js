@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 const { 
   sendHtmlForSigning, 
   getContractStatus, 
@@ -48,16 +49,16 @@ router.get("/status/:documentId", getContractStatus);
 /**
  * @route   GET /api/contracts
  * @desc    Get all contracts with populated data
- * @access  Public (add auth middleware if needed)
+ * @access  Protected - requires authentication
  */
-router.get("/", getAllContracts);
+router.get("/", protect, getAllContracts);
 
 /**
  * @route   POST /api/contracts/create-from-quote
  * @desc    Create contract from quote
- * @access  Public (add auth middleware if needed)
+ * @access  Protected - requires authentication
  */
-router.post("/create-from-quote", createContractFromQuote);
+router.post("/create-from-quote", protect, createContractFromQuote);
 
 /**
  * @route   GET /api/contracts/:id/signed-document

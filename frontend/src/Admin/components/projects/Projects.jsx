@@ -4,9 +4,9 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import Layout from "../Layout";
 import SearchBar from "../../../components/SearchBar";
 import DropDown from "../../../components/DropDown";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import {
@@ -22,6 +22,10 @@ function Projects() {
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true); // <--- loading state
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if current user is a client
+  const isClient = localStorage.getItem('crm_role') === 'client';
 
   const searchKeys = [
     "id",
@@ -34,40 +38,63 @@ function Projects() {
     "cashFlow",
   ];
 
-  useEffect(() => {
-    const loadProjects = async () => {
-      setLoading(true); // show loader
-      try {
-        const data = await fetchProjects();
-        // Handle case where data is empty array (user not authenticated)
-        if (Array.isArray(data)) {
-          setProjects(
-            data.map((p) => ({
-              ...p,
-              progress: p.progress || 50,
-              cashFlow: p.cashFlow || 0,
-              cashFlowType: p.cashFlowType || "IN",
-              showMenu: false,
-              isEditing: false,
-            }))
-          );
-        } else {
-          setProjects([]);
-        }
-      } catch (err) {
-        console.error("Error fetching projects:", err);
-        // Only show error if it's not a 401 (401 is handled by interceptor)
-        if (err.response?.status !== 401) {
-          toast.error("Failed to load projects");
-        }
-        setProjects([]); // Set empty array on error
-      } finally {
-        setLoading(false); // hide loader
+  // Load projects function
+  const loadProjects = async () => {
+    setLoading(true); // show loader
+    try {
+      console.log("📥 Loading projects...");
+      const data = await fetchProjects();
+      console.log("📦 Received projects data:", data);
+      console.log("📊 Number of projects:", Array.isArray(data) ? data.length : 0);
+      
+      // Handle case where data is empty array (user not authenticated)
+      if (Array.isArray(data)) {
+        const mappedProjects = data.map((p) => ({
+          ...p,
+          progress: p.progress || 50,
+          cashFlow: p.cashFlow || 0,
+          cashFlowType: p.cashFlowType || "IN",
+          showMenu: false,
+          isEditing: false,
+        }));
+        console.log("✅ Mapped projects:", mappedProjects.length);
+        setProjects(mappedProjects);
+      } else {
+        console.warn("⚠️ Data is not an array:", data);
+        setProjects([]);
       }
-    };
+    } catch (err) {
+      console.error("❌ Error fetching projects:", err);
+      // Only show error if it's not a 401 (401 is handled by interceptor)
+      if (err.response?.status !== 401) {
+        toast.error("Failed to load projects");
+      }
+      setProjects([]); // Set empty array on error
+    } finally {
+      setLoading(false); // hide loader
+    }
+  };
 
+  // Load projects on mount and when location changes (navigation)
+  useEffect(() => {
     loadProjects();
-  }, []);
+  }, [location.pathname]); // Reload when navigating to this page
+  
+  // Handle refresh flag separately to avoid multiple toasts
+  useEffect(() => {
+    if (location.state?.refresh) {
+      const timer = setTimeout(() => {
+        loadProjects();
+        // Use a unique toast ID to prevent conflicts
+        toast.success("Projects refreshed!", { toastId: 'projects-refresh' });
+        // Clear the state to prevent repeated refreshes
+        window.history.replaceState({}, document.title);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.refresh]);
 
   const filteredProjects = projects.filter((proj) => {
     const isProtected = activeTab === "protect" ? proj.isHuelip : true;
@@ -147,7 +174,7 @@ function Projects() {
 
   return (
     <Layout title="Projects">
-      <ToastContainer />
+      {/* ToastContainer is already in App.js, no need for duplicate */}
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-300 px-4 py-2 bg-white">
@@ -202,7 +229,7 @@ function Projects() {
                   "#",
                   "Project ID",
                   "Project Name",
-                  "Client Name",
+                  isClient ? "Professional Name" : "Client Name",
                   "City / Area",
                   "Category",
                   "Status",
@@ -290,6 +317,11 @@ function Projects() {
                               handleChange(proj._id, "category", e.target.value)
                             }
                           />
+                        ) : key === "client" && isClient ? (
+                          // For clients, show architect name (read-only)
+                          <span className="text-gray-700">
+                            {proj.architectId?.name || "Unknown Professional"}
+                          </span>
                         ) : (
                           <Input
                             value={proj[key]}
@@ -306,6 +338,11 @@ function Projects() {
                           )}`}
                         >
                           {proj.status}
+                        </span>
+                      ) : key === "client" && isClient ? (
+                        // For clients, show professional/architect name instead of client name
+                        <span className="text-gray-700">
+                          {proj.architectId?.name || "Unknown Professional"}
                         </span>
                       ) : (
                         proj[key]

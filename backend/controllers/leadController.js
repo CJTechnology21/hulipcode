@@ -1,9 +1,34 @@
 const Lead = require("../models/Lead");
+const Quote = require("../models/Quote");
+
+// Helper functions to check user roles
+const isAdmin = (user) => {
+  return user && (user.role === 'admin' || user.isSuperAdmin === true);
+};
+
+const isClient = (user) => {
+  return user && user.role === 'client';
+};
+
+const isProfessional = (user) => {
+  return user && user.role === 'architect';
+};
 
 // Create Lead
 const createLead = async (req, res) => {
   try {
-    const lead = await Lead.create(req.body); // _id is used internally
+    // Professionals cannot create leads - only clients and admins can
+    if (req.user && isProfessional(req.user)) {
+      return res.status(403).json({ message: "Professionals cannot create leads. Leads are created by clients." });
+    }
+    
+    // If user is a client, set createdBy to their user ID
+    const leadData = { ...req.body };
+    if (req.user && isClient(req.user)) {
+      leadData.createdBy = req.user._id;
+    }
+    
+    const lead = await Lead.create(leadData);
     res.status(201).json(lead);
   } catch (err) {
     console.error("Create lead error:", err);
@@ -14,7 +39,34 @@ const createLead = async (req, res) => {
 // Get all leads
 const getLeads = async (req, res) => {
   try {
-    const leads = await Lead.find().populate("assigned", "name email");
+    let query = {};
+    
+    // If user is a client, only show leads they created
+    if (req.user && isClient(req.user)) {
+      query.createdBy = req.user._id;
+    }
+    // If user is a professional (architect), only show leads assigned to them that haven't been converted to quotes
+    else if (req.user && isProfessional(req.user)) {
+      query.assigned = req.user._id;
+      
+      // Find all leads assigned to this professional
+      const allLeads = await Lead.find(query).populate("assigned", "name email").populate("createdBy", "name email");
+      
+      // Find all quotes that reference these leads
+      const leadIds = allLeads.map(lead => lead._id);
+      const quotes = await Quote.find({ leadId: { $in: leadIds } }).select("leadId");
+      
+      // Get the lead IDs that have been converted to quotes
+      const convertedLeadIds = quotes.map(quote => quote.leadId.toString());
+      
+      // Filter out leads that have been converted to quotes
+      const leads = allLeads.filter(lead => !convertedLeadIds.includes(lead._id.toString()));
+      
+      return res.status(200).json(leads);
+    }
+    // Admins see all leads
+    
+    const leads = await Lead.find(query).populate("assigned", "name email").populate("createdBy", "name email");
     res.status(200).json(leads);
   } catch (err) {
     console.error("Get leads error:", err);

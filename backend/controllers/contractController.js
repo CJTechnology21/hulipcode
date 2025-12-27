@@ -229,23 +229,67 @@ exports.getSignedContractDocument = async (req, res) => {
 /**
  * Get all contracts with populated quote and lead data
  * GET /api/contracts
+ * Filtered by ACL - clients see contracts for their leads, professionals see contracts for their quotes
  */
 exports.getAllContracts = async (req, res) => {
   try {
     const Contract = require("../models/Contract");
-    const contracts = await Contract.find()
-      .populate({
-        path: "quoteId",
-        populate: {
-          path: "leadId",
-          select: "name contact email city category isHuelip"
-        },
-        select: "qid quoteAmount"
-      })
-      .populate("projectId", "name status")
-      .populate("clientSignature.signedBy", "name email")
-      .populate("professionalSignature.signedBy", "name email")
-      .sort({ createdAt: -1 });
+    const { checkQuoteAccess, isAdmin, isProfessional, isHomeowner } = require("../middleware/aclMiddleware");
+    const Lead = require("../models/Lead");
+    
+    let contracts;
+    
+    // Admin sees all contracts
+    if (req.user && isAdmin(req.user)) {
+      contracts = await Contract.find()
+        .populate({
+          path: "quoteId",
+          populate: {
+            path: "leadId",
+            select: "name contact email city category isHuelip createdBy"
+          },
+          select: "qid quoteAmount assigned"
+        })
+        .populate("quoteId.assigned", "name email")
+        .populate("projectId", "name status")
+        .populate("clientSignature.signedBy", "name email")
+        .populate("professionalSignature.signedBy", "name email")
+        .sort({ createdAt: -1 });
+    } else if (req.user) {
+      // Get all contracts first
+      const allContracts = await Contract.find()
+        .populate({
+          path: "quoteId",
+          populate: {
+            path: "leadId",
+            select: "name contact email city category isHuelip createdBy"
+          },
+          select: "qid quoteAmount assigned"
+        })
+        .populate("quoteId.assigned", "name email")
+        .populate("projectId", "name status")
+        .populate("clientSignature.signedBy", "name email")
+        .populate("professionalSignature.signedBy", "name email")
+        .sort({ createdAt: -1 });
+      
+      // Filter contracts based on user access
+      const accessibleContracts = [];
+      
+      for (const contract of allContracts) {
+        if (!contract.quoteId) continue;
+        
+        // Check if user has access to the quote
+        const access = await checkQuoteAccess(contract.quoteId._id, req.user);
+        if (access.allowed) {
+          accessibleContracts.push(contract);
+        }
+      }
+      
+      contracts = accessibleContracts;
+    } else {
+      // Unauthenticated - return empty
+      contracts = [];
+    }
 
     res.json({
       success: true,
@@ -329,7 +373,7 @@ exports.createContractFromQuote = async (req, res) => {
 
     // Fetch quote with populated data
     const quote = await Quote.findById(quoteId)
-      .populate("leadId", "name contact email city category isHuelip")
+      .populate("leadId", "name contact email city category isHuelip createdBy")
       .populate("assigned", "name email");
 
     if (!quote) {

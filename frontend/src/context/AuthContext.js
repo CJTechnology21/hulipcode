@@ -67,6 +67,18 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // Refresh user data from server
+  const refreshUser = async () => {
+    try {
+      const data = await getCurrentUser();
+      setUser(data.user || data);
+      return data.user || data;
+    } catch (err) {
+      console.error("Error refreshing user:", err);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -78,6 +90,7 @@ export const AuthProvider = ({ children }) => {
         googleInit,
         googleComplete,
         googleLogin,
+        refreshUser,
       }}
     >
       {children}
@@ -86,4 +99,21 @@ export const AuthProvider = ({ children }) => {
 };
 
 // 🔁 Custom hook
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    // Return a default context if AuthContext is not available
+    return {
+      user: null,
+      loading: false,
+      login: async () => {},
+      logout: async () => {},
+      signup: async () => {},
+      googleInit: async () => {},
+      googleComplete: async () => {},
+      googleLogin: async () => {},
+      refreshUser: async () => {},
+    };
+  }
+  return context;
+};

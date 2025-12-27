@@ -102,13 +102,13 @@ const getUsers = async (req, res) => {
   }
 };
 
-// @desc    Get all assignable users (architects + Site Staff) for task assignment
+// @desc    Get all assignable users (architects + Site Staff + Labour Contractor + Subcon) for task assignment
 // @route   GET /api/user/assignable
 // @access  Private
 const getAssignableUsers = async (req, res) => {
   try {
     const assignableUsers = await User.find({ 
-      role: { $in: ['architect', 'Site Staff'] } 
+      role: { $in: ['architect', 'Site Staff', 'Labour Contractor', 'Subcon'] } 
     }).select('_id name email phoneNumber role');
     res.json(assignableUsers);
   } catch (err) {

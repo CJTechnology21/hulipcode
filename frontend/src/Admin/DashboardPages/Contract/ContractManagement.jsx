@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaPlus, FaEye, FaFileContract } from "react-icons/fa";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import { BsFilter } from "react-icons/bs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   fetchContracts,
@@ -16,11 +16,18 @@ import ClipLoader from "react-spinners/ClipLoader";
 export default function ContractManagement() {
   const [activeTab, setActiveTab] = useState("All Contracts");
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [contractList, setContractList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [userRole, setUserRole] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('crm_role') || '';
+    }
+    return '';
+  });
   const [viewer, setViewer] = useState({
     open: false,
     loading: false,
@@ -29,14 +36,25 @@ export default function ContractManagement() {
     contract: null,
   });
 
+  // Get user role from localStorage - initialize immediately
+  useEffect(() => {
+    const role = localStorage.getItem('crm_role') || '';
+    setUserRole(role);
+  }, []);
+
+  // Use userRole directly (already initialized)
+  const currentUserRole = userRole;
+
   // Fetch contracts from API
   const loadContracts = async () => {
     setLoading(true);
     try {
       const contracts = await fetchContracts();
+      console.log("📋 Loaded contracts:", contracts.length, contracts);
       setContractList(contracts);
       setError(null);
     } catch (err) {
+      console.error("Error loading contracts:", err);
       setError(err.message || "Error loading contracts");
       toast.error("Failed to load contracts");
     } finally {
@@ -44,9 +62,13 @@ export default function ContractManagement() {
     }
   };
 
+  // Load contracts on mount and when pathname changes to /contracts
   useEffect(() => {
-    loadContracts();
-  }, []);
+    if (location.pathname === "/contracts") {
+      loadContracts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]); // Only depend on pathname to avoid infinite loops
 
   // Cleanup any allocated blob URL
   useEffect(() => {
@@ -77,18 +99,24 @@ export default function ContractManagement() {
         switch (parseInt(key)) {
           case 1: // C-ID
             return contract._id?.toString().toLowerCase().includes(searchTerm);
-          case 2: // Name
-            return contract.quoteId?.leadId?.name?.toLowerCase().includes(searchTerm);
+          case 2: // Name (client for professional, professional for client)
+            if (currentUserRole === 'client') {
+              return contract.quoteId?.assigned?.[0]?.name?.toLowerCase().includes(searchTerm);
+            } else {
+              return contract.quoteId?.leadId?.name?.toLowerCase().includes(searchTerm);
+            }
           case 3: // Q-ID
             return contract.quoteId?.qid?.toLowerCase().includes(searchTerm);
-          case 4: // Contact
-            return contract.quoteId?.leadId?.contact?.toLowerCase().includes(searchTerm);
+          case 4: // Contact (client contact for professional, professional email for client)
+            if (currentUserRole === 'client') {
+              return contract.quoteId?.assigned?.[0]?.email?.toLowerCase().includes(searchTerm);
+            } else {
+              return contract.quoteId?.leadId?.contact?.toLowerCase().includes(searchTerm);
+            }
           case 5: // Quote Amount
             return contract.metadata?.totalAmount?.toString().includes(searchTerm);
           case 6: // City/Area
             return contract.quoteId?.leadId?.city?.toLowerCase().includes(searchTerm);
-          case 7: // Assigned to
-            return contract.quoteId?.assigned?.[0]?.name?.toLowerCase().includes(searchTerm);
           default:
             return true;
         }
@@ -157,47 +185,107 @@ export default function ContractManagement() {
     }
   };
 
-  // Get status badge for Own signature
-  const getOwnStatusBadge = (contract) => {
+  // Get status badge for Professional signature
+  const getProfessionalStatusBadge = (contract) => {
+    const isProfessional = currentUserRole === 'architect';
+    const professionalName = contract.professionalSignature?.signedBy?.name || 
+                            contract.quoteId?.assigned?.[0]?.name || 
+                            "Professional";
+    
     if (contract.signed_by_professional) {
       return (
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-          Signed
-        </span>
+        <div className="flex flex-col">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 mb-1">
+            Signed
+          </span>
+          {contract.professionalSignature?.signedBy?.name && (
+            <span className="text-xs text-gray-600">
+              {contract.professionalSignature.signedBy.name}
+            </span>
+          )}
+        </div>
       );
     }
+    
+    // If current user is professional, show sign button
+    if (isProfessional) {
+      return (
+        <Button
+          variant="custom"
+          onClick={() => {
+            navigate("/sign-contract", {
+              state: {
+                contractId: contract._id,
+                quoteId: contract.quoteId?._id,
+                qid: contract.quoteId?.qid,
+                totalAmount: contract.metadata?.totalAmount || contract.quoteId?.quoteAmount,
+                architectId: contract.quoteId?.assigned?.[0]?._id,
+                clientName: contract.quoteId?.leadId?.name,
+              },
+            });
+          }}
+          className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded-full text-xs font-semibold"
+        >
+          Sign Contract
+        </Button>
+      );
+    }
+    
+    // If current user is client, show waiting status
     return (
-      <Button
-        variant="custom"
-        onClick={() => {
-          // Navigate to sign contract page with contract data
-          navigate("/sign-contract", {
-            state: {
-              contractId: contract._id,
-              quoteId: contract.quoteId?._id,
-              qid: contract.quoteId?.qid,
-              totalAmount: contract.metadata?.totalAmount || contract.quoteId?.quoteAmount,
-              architectId: contract.quoteId?.assigned?.[0]?._id,
-              clientName: contract.quoteId?.leadId?.name,
-            },
-          });
-        }}
-        className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded-full text-xs font-semibold"
-      >
-        Sign Contract
-      </Button>
+      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+        Waiting
+      </span>
     );
   };
 
   // Get status badge for Client signature
   const getClientStatusBadge = (contract) => {
+    const isClient = currentUserRole === 'client';
+    
     if (contract.signed_by_client) {
       return (
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-          Signed
-        </span>
+        <div className="flex flex-col">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 mb-1">
+            Signed
+          </span>
+          {contract.clientSignature?.signedBy?.name && (
+            <span className="text-xs text-gray-600">
+              {contract.clientSignature.signedBy.name}
+            </span>
+          )}
+        </div>
       );
     }
+    
+    // If current user is client, show sign button
+    if (isClient) {
+      return (
+        <Button
+          variant="custom"
+          onClick={() => {
+            navigate("/sign-contract", {
+              state: {
+                contractId: contract._id,
+                quoteId: contract.quoteId?._id,
+                qid: contract.quoteId?.qid,
+                totalAmount: contract.metadata?.totalAmount || contract.quoteId?.quoteAmount,
+                architectId: contract.quoteId?.assigned?.[0]?._id,
+                clientName: contract.quoteId?.leadId?.name,
+                professionalName: contract.quoteId?.assigned?.[0]?.name,
+                clientEmail: contract.quoteId?.leadId?.email,
+                professionalEmail: contract.quoteId?.assigned?.[0]?.email,
+              },
+            });
+          }}
+          className="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded-full text-xs font-semibold"
+        >
+          Sign Contract
+        </Button>
+      );
+    }
+    
+    // For professionals, show waiting status
     return (
       <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
         Waiting
@@ -217,29 +305,34 @@ export default function ContractManagement() {
     return null;
   };
 
-  // Get assigned user badge
-  const getAssignedBadge = (contract) => {
-    const assigned = contract.quoteId?.assigned?.[0];
-    if (!assigned) return <span>-</span>;
+  // Get client info badge (for professional view)
+  const getClientInfoBadge = (contract) => {
+    const client = contract.quoteId?.leadId;
+    if (!client) return <span>-</span>;
     
-    const initials = assigned.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "?";
-
-    const colors = ["bg-yellow-500", "bg-purple-500", "bg-pink-500", "bg-blue-500"];
-    const colorIndex = assigned._id?.toString().charCodeAt(0) % colors.length || 0;
-
+    const clientName = client.name || "-";
+    const clientContact = client.contact || "-";
+    
     return (
-      <div className="flex items-center gap-2">
-        <div
-          className={`w-6 h-6 ${colors[colorIndex]} text-white text-xs rounded-full flex items-center justify-center font-bold`}
-        >
-          {initials}
-        </div>
-        <span className="text-sm">{assigned.name}</span>
+      <div className="flex flex-col">
+        <span className="text-sm font-medium">{clientName}</span>
+        <span className="text-xs text-gray-500">{clientContact}</span>
+      </div>
+    );
+  };
+
+  // Get professional info badge (for client view)
+  const getProfessionalInfoBadge = (contract) => {
+    const professional = contract.quoteId?.assigned?.[0];
+    if (!professional) return <span>-</span>;
+    
+    const professionalName = professional.name || "-";
+    const professionalEmail = professional.email || "-";
+    
+    return (
+      <div className="flex flex-col">
+        <span className="text-sm font-medium">{professionalName}</span>
+        <span className="text-xs text-gray-500">{professionalEmail}</span>
       </div>
     );
   };
@@ -323,13 +416,12 @@ export default function ContractManagement() {
                     {[
                       "S.no",
                       "C-ID",
-                      "Name",
+                      currentUserRole === 'client' ? "Professional" : "Client",
                       "Q-ID",
                       "Huelip Protect",
-                      "Contact no.",
+                      currentUserRole === 'client' ? "Professional Contact" : "Contact no.",
                       "Quote Amount",
                       "City/Area",
-                      "Assigned to",
                       "Signed Status",
                       "",
                     ].map((head, i) => (
@@ -344,9 +436,9 @@ export default function ContractManagement() {
 
                   {/* Filters Row */}
                   <tr className="bg-white">
-                    {Array.from({ length: 11 }).map((_, idx) => (
+                    {Array.from({ length: 10 }).map((_, idx) => (
                       <td key={idx} className="px-3 py-2">
-                        {idx === 9 || idx === 10 ? null : (
+                        {idx === 8 || idx === 9 ? null : (
                           <SearchBar
                             value={filters[idx] || ""}
                             onChange={(e) =>
@@ -363,7 +455,7 @@ export default function ContractManagement() {
                 <tbody className="text-sm">
                   {filteredContracts.length === 0 ? (
                     <tr>
-                      <td colSpan="11" className="px-3 py-8 text-center text-gray-500">
+                      <td colSpan="10" className="px-3 py-8 text-center text-gray-500">
                         No contracts found
                       </td>
                     </tr>
@@ -375,7 +467,10 @@ export default function ContractManagement() {
                           {getContractId(contract)}
                         </td>
                         <td className="px-3 py-3">
-                          {contract.quoteId?.leadId?.name || "N/A"}
+                          {currentUserRole === 'client' 
+                            ? getProfessionalInfoBadge(contract)
+                            : getClientInfoBadge(contract)
+                          }
                         </td>
                         <td className="px-3 py-3">
                           {contract.quoteId?.qid || "N/A"}
@@ -384,7 +479,10 @@ export default function ContractManagement() {
                           {getHuelipProtectBadge(contract)}
                         </td>
                         <td className="px-3 py-3">
-                          {contract.quoteId?.leadId?.contact || "N/A"}
+                          {currentUserRole === 'client'
+                            ? (contract.quoteId?.assigned?.[0]?.email || "N/A")
+                            : (contract.quoteId?.leadId?.contact || "N/A")
+                          }
                         </td>
                         <td className="px-3 py-3 font-semibold">
                           ₹{Number(contract.metadata?.totalAmount || contract.quoteId?.quoteAmount || 0).toLocaleString("en-IN")}/-
@@ -393,13 +491,10 @@ export default function ContractManagement() {
                           {contract.quoteId?.leadId?.city || "N/A"}
                         </td>
                         <td className="px-3 py-3">
-                          {getAssignedBadge(contract)}
-                        </td>
-                        <td className="px-3 py-3">
                           <div className="flex gap-2">
                             <div className="flex flex-col">
-                              <span className="text-xs text-gray-500 mb-1">Own</span>
-                              {getOwnStatusBadge(contract)}
+                              <span className="text-xs text-gray-500 mb-1">Professional</span>
+                              {getProfessionalStatusBadge(contract)}
                             </div>
                             <div className="flex flex-col">
                               <span className="text-xs text-gray-500 mb-1">Client</span>

@@ -119,6 +119,17 @@ export const approveQuote = async (quoteId) => {
   }
 };
 
+// Client rejects quote
+export const rejectQuote = async (quoteId) => {
+  try {
+    const res = await axiosInstance.post(`/api/quote/${quoteId}/reject`);
+    return res.data;
+  } catch (error) {
+    console.error('Error rejecting quote:', error);
+    throw error;
+  }
+};
+
 // Delete a single summary row by spaceId
 export const deleteSummaryRow = async (quoteId, spaceId) => {
   const res = await axiosInstance.delete(
@@ -250,15 +261,22 @@ export const deleteDeliverable = async (quoteId, spaceId, itemId) => {
 
 export const createProjectFromQuote = async (quoteId, architectId) => {
   try {
-    // console.log("Sending to backend:", { quoteId, architectId });
+    console.log("📤 Sending project creation request:", { 
+      quoteId, 
+      architectId,
+      url: `/api/quote/${quoteId}/create-project`
+    });
+    
     const response = await axiosInstance.post(
       `/api/quote/${quoteId}/create-project`,
       { architectId } //  send architectId in request body
     );
 
+    console.log("📥 Received response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error in createProjectFromQuote service:", error);
+    console.error("❌ Error in createProjectFromQuote service:", error);
+    console.error("❌ Error response:", error.response?.data);
     throw error;
   }
 };
